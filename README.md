@@ -10,7 +10,7 @@ pip3 install git+https://github.com/rmst/yoke.git
 ```
 To enable Yoke to create gamepad devices we need to add a udev rule
 ```bash
-sudo yoke-enable-uinput
+sudo yoke-enable-uinput  # you can find that script in the "bin" directory
 ```
 (This can be undone via `yoke-disable-uinput`)
 
