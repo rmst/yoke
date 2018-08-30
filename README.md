@@ -32,10 +32,10 @@ sudo apt install gamepadtool
 gamepadtool   # to run
 ```
 
-## Security
+### Security
 The communication between the Linux client and the Android app are unencrypted UDP messages. You should therefore use it in networks you trust. However, if you are not in a trusted environment you can always create one via USB or Bluetooth. Just enable USB or Bluetooth tethering on your Android device and connect your Linux computer. This will create a mini-network for just your Phone and Computer and Yoke will work as usual.
 
-## Tweaking
+### Tweaking
 Changing the controller mapping and behaviour of certain axes is very simple. Have a look at `bin/yoke` which is the simple Python script that is used for the `yoke` command.
 
 If you want to modify more low level stuff that's also pretty easy. The Yoke linux client basically consists of single Python file `yoke/service.py`.
