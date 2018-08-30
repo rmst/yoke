@@ -1,5 +1,4 @@
 from zeroconf import ServiceBrowser, Zeroconf, InterfaceChoice
-# import numpy as np
 import ipaddress
 import logging
 import socket
@@ -9,7 +8,6 @@ from zeroconf import ServiceInfo, Zeroconf
 
 import time
 import socket
-import numpy as np
 from time import sleep, time
 from platform import system
 from threading import Thread, Event
