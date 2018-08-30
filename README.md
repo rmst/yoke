@@ -44,4 +44,4 @@ Changing the controller mapping and behaviour of certain axes is very simple. Ha
 
 If you want to modify more low level stuff that's also pretty easy. The Yoke linux client basically consists of a single Python file `yoke/service.py`.
 
-![Accelerometer](media/accelerometer.gif)
+![Accelerometer](media/flightgear.gif)
