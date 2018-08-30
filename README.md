@@ -21,7 +21,7 @@ sudo apt install jstest-gtk
 jstest-gtk  # to run
 ```
 
-Additionally to use Yoke effectively with SDL2 games (e.g. all games based on Unreal Engine and Unity3D) you can install the SDL2 gamepad tool
+To use Yoke effectively with SDL-based games (e.g. all games using Unreal Engine or Unity3D), you can install the SDL gamepad tool.
 ```
 sudo apt install gamepadtool
 gamepadtool   # to run
