@@ -137,8 +137,8 @@ class Service:
         stype = "_yoke._udp.local."
         netname = socket.gethostname() + '-' + self.dev.name
         fullname = netname + '.' + stype
-        self.info = ServiceInfo(stype, fullname, socket.inet_aton(adr), port, 0, 0, {'this is': 3}, fullname)
-        zeroconf.register_service(self.info)
+        self.info = ServiceInfo(stype, fullname, socket.inet_aton(adr), port, 0, 0, {}, fullname)
+        zeroconf.register_service(self.info, ttl=10)
         while True:
             print('To connect, select "{}" on your device.'.format(netname))
             trecv = time()
