@@ -1,0 +1,53 @@
+#!/bin/env python3
+import yoke
+from yoke import EVENTS
+import argparse
+
+class FlightgearYokeService(yoke.Service):
+    events = yoke.GAMEPAD_EVENTS + (EVENTS.ABS_RZ,)
+    def make_events(self, v):
+        e = (
+            (EVENTS.ABS_X, v[0]),
+            (EVENTS.ABS_Y, v[1]),
+            (EVENTS.ABS_RX, v[2]),
+            (EVENTS.ABS_RY, (v[3]-.5)*2),
+            (EVENTS.ABS_RZ, (v[3]-.5)*2),
+            (EVENTS.ABS_HAT0X, v[4]),
+            (EVENTS.ABS_HAT0Y, v[5]),
+            )
+        return e
+
+class GamepadService(yoke.Service):
+    events = yoke.GAMEPAD_EVENTS
+    def make_events(self, v):
+        e = (
+            (EVENTS.ABS_HAT0X, v[0]),
+            (EVENTS.ABS_HAT0Y, v[1]),
+            (EVENTS.ABS_RX,    v[2]),
+            (EVENTS.ABS_RY,    v[3]),
+            (EVENTS.ABS_X,     v[4]),
+            (EVENTS.ABS_Y,     v[5]),
+            )
+        return e
+
+TYPES = {'gamepad': GamepadService, 'flightgear': FlightgearYokeService}
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--name', type=str, default='Yoke', help='virtual device name')
+parser.add_argument('--type', type=str, default='gamepad', help='device type', choices=TYPES.keys())
+args = parser.parse_args()
+
+Service = TYPES[args.type]
+dev = yoke.Device(args.name, events=Service.events)
+service = Service(dev)
+
+try:
+    print('Starting service... Press Ctrl+C to exit.')
+    service.run()
+except KeyboardInterrupt:
+    pass
+finally:
+    print("Shutting down...")
+    service.close()
+
+
