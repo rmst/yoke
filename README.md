@@ -5,7 +5,8 @@ Get the [Android app here](https://play.google.com/store/apps/details?id=com.sim
 
 The Linux client can be installed from this repo via
 ```bash
-pip3 install git+https://github.com/rmst/yoke.git  # requires Python 3.5+ (preinstalled Ubuntu 16.04 and after)
+# Requires Python 3.5+ which comes pre-installed in Ubuntu 16.04 and after.
+pip3 install git+https://github.com/rmst/yoke.git
 ```
 To enable Yoke to create gamepad devices we need to add a udev rule
 ```bash
