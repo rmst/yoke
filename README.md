@@ -1,7 +1,7 @@
 ## Yoke
 #### Yoke is a hackable Android gamepad for Linux
 
-Get the Android app here ...
+Get the [Android app here](https://play.google.com/store/apps/details?id=com.simonramstedt.yoke).
 
 The Linux client can be installed from this repo via
 ```
