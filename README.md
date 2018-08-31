@@ -1,10 +1,10 @@
 ## Yoke (Linux client)
 
-![Thumbstick](media/thumbstick.gif)
+![Accelerometer](media/flightgear.gif)
 
 #### Yoke is a hackable Android gamepad for Linux
 
-Get the Android app on the [Google Play](https://play.google.com/store/apps/details?id=com.simonramstedt.yoke) or [Github](https://github.com/rmst/yoke-android).
+Get the Android app on [Google Play](https://play.google.com/store/apps/details?id=com.simonramstedt.yoke) or [Github](https://github.com/rmst/yoke-android).
 
 The Linux client can be installed with
 ```bash
@@ -44,4 +44,6 @@ Changing the controller mapping and behaviour of certain axes is very simple. Ha
 
 If you want to modify more low level stuff that's also pretty easy. The Yoke linux client basically consists of a single Python file `yoke/service.py`.
 
-![Accelerometer](media/flightgear.gif)
+![Thumbstick](media/thumbstick.gif)
+
+
