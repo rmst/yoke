@@ -4,7 +4,7 @@
 
 #### Yoke is a hackable Android gamepad for Linux
 
-Get the Android app on [Google Play](https://play.google.com/store/apps/details?id=com.simonramstedt.yoke) or [Github](https://github.com/rmst/yoke-android).
+Get the Android app on [F-Droid](https://f-droid.org/packages/com.simonramstedt.yoke/), [Google Play](https://play.google.com/store/apps/details?id=com.simonramstedt.yoke) or [Github](https://github.com/rmst/yoke-android).
 
 The Linux client can be installed with
 ```bash
@@ -13,7 +13,7 @@ pip3 install git+https://github.com/rmst/yoke.git
 ```
 To enable Yoke to create gamepad devices we need to add a udev rule
 ```bash
-sudo yoke-enable-uinput  # you can find that script in the "bin" directory
+yoke-enable-uinput  # you can find that script in the "bin" directory
 ```
 (This can be undone via `yoke-disable-uinput`)
 

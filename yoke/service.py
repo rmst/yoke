@@ -126,7 +126,7 @@ class Service:
 
         # open udp socket on random available port
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 512)  # small buffer for low latency
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 128)  # small buffer for low latency
         self.sock.bind((get_ip_address(), 0))
         self.sock.settimeout(0)
         adr, port = self.sock.getsockname()

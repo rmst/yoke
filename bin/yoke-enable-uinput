@@ -7,20 +7,16 @@
 # sudo chgrp uinput /dev/uinput # change group
 # sudo chmod g+rwx /dev/uinput # allow group to read and write
 
-# persistent
-SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
-# echo $SCRIPTDIR
-
-RULES="$SCRIPTDIR/udev-rules/40-uinput.rules"
-
 echo "Adding new user group called \"uinput\""
-addgroup uinput
-adduser $SUDO_USER uinput
+sudo addgroup uinput
+sudo adduser $SUDO_USER uinput
 
-echo "Copying $RULES to /etc/udev/rules.d/"
-cp $RULES /etc/udev/rules.d/
+echo "Copying rules to /etc/udev/rules.d/"
+sudo tee /etc/udev/rules.d/40-uinput-yoke.rules > /dev/null << 'EOF'
+KERNEL=="uinput", MODE="0660", GROUP="uinput"
+EOF
 
 echo "Reloading /etc/udev/rules.d/ ..."
-udevadm control --reload-rules
-udevadm trigger
-echo "Done. For the changes to take effect, log in again or type \"su $SUDO_USER\"".
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+echo "Done. For the changes to take effect, log in again or type \"su $USER\"".
