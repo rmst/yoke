@@ -9,7 +9,7 @@
 
 echo "Adding new user group called \"uinput\""
 sudo addgroup uinput
-sudo adduser $SUDO_USER uinput
+sudo adduser $USER uinput
 
 echo "Copying rules to /etc/udev/rules.d/"
 sudo tee /etc/udev/rules.d/40-uinput-yoke.rules > /dev/null << 'EOF'
