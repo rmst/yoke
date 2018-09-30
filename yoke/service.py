@@ -101,9 +101,10 @@ class Service:
     sock = None
     info = None
 
-    def __init__(self, dev):
+    def __init__(self, dev, port=0):
         self.dev = dev
-
+        self.port = port
+        
     def make_events(self, values):
         """returns a (event_code, value) tuple for each value in values"""
         raise NotImplementedError()
@@ -127,9 +128,10 @@ class Service:
         # open udp socket on random available port
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 128)  # small buffer for low latency
-        self.sock.bind((get_ip_address(), 0))
+        self.sock.bind((get_ip_address(), self.port))
         self.sock.settimeout(0)
         adr, port = self.sock.getsockname()
+        self.port = port
 
         # create zeroconf service
         stype = "_yoke._udp.local."
@@ -138,7 +140,8 @@ class Service:
         self.info = ServiceInfo(stype, fullname, socket.inet_aton(adr), port, 0, 0, {}, fullname)
         zeroconf.register_service(self.info, ttl=10)
         while True:
-            print('To connect, select "{}" on your device.'.format(netname))
+            print('To connect select "{}" on your device,'.format(netname))
+            print('or connect manually to "{}:{}"'.format(adr, port))
             trecv = time()
             irecv = 0
             connection = None
