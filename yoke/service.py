@@ -100,6 +100,7 @@ class Service:
     dev = None
     sock = None
     info = None
+    dt = 0.02
 
     def __init__(self, dev, port=0):
         self.dev = dev
@@ -175,7 +176,7 @@ class Service:
                     print('  (listened {} times per second)'.format(int(irecv/tdelta)))
                     break
 
-                sleep(0.02)
+                sleep(self.dt)
                 irecv += 1
 
     def close_atexit(self):

@@ -17,6 +17,19 @@ class FlightgearYokeService(yoke.Service):
             )
         return e
 
+class RichardBurnsRallyService(yoke.Service):
+    events = yoke.GAMEPAD_EVENTS + (EVENTS.ABS_RZ,)
+    dt = 0.01
+    def make_events(self, v):
+        e = (
+            (EVENTS.ABS_RX,    v[2]),
+            (EVENTS.ABS_RY,    v[3]),
+            (EVENTS.ABS_RZ,    v[5]),
+            (EVENTS.ABS_X,     v[0]),
+            (EVENTS.ABS_Y,     -v[1]+1.0),
+            )
+        return e
+
 class GamepadService(yoke.Service):
     events = yoke.GAMEPAD_EVENTS
     def make_events(self, v):
@@ -30,7 +43,7 @@ class GamepadService(yoke.Service):
             )
         return e
 
-TYPES = {'gamepad': GamepadService, 'flightgear': FlightgearYokeService}
+TYPES = {'gamepad': GamepadService, 'flightgear': FlightgearYokeService, 'rbr': RichardBurnsRallyService}
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--name', type=str, default='Yoke', help='virtual device name')
