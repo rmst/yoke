@@ -1,8 +1,8 @@
-## Yoke (Linux client)
+## Yoke (desktop client)
 
 ![Accelerometer](media/flightgear.gif)
 
-#### Yoke is a hackable Android gamepad for Linux
+#### Yoke is a hackable Android gamepad for Linux (and Windows)
 
 Get the Android app on [F-Droid](https://f-droid.org/packages/com.simonramstedt.yoke/), [Google Play](https://play.google.com/store/apps/details?id=com.simonramstedt.yoke) or [Github](https://github.com/rmst/yoke-android).
 
@@ -11,20 +11,22 @@ The Linux client can be installed with
 # Requires Python 3.5+ which comes pre-installed in Ubuntu 16.04 and after.
 pip3 install git+https://github.com/rmst/yoke.git
 ```
-To enable Yoke to create gamepad devices we need to add a udev rule
+On Linux to enable Yoke to create gamepad devices we need to add a udev rule
 ```bash
 yoke-enable-uinput  # you can find that script in the "bin" directory
 ```
 (This can be undone via `yoke-disable-uinput`)
 
-Then you can run the client with
+On Windows Yoke needs the vJoy driver. The installer can be downloaded [here](http://vjoystick.sourceforge.net/site/index.php/download-a-install/download).
+
+Now you can run the client with
 ```bash
 yoke
 ```
 Your computer should then show up in the Yoke app immediately if you are on the same network.
 
 ### Extras
-To test Yoke you can install, e.g. jstest-gtk:
+To test Yoke on Linux you can install, e.g. jstest-gtk:
 ```bash
 sudo apt install jstest-gtk
 jstest-gtk  # to run

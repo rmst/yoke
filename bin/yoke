@@ -10,23 +10,47 @@ class FlightgearYokeService(yoke.Service):
             (EVENTS.ABS_X, v[0]),
             (EVENTS.ABS_Y, v[1]),
             (EVENTS.ABS_RX, v[2]),
-            (EVENTS.ABS_RY, (v[3]-.5)*2),
-            (EVENTS.ABS_RZ, (v[3]-.5)*2),
+            (EVENTS.ABS_RY, (v[3]-1)*2),
+            (EVENTS.ABS_RZ, (v[3]-1)*2),
             (EVENTS.ABS_HAT0X, v[4]),
             (EVENTS.ABS_HAT0Y, v[5]),
             )
         return e
 
+def half(v):
+    return (v-0.51)*2.2
+
+def deadzone(v, z):
+    m = 1 / (1-z)
+    return m * (v+z) if v < -z else m * (v-z) if z < v else 0
+
+def soft_deadzone(v, z=2):
+    return abs(v)**z if v > 0 else -abs(v)**z
+
 class RichardBurnsRallyService(yoke.Service):
     events = yoke.GAMEPAD_EVENTS + (EVENTS.ABS_RZ,)
-    dt = 0.01
+    dt = 0.02
+    def make_events(self, v):
+        e = (
+            (EVENTS.ABS_RX,    half(v[3])),
+            (EVENTS.ABS_RY,    half(-v[3])),
+            (EVENTS.ABS_RZ,    -half(v[5])),  # handbrake
+            (EVENTS.ABS_X,     v[0]), # steering
+            (EVENTS.ABS_Y,     soft_deadzone(-v[1]-0.6, 2.2)), # throttle brake
+            )
+        return e
+
+class VjoyService(yoke.Service):
+    events = yoke.EVENTS
+    dt = 0.02
     def make_events(self, v):
         e = (
             (EVENTS.ABS_RX,    v[2]),
             (EVENTS.ABS_RY,    v[3]),
             (EVENTS.ABS_RZ,    v[5]),
             (EVENTS.ABS_X,     v[0]),
-            (EVENTS.ABS_Y,     -v[1]+1.0),
+            (EVENTS.ABS_Y,     v[1]),
+            (EVENTS.ABS_Z,     v[4]),
             )
         return e
 
@@ -43,7 +67,7 @@ class GamepadService(yoke.Service):
             )
         return e
 
-TYPES = {'gamepad': GamepadService, 'flightgear': FlightgearYokeService, 'rbr': RichardBurnsRallyService}
+TYPES = {'gamepad': GamepadService, 'flightgear': FlightgearYokeService, 'rbr': RichardBurnsRallyService, 'vjoy': VjoyService}
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--name', type=str, default='Yoke', help='virtual device name')

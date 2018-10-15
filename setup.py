@@ -2,6 +2,7 @@ from setuptools import setup
 from setuptools import find_packages
 
 import sys
+from platform import system
 
 setup(name='yoke',
       version='0.1.1',
@@ -14,7 +15,7 @@ setup(name='yoke',
       install_requires=[
             # 'numpy',
             'zeroconf',
-            'python-uinput'
+            *(['python-uinput'] if system() is 'Linux' else [])
             ],
       extras_require={
 

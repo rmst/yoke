@@ -14,8 +14,10 @@ from threading import Thread, Event
 import sys
 import json
 import argparse
-from uinput import ev as EVENTS
 import atexit
+
+from yoke import events as EVENTS
+
 
 def get_ip_address():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -24,7 +26,6 @@ def get_ip_address():
     s.close()
     return ip
     
-import uinput
 from glob import glob
 
 GAMEPAD_EVENTS = (
@@ -48,6 +49,9 @@ GAMEPAD_EVENTS = (
     EVENTS.BTN_MODE,
     )
 
+
+
+
 ABS_EVENTS = [getattr(EVENTS, n) for n in dir(EVENTS) if n.startswith("ABS_")]
 
 class Device:
@@ -64,12 +68,14 @@ class Device:
         events = [e + (0, 255, 0, 0) if e in ABS_EVENTS else e for e in events]
 
         BUS_VIRTUAL = 0x06
+        import uinput
+
         self.device = uinput.Device(events, name, BUS_VIRTUAL)
 
     def emit(self, d, v):
         if d not in self.events:
             raise AttributeError("Event {} has not been registered.".format(d))
-        self.device.emit(d, int(v * 255), syn=False)
+        self.device.emit(d, int((v+1)/2 * 255), syn=False)
 
     def flush(self):
         self.device.syn()
@@ -78,20 +84,32 @@ class Device:
         self.device.destroy()
 
 
-# Override on Windows (not functional)
+# Override on Windows
 if system() is 'Windows':
-    print("Warning: This is not well tested on Windows!")
-    import pyvjoy
+    # print("Warning: This is not well tested on Windows!")
+
+    from yoke.vjoy.vjoydevice import VjoyConstants, VjoyDevice
+
+    # ovverride EVENTS with the correct constants
+    for k in vars(EVENTS):
+        setattr(EVENTS, k, getattr(VjoyConstants, k, None))
+
     class Device:
-        def __init__(self, name):
+        def __init__(self, name, events=GAMEPAD_EVENTS):
             super().__init__()
-            self.device = pyvjoy.Device(1)  
+            self.device = VjoyDevice(1)  
+            self.events = events
+            self.name = name
         def emit(self, d, v):
-            self.device.set_axis(d, int(v * 32768))
+            if d is not None:
+                if d in range(1, 8+1):
+                    self.device.set_button(d, v)
+                else:
+                    self.device.set_axis(d, int((v+1)/2 * 32768))
         def flush(self):
             pass
         def close(self):
-            pass
+            self.device.close()
 
 
 zeroconf = Zeroconf()
@@ -107,19 +125,21 @@ class Service:
         self.port = port
         
     def make_events(self, values):
-        """returns a (event_code, value) tuple for each value in values"""
+        """returns a (event_code, value) tuple for each value in values
+        values are in (-1, 1) and should be returned in (-1, 1)
+        """
         raise NotImplementedError()
     
     def preprocess(self, message):
         v = message.split()[1:]  # first value is useless at the moment
         v = [float(m) for m in v]
         v = (
-                (v[0]/9.81 - 0)    * 1.5 / 2 + 0.5,
-                (v[1]/9.81 - 0.52) * 3.0 / 2 + 0.5,
-                v[2]/ 2 + 0.5,
-                v[3]/ 2 + 0.5,
-                v[4]/ 2 + 0.5,
-                v[5]/ 2 + 0.5,
+                (v[0]/9.81 - 0)    * 1.5,
+                (v[1]/9.81 - 0.52) * 3.0,
+                v[2],
+                v[3],
+                v[4],
+                v[5],
             )
         return v
 
