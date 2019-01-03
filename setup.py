@@ -15,7 +15,7 @@ setup(name='yoke',
       install_requires=[
             # 'numpy',
             'zeroconf',
-            *(['python-uinput'] if system() is 'Linux' else [])
+            *(['python-uinput'] if system() == 'Linux' else [])
             ],
       extras_require={
 

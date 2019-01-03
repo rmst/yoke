@@ -35,7 +35,7 @@ class RichardBurnsRallyService(yoke.Service):
             (EVENTS.ABS_RX,    half(v[3])),
             (EVENTS.ABS_RY,    half(-v[3])),
             (EVENTS.ABS_RZ,    -half(v[5])),  # handbrake
-            (EVENTS.ABS_X,     v[0]), # steering
+            (EVENTS.ABS_X,     v[0] * 1.1), # steering
             (EVENTS.ABS_Y,     soft_deadzone(-v[1]-0.6, 2.2)), # throttle brake
             )
         return e
