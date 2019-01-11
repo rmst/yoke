@@ -1,0 +1,37 @@
+/* Settings that user may want to modify */
+
+#joypad {
+    grid-template-columns: repeat(16, 1fr);
+    grid-template-rows: repeat(9, 1fr);
+    grid-template-areas:
+/*       .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   */
+        ".   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   "
+        ".   jl  jl  jl  .   .   .   .   .   .   .   .   .   b4  .   .   "
+        ".   jl  jl  jl  .   .   .   .   .   .   .   .   b3  .   b2  .   "
+        ".   jl  jl  jl  .   .   .   .   .   .   .   .   .   b1  .   .   "
+        ".   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   "
+        ".   .   .   .   .   .   .   .   .   jr  jr  jr  .   .   .   .   "
+        ".   .   .   .   .   .   .   .   .   jr  jr  jr  .   .   .   .   "
+        ".   .   .   .   .   .   .   .   .   jr  jr  jr  .   .   .   .   "
+        "dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg "
+        ;
+}
+
+.control {
+    background-color: #bbb;
+}
+
+.circle {
+    background-color: black;
+    width: 10px;
+    height: 10px;
+    border-radius: 100%;
+}
+
+#jl {
+    animation-name: locking;
+}
+
+#jr {
+    animation-name: none;
+}

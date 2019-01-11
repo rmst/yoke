@@ -1,0 +1,16 @@
+/* Basic properties */
+
+body {
+    margin: 0;
+}
+
+#joypad {
+    display: grid;
+    width: 100vw;
+    height: 100vh;
+}
+
+.circle {
+    position: fixed;
+    transform: translate(-50%, -50%);
+}
