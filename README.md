@@ -38,6 +38,9 @@ sudo apt install gamepadtool
 gamepadtool   # to run
 ```
 
+### Multiple virtual devices on the same machine
+Each `yoke` process creates one virtual device. To run multiple processes on the same machine make sure to give them different `--id` numbers (any integer greater than 0).
+
 ### Security
 The communication between the Linux client and the Android app are unencrypted UDP messages. You should therefore use it in networks you trust. However, if you are not in a trusted environment you can always create one via USB or Bluetooth. Just enable USB or Bluetooth tethering on your Android device and connect your Linux computer. This will create a mini-network for just your Phone and Computer and Yoke will work as usual.
 

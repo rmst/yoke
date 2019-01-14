@@ -55,8 +55,8 @@ GAMEPAD_EVENTS = (
 ABS_EVENTS = [getattr(EVENTS, n) for n in dir(EVENTS) if n.startswith("ABS_")]
 
 class Device:
-    def __init__(self, name="Yoke", events=GAMEPAD_EVENTS):
-        self.name = name
+    def __init__(self, id=1, name="Yoke", events=GAMEPAD_EVENTS):
+        self.name = name + '-' + str(id)
         for fn in glob('/sys/class/input/js*/device/name'):
             with open(fn) as f:
                 fname = f.read().split()[0]  # need to split because there seem to be newlines
@@ -95,11 +95,11 @@ if system() is 'Windows':
         setattr(EVENTS, k, getattr(VjoyConstants, k, None))
 
     class Device:
-        def __init__(self, name, events=GAMEPAD_EVENTS):
+        def __init__(self, id=1, name='Yoke', events=GAMEPAD_EVENTS):
             super().__init__()
-            self.device = VjoyDevice(1)  
+            self.name = name + '-' + id
+            self.device = VjoyDevice(id)
             self.events = events
-            self.name = name
         def emit(self, d, v):
             if d is not None:
                 if d in range(1, 8+1):
