@@ -56,7 +56,10 @@ class VjoyService(yoke.Service):
 
 class GamepadService(yoke.Service):
     events = yoke.GAMEPAD_EVENTS
+
     def make_events(self, v):
+        # import pdb; pdb.set_trace()
+
         e = (
             (EVENTS.ABS_HAT0X, v[0]),
             (EVENTS.ABS_HAT0Y, v[1]),
@@ -64,6 +67,10 @@ class GamepadService(yoke.Service):
             (EVENTS.ABS_RY,    v[3]),
             (EVENTS.ABS_X,     v[4]),
             (EVENTS.ABS_Y,     v[5]),
+            (EVENTS.BTN_DPAD_DOWN, v[6]),
+            (EVENTS.BTN_DPAD_RIGHT, v[7]),
+            (EVENTS.BTN_DPAD_LEFT, v[8]),
+            (EVENTS.BTN_DPAD_UP, v[9]),
             )
         return e
 

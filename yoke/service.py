@@ -75,7 +75,9 @@ class Device:
     def emit(self, d, v):
         if d not in self.events:
             raise AttributeError("Event {} has not been registered.".format(d))
-        self.device.emit(d, int((v+1)/2 * 255), syn=False)
+        if d in ABS_EVENTS:
+            v = (v+1)/2 * 255
+        self.device.emit(d, int(v), syn=False)
 
     def flush(self):
         self.device.syn()
@@ -114,15 +116,60 @@ if system() is 'Windows':
 
 zeroconf = Zeroconf()
 
+
+# Webserver to serve files to android client
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+from threading import Thread
+import socketserver
+import os, urllib, posixpath
+
+class HTTPRequestHandler(SimpleHTTPRequestHandler):
+    basepath = os.getcwd()
+
+    def translate_path(self, path):
+        """Translate a /-separated PATH to the local filename syntax."""
+        # abandon query parameters
+        path = path.split('?',1)[0]
+        path = path.split('#',1)[0]
+        # Don't forget explicit trailing slash when normalizing. Issue17324
+        trailing_slash = path.rstrip().endswith('/')
+        try:
+            path = urllib.parse.unquote(path, errors='surrogatepass')
+        except UnicodeDecodeError:
+            path = urllib.parse.unquote(path)
+        path = posixpath.normpath(path)
+        words = path.split('/')
+        words = filter(None, words)
+        path = self.basepath
+        for word in words:
+            if os.path.dirname(word) or word in (os.curdir, os.pardir):
+                # Ignore components that are not a simple file/directory name
+                continue
+            path = os.path.join(path, word)
+        if trailing_slash:
+            path += '/'
+        return path
+
+def run_webserver(port, path):
+    print('starting webserver on ', port, path)
+    class RH(HTTPRequestHandler):
+        basepath = path
+    with socketserver.TCPServer(('', port), RH) as httpd:
+        httpd.serve_forever()
+
+
+DEFAULT_CLIENT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "joypad")
+
 class Service:
     dev = None
     sock = None
     info = None
     dt = 0.02
 
-    def __init__(self, dev, port=0):
+    def __init__(self, dev, port=0, client_path=DEFAULT_CLIENT_PATH):
         self.dev = dev
         self.port = port
+        self.client_path = client_path
         
     def make_events(self, values):
         """returns a (event_code, value) tuple for each value in values
@@ -131,16 +178,18 @@ class Service:
         raise NotImplementedError()
     
     def preprocess(self, message):
-        v = message.split()[1:]  # first value is useless at the moment
+        _, *v, _ = message.split(b',')  # first and last value is nothing
+        _, *v = v  # first real value (from accelerometer) is not important yet
+        # import pdb; pdb.set_trace()
         v = [float(m) for m in v]
         v = (
                 (v[0]/9.81 - 0)    * 1.5,
                 (v[1]/9.81 - 0.52) * 3.0,
-                v[2],
-                v[3],
-                v[4],
-                v[5],
-            )
+                v[2] * 2 - 1,
+                v[3] * 2 - 1,
+                v[4] * 2 - 1,
+                v[5] * 2 - 1,
+            ) + tuple(v[6:])
         return v
 
     def run(self):
@@ -153,6 +202,8 @@ class Service:
         self.sock.settimeout(0)
         adr, port = self.sock.getsockname()
         self.port = port
+
+        Thread(target=run_webserver, args=(self.port, self.client_path), daemon=True).start()
 
         # create zeroconf service
         stype = "_yoke._udp.local."

@@ -1,5 +1,5 @@
 // those 3 are recommended for non-kiosk/non-embedded browsers
-const WAIT_FOR_FULLSCREEN = true;
+const WAIT_FOR_FULLSCREEN = false;
 const DEBUG_NO_SPAM = true;
 const DEBUG_MSG_LABEL = true;
 
@@ -122,6 +122,9 @@ class Joypad {
     }
     updateState() {
         let state = this._controls.map(control => control.state()).join(',');
+
+        Yoke.update_vals(state);  // only works in yoke webview
+
         if (DEBUG_MSG_LABEL) {
             this._debugLabel.element.innerHTML = state;
         }
@@ -130,6 +133,16 @@ class Joypad {
         }
     }
 }
+
+var joypad = null;
+
+window.addEventListener('resize', () => {
+    if(joypad != null){
+        joypad._controls.forEach(control => {
+            control.onAttached();
+        });
+    }
+})
 
 window.addEventListener('load', () => {
     if (WAIT_FOR_FULLSCREEN) {
@@ -154,6 +167,6 @@ window.addEventListener('load', () => {
         document.addEventListener('fullscreenchange', exitHandler, false);
         document.addEventListener('MSFullscreenChange', exitHandler, false);
     } else {
-        new Joypad();
+        joypad = new Joypad();
     }
 });
