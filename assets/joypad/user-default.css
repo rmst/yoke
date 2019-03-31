@@ -1,20 +1,29 @@
-/* Settings that user may want to modify */
+/* These are the default settings, PLEASE DO NOT MODIFY.
+Copy this file to user.css and change that. */
 
 #joypad {
     grid-template-columns: repeat(16, 1fr);
     grid-template-rows: repeat(9, 1fr);
     grid-template-areas:
-/*       .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   */
+    /* The map below must match the number of rows and columns specified above: */
         ".   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   "
-        ".   jl  jl  jl  .   .   .   .   .   .   .   .   .   b4  .   .   "
-        ".   jl  jl  jl  .   .   .   .   .   .   .   .   b3  .   b2  .   "
-        ".   jl  jl  jl  .   .   .   .   .   .   .   .   .   b1  .   .   "
-        ".   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   "
-        ".   .   .   .   .   .   .   .   .   jr  jr  jr  .   .   .   .   "
-        ".   .   .   .   .   .   .   .   .   jr  jr  jr  .   .   .   .   "
-        ".   .   .   .   .   .   .   .   .   jr  jr  jr  .   .   .   .   "
+        ".   .   .   .   .   .   .   .   .   .   .   .   b4  b4  .   .   "
+        ".   jl  jl  jl  .   .   .   .   .   .   .   .   b4  b4  .   .   "
+        ".   jl  jl  jl  .   .   .   .   .   .   b3  b3  .   .   b2  b2  "
+        ".   jl  jl  jl  .   .   .   .   .   .   b3  b3  .   .   b2  b2  "
+        ".   .   .   .   .   .   jr  jr  jr  .   .   .   b1  b1  .   .   "
+        ".   .   .   .   .   .   jr  jr  jr  .   .   .   b1  b1  .   .   "
+        ".   .   .   .   .   .   jr  jr  jr  .   .   .   .   .   .   .   "
         "dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg "
         ;
+        /* Possible values:
+         * jl for joystick, left;
+         * jr for joystick, right;
+         * cr for compass (gyrometer), right (VERY EXPERIMENTAL);
+         * b1 to b16 for buttons;
+         * dbg for debug messages;
+         * a period for empty space.
+         More to come */
 }
 
 .control {
@@ -29,9 +38,16 @@
 }
 
 #jl {
-    animation-name: locking;
+    /* Uncomment the line below if you don't want the joystick to return to center when let go */
+    /* animation-name: blocking; */
 }
-
 #jr {
-    animation-name: none;
+    /* Uncomment the line below if you don't want the joystick to return to center when let go */
+    animation-name: blocking;
 }
+#cr {background-color: #dddddd;}
+
+#b1 {background-color: #2222ee;}
+#b2 {background-color: #ee0000;}
+#b3 {background-color: #dddd00;}
+#b4 {background-color: #00dd00;}
