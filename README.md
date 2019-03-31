@@ -17,7 +17,7 @@ yoke-enable-uinput  # you can find that script in the "bin" directory
 ```
 (This can be undone via `yoke-disable-uinput`)
 
-On Windows Yoke needs the vJoy driver. The installer can be downloaded [here](http://vjoystick.sourceforge.net/site/index.php/download-a-install/download).
+On Windows Yoke needs the vJoy driver. The installer can be downloaded [here](https://sourceforge.net/projects/vjoystick/).
 
 Now you can run the client with
 ```bash
