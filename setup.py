@@ -6,10 +6,10 @@ from platform import system
 
 setup(name='yoke',
       version='0.1.1',
-      description='',
+      description='Yoke is a hackable Android gamepad for Linux (and Windows).',
       author='Simon Ramstedt',
       author_email='simonramstedt@gmail.com',
-      url='',
+      url='https://github.com/rmst/yoke',
       download_url='',
       license='MIT',
       install_requires=[
@@ -21,4 +21,12 @@ setup(name='yoke',
 
       },
       scripts=['bin/yoke', 'bin/yoke-enable-uinput', 'bin/yoke-disable-uinput'],
-      packages=find_packages())
+      packages=find_packages(),
+      package_data={'yoke': [
+            'assets/joypad/*.css',
+            'assets/joypad/*.js',
+            'assets/joypad/*.html',
+      ]},
+      platforms=['GNU/Linux', 'Windows'],
+      keywords=['gamepad', 'video games', 'gaming', 'controller', 'Android']
+)

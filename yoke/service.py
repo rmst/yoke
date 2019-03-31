@@ -158,7 +158,7 @@ def run_webserver(port, path):
         httpd.serve_forever()
 
 
-DEFAULT_CLIENT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "joypad")
+DEFAULT_CLIENT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "yoke", "assets", "joypad")
 
 class Service:
     dev = None
