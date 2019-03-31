@@ -1,1 +1,55 @@
-/* Put your settings here. Use layout.css as a reference */
+/* Settings that the user may want to modify.
+ A copy of this file is bundled with yoke, named user-default.css
+ Please use that copy as a backup if your controller stops working. */
+
+#joypad {
+    grid-template-columns: repeat(16, 1fr);
+    grid-template-rows: repeat(9, 1fr);
+    grid-template-areas:
+    /* The map below must match the number of rows and columns specified above: */
+        ".   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   "
+        ".   .   .   .   .   .   .   .   .   .   .   .   b4  b4  .   .   "
+        ".   jl  jl  jl  .   .   .   .   .   .   .   .   b4  b4  .   .   "
+        ".   jl  jl  jl  .   .   .   .   .   .   b3  b3  .   .   b2  b2  "
+        ".   jl  jl  jl  .   .   .   .   .   .   b3  b3  .   .   b2  b2  "
+        ".   .   .   .   .   .   jr  jr  jr  .   .   .   b1  b1  .   .   "
+        ".   .   .   .   .   .   jr  jr  jr  .   .   .   b1  b1  .   .   "
+        ".   .   .   .   .   .   jr  jr  jr  .   .   .   .   .   .   .   "
+        "dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg "
+        ;
+        /* Possible values:
+         * jl for joystick, left;
+         * jr for joystick, right;
+         * cr for compass (gyrometer), right (VERY EXPERIMENTAL);
+         * b1 to b16 for buttons;
+         * dbg for debug messages;
+         * a period for empty space.
+         More to come */
+}
+
+.control {
+    background-color: #bbb;
+}
+
+.circle {
+    background-color: black;
+    width: 10px;
+    height: 10px;
+    border-radius: 100%;
+}
+
+#jl {
+    /* Uncomment the line below if you don't want the joystick to return to center when let go */
+    /* animation-name: blocking; */
+}
+#jr {
+    /* Uncomment the line below if you don't want the joystick to return to center when let go */
+    animation-name: blocking;
+}
+
+#cr {background-color: #dddddd;}
+
+#b1 {background-color: #2222ee;}
+#b2 {background-color: #ee0000;}
+#b3 {background-color: #dddd00;}
+#b4 {background-color: #00dd00;}
