@@ -1,171 +1,208 @@
+'use strict';
 // those 3 are recommended for non-kiosk/non-embedded browsers
-const WAIT_FOR_FULLSCREEN = false;
-const DEBUG_NO_SPAM = true;
-const DEBUG_MSG_LABEL = true;
+let WAIT_FOR_FULLSCREEN = false;
+let DEBUG_NO_SPAM = true;
+let DEBUG_MSG_LABEL = false;
 
-const SHOW_CIRCLE = true;
+let VIBRATION_MILLISECONDS_IN  = 50;
+let VIBRATION_MILLISECONDS_OUT = 50;
 
-class Control {
-    constructor(type, id, updateStateCallback) {
-        this.element = document.createElement('div');
-        this.element.className = 'control ' + type;
-        this.element.id = id;
-        this.element.style.gridArea = id;
-        this.element.addEventListener('touchstart', this.onTouch.bind(this), false);
-        this.element.addEventListener('touchmove', this.onTouch.bind(this), false);
-        this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
-        this.gridArea = id;
-        this.updateStateCallback = updateStateCallback;
-    }
-    onAttached() { }
-    onTouch() { }
-    onTouchEnd() { }
-    state() { }
+function Control(type, id, updateStateCallback) {
+    //constructor(type, id, updateStateCallback) {
+    this.element = document.createElement('div');
+    this.element.className = 'control ' + type;
+    this.element.id = id;
+    this.element.style.gridArea = id;
+    this.gridArea = id;
+    this.updateStateCallback = updateStateCallback;
+    //}
 }
+Control.prototype.onAttached = function() { };
+Control.prototype.state = function() { };
 
-class Joystick extends Control {
-    constructor(id, updateStateCallback) {
-        super('joystick', 'j' + id, updateStateCallback);
+function Joystick(id, updateStateCallback) {
+    //constructor(id, updateStateCallback) {
+    Control.call(this, 'joystick', 'j' + id, updateStateCallback);
+    this._stateX = 0.5;
+    this._stateY = 0.5;
+    this._locking = false;
+    this._offset = {};
+    this._circle = document.createElement('div');
+    this._circle.className = 'circle';
+    this._circle.style.top = '99999px';
+    this.element.appendChild(this._circle);
+    //}
+}
+Joystick.prototype = Object.create(Control.prototype);
+Joystick.prototype.onAttached = function() {
+    this._locking = getComputedStyle(this.element)['animation-name'] == 'locking';
+    this._offset = this.element.getBoundingClientRect();
+    this._updateCircle();
+    this.element.addEventListener('touchmove', this.onTouch.bind(this), false);
+    this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
+    this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
+}
+Joystick.prototype.onTouch = function(ev) {
+    let pos = ev.targetTouches[0];
+    this._stateX = this._truncate((pos.pageX - this._offset.x) / this._offset.width);
+    this._stateY = this._truncate((pos.pageY - this._offset.y) / this._offset.height);
+    this._updateCircle();
+    this.updateStateCallback();
+}
+Joystick.prototype.onTouchStart = function (ev) {
+    this.onTouch(ev);
+    window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
+}
+Joystick.prototype.onTouchEnd = function() {
+    if (!this._locking) {
         this._stateX = 0.5;
         this._stateY = 0.5;
-        this._locking = false;
-        this._offset = {};
-        if (SHOW_CIRCLE) {
-            this._circle = document.createElement('div');
-            this._circle.className = 'circle';
-            this._circle.style.top = '99999px';
-            this.element.appendChild(this._circle);
-        }
-    }
-    onAttached() {
-        this._locking = getComputedStyle(this.element)['animation-name'] == 'locking';
-        this._offset = this.element.getBoundingClientRect();
-        this._updateCircle();
-    }
-    onTouch(ev) {
-        let pos = ev.targetTouches[0];
-        this._stateX = this._truncate((pos.pageX - this._offset.x) / this._offset.width);
-        this._stateY = this._truncate((pos.pageY - this._offset.y) / this._offset.height);
         this._updateCircle();
         this.updateStateCallback();
     }
-    onTouchEnd() {
-        if (!this._locking) {
-            this._stateX = 0.5;
-            this._stateY = 0.5;
-            this._updateCircle();
-            this.updateStateCallback();
+    window.navigator.vibrate(VIBRATION_MILLISECONDS_OUT);
+}
+Joystick.prototype.state = function() {
+    return this._stateX.toString() + ',' + this._stateY.toString();
+}
+Joystick.prototype._truncate = function(f) {
+    if (f < 0) {window.navigator.vibrate(VIBRATION_MILLISECONDS_IN); return 0;};
+    if (f > 1) {window.navigator.vibrate(VIBRATION_MILLISECONDS_IN); return 1;};
+    return f;
+}
+Joystick.prototype._updateCircle = function () {
+    this._circle.style.left = (this._offset.x + this._offset.width * this._stateX) + 'px';
+    this._circle.style.top = (this._offset.y + this._offset.height * this._stateY) + 'px';
+}
+
+function Button(id, updateStateCallback) {
+    // constructor(id, updateStateCallback) {
+    Control.call(this, 'button', 'b' + id, updateStateCallback);
+    this._state = 0;
+    // }
+}
+
+Button.prototype = Object.create(Control.prototype);
+Button.prototype.onAttached = function() {
+    this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
+    this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
+}
+Button.prototype.onTouchStart = function () {
+    this._state = 1;
+    this.updateStateCallback();
+    window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
+}
+Button.prototype.onTouchEnd = function () {
+    this._state = 0;
+    this.updateStateCallback();
+    window.navigator.vibrate(VIBRATION_MILLISECONDS_OUT);
+}
+Button.prototype.state = function () {
+    return this._state.toString();
+}
+
+function Compass(id, updateStateCallback) {
+    Control.call(this, 'compass', 'c' + id, updateStateCallback);
+    this._stateBeta = 0.5;
+    this._stateGamma = 0.5;
+}
+
+Compass.prototype = Object.create(Control.prototype);
+Compass.prototype.onAttached = function() {
+    window.addEventListener('devicemotion', Compass.prototype.onDeviceMotion, false)
+}
+Compass.prototype.onDeviceMotion = function(ev) {
+    this._stateGamma = (ev.gamma + 180) / 360;
+    this._stateBeta = (ev.beta + 90) / 180;
+}
+Compass.prototype.state = function () {
+    return this._stateBeta.toString() + ',' + this._stateGamma.toString();
+}
+
+function Joypad() {
+    let updateStateCallback = this.updateState.bind(this);
+
+    this._controls = [
+        new Joystick('l', updateStateCallback),
+        new Joystick('r', updateStateCallback),
+        /* EXPERIMENTAL! If you want to try, comment the right joystick, and uncomment this.
+         * Don't forget to change 'jr' to 'cr' in user.css, too. */
+        // new Compass('r', updateStateCallback),
+    ];
+    for (let i = 1; i <= 32; i++) {
+        this._controls.push(new Button(i, updateStateCallback));
+    }
+
+    let joypad = document.getElementById('joypad');
+    let gridAreas = getComputedStyle(joypad)
+        .gridTemplateAreas
+        .split('"').join('')
+        .split(' ')
+        .filter(function (x) {return x != '' && x != '.'});
+    let thereAreNoControls = true;
+    this._controls.forEach(function (control) {
+        if (gridAreas.includes(control.gridArea)) {
+            joypad.appendChild(control.element);
+            control.onAttached();
+            thereAreNoControls = false;
         }
+    });
+    if (thereAreNoControls) {
+        // joypad.style.display = "inline";
+        joypad.innerHTML += "You don't seem to have any controls in your gamepad. Is <code>user.css</code> missing or broken?";
+    };
+
+    if (DEBUG_MSG_LABEL) {
+        this._debugLabel = new Control('debug', 'dbg');
+        this._debugLabel.element.style.wordWrap = "break-word";
+        joypad.appendChild(this._debugLabel.element);
     }
-    state() {
-        return this._stateX.toString() + ',' + this._stateY.toString();
+}
+Joypad.prototype.updateState = function () {
+    let state = this._controls.map(function (control) {return control.state()}).join(',');
+
+    Yoke.update_vals(state);  // only works in yoke webview
+
+    if (DEBUG_MSG_LABEL) {
+        this._debugLabel.element.innerHTML = state;
     }
-    _truncate(f) {
-        if (f < 0) return 0;
-        if (f > 1) return 1;
-        return f;
-    }
-    _updateCircle() {
-        this._circle.style.left = (this._offset.x + this._offset.width * this._stateX) + 'px';
-        this._circle.style.top = (this._offset.y + this._offset.height * this._stateY) + 'px';
+    if (!DEBUG_NO_SPAM) {
+        console.log(state)
     }
 }
 
-class Button extends Control {
-    constructor(id, updateStateCallback) {
-        super('button', 'b' + id, updateStateCallback);
-        this._state = 0;
-    }
-    onTouch() {
-        this._state = 1;
-        this.updateStateCallback();
-    }
-    onTouchEnd() {
-        this._state = 0;
-        this.updateStateCallback();
-    }
-    state() {
-        return this._state.toString();
-    }
-}
+let joypad = null;
+let btn = null;
 
-class Joypad {
-    constructor() {
-        let updateStateCallback = this.updateState.bind(this);
-
-        this._controls = [
-            new Joystick('l', updateStateCallback),
-            new Joystick('r', updateStateCallback),
-        ];
-        for (let i = 1; i <= 32; i++) {
-            this._controls.push(new Button(i, updateStateCallback));
-        }
-
-        let joypad = document.getElementById('joypad');
-        let gridAreas = getComputedStyle(joypad)
-            .gridTemplateAreas
-            .split('"').join('')
-            .split(' ')
-            .filter(x => x != '' && x != '.');
-        this._controls.forEach(control => {
-            if (gridAreas.includes(control.gridArea)) {
-                joypad.appendChild(control.element);
-                control.onAttached();
-            }
-        });
-
-        if (DEBUG_MSG_LABEL) {
-            this._debugLabel = new Control('debug', 'dbg');
-            this._debugLabel.element.style.wordWrap = "break-word";
-            joypad.appendChild(this._debugLabel.element);
-        }
-    }
-    updateState() {
-        let state = this._controls.map(control => control.state()).join(',');
-
-        Yoke.update_vals(state);  // only works in yoke webview
-
-        if (DEBUG_MSG_LABEL) {
-            this._debugLabel.element.innerHTML = state;
-        }
-        if (!DEBUG_NO_SPAM) {
-            console.log(state);
-        }
-    }
-}
-
-var joypad = null;
-
-window.addEventListener('resize', () => {
+window.addEventListener('resize', function () {
     if(joypad != null){
-        joypad._controls.forEach(control => {
+        joypad._controls.forEach(function (control) {
             control.onAttached();
         });
     }
 })
 
-window.addEventListener('load', () => {
-    if (WAIT_FOR_FULLSCREEN) {
+window.addEventListener('load', function () {
+    if (window.CSS && CSS.supports('display', 'grid')) {
+        document.getElementById('joypad').innerHTML = '';
+    };
+    let el = document.documentElement;
+    let rfs = el.requestFullScreen
+        || el.webkitRequestFullScreen
+        || el.mozRequestFullScreen
+        || el.msRequestFullscreen;
+    if (rfs && WAIT_FOR_FULLSCREEN) {
         // https://stackoverflow.com/a/7966541/5108318
         // https://stackoverflow.com/a/38711009/5108318
         // https://stackoverflow.com/a/25876513/5108318
-        let el = document.documentElement;
-        let rfs = el.requestFullScreen
-            || el.webkitRequestFullScreen
-            || el.mozRequestFullScreen
-            || el.msRequestFullscreen;
         let btn = document.createElement('button');
         btn.innerHTML = 'click';
-        btn.addEventListener('click', () => rfs.bind(el)());
+        btn.addEventListener('click', function () {
+            rfs.bind(el)()
+            this.parentNode.removeChild(this);
+            setTimeout(function () {new Joypad()}, 1000);
+        });
         document.getElementById('joypad').appendChild(btn);
-        let exitHandler = () => {
-            btn.parentNode.removeChild(btn);
-            setTimeout(() => new Joypad(), 1000);
-        }
-        document.addEventListener('webkitfullscreenchange', exitHandler, false);
-        document.addEventListener('mozfullscreenchange', exitHandler, false);
-        document.addEventListener('fullscreenchange', exitHandler, false);
-        document.addEventListener('MSFullscreenChange', exitHandler, false);
     } else {
         joypad = new Joypad();
     }
