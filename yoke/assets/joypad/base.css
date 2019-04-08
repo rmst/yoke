@@ -13,6 +13,7 @@ body {
     width: 100vw;
     height: 100vh;
 }
+
 #warning {
     display: none;
     position: fixed;
@@ -26,6 +27,7 @@ body {
     padding: 3vh 3vw 3vh;
     filter: drop-shadow(0px 0px 5px black)
 }
+
 .dismiss {
     margin-top: 5vh;
     font-size: 80%;
@@ -35,6 +37,7 @@ body {
     position: absolute;
     transform: translate(-50%, -50%);
 }
+
 #dbg {
     word-wrap: break-word;
     overflow: hidden;

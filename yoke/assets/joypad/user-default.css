@@ -41,6 +41,7 @@
     /* Uncomment the line below if you don't want the joystick to return to center when let go */
     /* animation-name: locking; */
 }
+
 #j2 {
     /* Uncomment the line below if you don't want the joystick to return to center when let go */
     animation-name: locking;
