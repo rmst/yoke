@@ -1,8 +1,7 @@
 'use strict';
 // those 3 are recommended for non-kiosk/non-embedded browsers
 const WAIT_FOR_FULLSCREEN = false;
-const DEBUG_NO_SPAM = true;
-const DEBUG_MSG_LABEL = true; // TODO:
+const DEBUG_NO_CONSOLE_SPAM = true;
 
 const VIBRATION_MILLISECONDS_IN = 50;
 const VIBRATION_MILLISECONDS_OUT = 50;
@@ -299,20 +298,16 @@ function Joypad() {
     }
     // end of section to be deleted
 
-    if (DEBUG_MSG_LABEL) {
-        this._debugLabel = new Control('debug', 'dbg');
-        joypad.appendChild(this._debugLabel.element);
-    }
+    this._debugLabel = new Control('debug', 'dbg');
+    joypad.appendChild(this._debugLabel.element);
 }
 Joypad.prototype.updateState = function() {
     let state = this._controls.map(function(control) { return control.state(); }).join(',');
 
     Yoke.update_vals(state); // only works in yoke webview
 
-    if (DEBUG_MSG_LABEL) {
-        this._debugLabel.element.innerHTML = state;
-    }
-    if (!DEBUG_NO_SPAM) {
+    this._debugLabel.element.innerHTML = state;
+    if (!DEBUG_NO_CONSOLE_SPAM) {
         console.log(state);
     }
 };
