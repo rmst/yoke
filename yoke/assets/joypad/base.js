@@ -1,17 +1,17 @@
 'use strict';
 // those 3 are recommended for non-kiosk/non-embedded browsers
-const WAIT_FOR_FULLSCREEN = false;
-const DEBUG_NO_CONSOLE_SPAM = true;
+var WAIT_FOR_FULLSCREEN = false;
+var DEBUG_NO_CONSOLE_SPAM = true;
 
-const VIBRATION_MILLISECONDS_IN = 50;
-const VIBRATION_MILLISECONDS_OUT = 50;
-const VELOCITY_CONSTANT = 4000;
+var VIBRATION_MILLISECONDS_IN = 50;
+var VIBRATION_MILLISECONDS_OUT = 50;
+var VELOCITY_CONSTANT = 4000;
 
 //
 // MISCELLANEOUS HELPER FUNCTIONS
 //
 function prettyAlert(message) {
-    let warningDiv = document.getElementById('warning');
+    var warningDiv = document.getElementById('warning');
     warningDiv.innerHTML = message + '<p class="dismiss">Tap to dismiss.</p>';
     warningDiv.style.display = 'inline';
 }
@@ -22,7 +22,7 @@ function unique(value, index, self) {
 }
 
 function mnemonics(a, b) {
-    let callback, ids;
+    var callback, ids;
     if (typeof b == 'function') {
         // if b is a callback function, mnemonics() chooses the correct control for the joypad
         callback = b;
@@ -39,7 +39,7 @@ function mnemonics(a, b) {
         );
         throw new Error('mnemonics internal error'); // stops the execution
     }
-    let sortScores = ids.slice();
+    var sortScores = ids.slice();
     // sortScores contains arbitrary numbers.
     // These only matter if mnemonics() is being used as a sort function;
     // the lower-ranking controls are attached earlier.
@@ -118,7 +118,7 @@ Joystick.prototype.onAttached = function() {
     axes += 2;
 };
 Joystick.prototype.onTouch = function(ev) {
-    let pos = ev.targetTouches[0];
+    var pos = ev.targetTouches[0];
     this._stateX = this._truncate((pos.pageX - this._offset.x) / this._offset.width);
     this._stateY = this._truncate((pos.pageY - this._offset.y) / this._offset.height);
     this._updateCircle();
@@ -238,7 +238,7 @@ Pedal.prototype.onTouchMove = function(ev) {
     if (this._state == 0) {this.state = 0.5};
     */
     // Detection based on Y-coordinate, on the other hand, is intuitive and reliable in any device:
-    let pos = ev.targetTouches[0];
+    var pos = ev.targetTouches[0];
     this._state = this._truncate((this._offset.y - pos.pageY) / this._offset.height + 1);
     this.updateStateCallback();
 };
@@ -262,17 +262,17 @@ Dummy.prototype.state = function() { return '0'; };
 // JOYPAD
 //
 function Joypad() {
-    let updateStateCallback = this.updateState.bind(this);
+    var updateStateCallback = this.updateState.bind(this);
 
     this._controls = [];
 
-    let joypad = document.getElementById('joypad');
-    let gridAreas = getComputedStyle(joypad)
+    var joypad = document.getElementById('joypad');
+    var gridAreas = getComputedStyle(joypad)
         .gridTemplateAreas
         .split('"').join('')
         .split(' ')
         .filter(function(x) { return x != '' && x != '.'; });
-    let controlIDs = gridAreas.sort(mnemonics).filter(unique);
+    var controlIDs = gridAreas.sort(mnemonics).filter(unique);
     controlIDs.forEach(function(id) {
         if (id != 'dbg') {
             this._controls.push(mnemonics(id, updateStateCallback));
@@ -302,7 +302,7 @@ function Joypad() {
     joypad.appendChild(this._debugLabel.element);
 }
 Joypad.prototype.updateState = function() {
-    let state = this._controls.map(function(control) { return control.state(); }).join(',');
+    var state = this._controls.map(function(control) { return control.state(); }).join(',');
 
     Yoke.update_vals(state); // only works in yoke webview
 
@@ -315,9 +315,9 @@ Joypad.prototype.updateState = function() {
 //
 // BASE CODE
 //
-let joypad = null;
-let buttons = 0; // number of buttons total
-let axes = 0; // number of analog axes total
+var joypad = null;
+var buttons = 0; // number of buttons total
+var axes = 0; // number of analog axes total
 
 window.addEventListener('resize', function() {
     if (joypad != null) {
@@ -328,13 +328,13 @@ window.addEventListener('resize', function() {
 });
 
 window.addEventListener('load', function() {
-    let warningDiv = document.getElementById('warning');
+    var warningDiv = document.getElementById('warning');
     if (window.CSS && CSS.supports('display', 'grid')) {
         warningDiv.addEventListener('click', function() { warningDiv.style.display = 'none'; }, false);
         warningDiv.style.display = 'none';
     }
-    let el = document.documentElement;
-    let rfs = el.requestFullScreen ||
+    var el = document.documentElement;
+    var rfs = el.requestFullScreen ||
         el.webkitRequestFullScreen ||
         el.mozRequestFullScreen ||
         el.msRequestFullscreen;
@@ -342,7 +342,7 @@ window.addEventListener('load', function() {
         // https://stackoverflow.com/a/7966541/5108318
         // https://stackoverflow.com/a/38711009/5108318
         // https://stackoverflow.com/a/25876513/5108318
-        let btn = document.createElement('button');
+        var btn = document.createElement('button');
         btn.innerHTML = 'click';
         btn.addEventListener('click', function() {
             rfs.bind(el)();
