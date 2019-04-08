@@ -1,5 +1,5 @@
-/* These are the default settings, PLEASE DO NOT MODIFY.
-Copy this file to user.css and change that. */
+/* Default settings for the joypad.
+ Please do not change this file. Make a copy called user.css and change that. */
 
 #joypad {
     grid-template-columns: repeat(16, 1fr);
@@ -8,19 +8,19 @@ Copy this file to user.css and change that. */
     /* The map below must match the number of rows and columns specified above: */
         ".   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   "
         ".   .   .   .   .   .   .   .   .   .   .   .   b4  b4  .   .   "
-        ".   jl  jl  jl  .   .   .   .   .   .   .   .   b4  b4  .   .   "
-        ".   jl  jl  jl  .   .   .   .   .   .   b3  b3  .   .   b2  b2  "
-        ".   jl  jl  jl  .   .   .   .   .   .   b3  b3  .   .   b2  b2  "
-        ".   .   .   .   .   .   jr  jr  jr  .   .   .   b1  b1  .   .   "
-        ".   .   .   .   .   .   jr  jr  jr  .   .   .   b1  b1  .   .   "
-        ".   .   .   .   .   .   jr  jr  jr  .   .   .   .   .   .   .   "
+        ".   j1  j1  j1  .   .   .   .   .   .   .   .   b4  b4  .   .   "
+        ".   j1  j1  j1  .   .   .   .   .   .   b3  b3  .   .   b2  b2  "
+        ".   j1  j1  j1  .   .   .   .   .   .   b3  b3  .   .   b2  b2  "
+        ".   .   .   .   .   .   j2  j2  j2  .   .   .   b1  b1  .   .   "
+        ".   .   .   .   .   .   j2  j2  j2  .   .   .   b1  b1  .   .   "
+        ".   .   .   .   .   .   j2  j2  j2  .   .   .   .   .   .   .   "
         "dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg "
         ;
         /* Possible values:
-         * jl for joystick, left;
-         * jr for joystick, right;
-         * cr for compass (gyrometer), right (VERY EXPERIMENTAL);
-         * b1 to b16 for buttons;
+         * j1, j2, j3... for joystick;
+         * m1 for motion detector (acceleration and rotation, EXPERIMENTAL);
+         * p1, p2... for pedals;
+         * b1 to b32 for buttons;
          * dbg for debug messages;
          * a period for empty space.
          More to come */
@@ -37,15 +37,19 @@ Copy this file to user.css and change that. */
     border-radius: 100%;
 }
 
-#jl {
+#j1 {
     /* Uncomment the line below if you don't want the joystick to return to center when let go */
-    /* animation-name: blocking; */
+    /* animation-name: locking; */
 }
-#jr {
+#j2 {
     /* Uncomment the line below if you don't want the joystick to return to center when let go */
-    animation-name: blocking;
+    animation-name: locking;
 }
-#cr {background-color: #dddddd;}
+
+#p1 {background-color: #444444;}
+#p2 {background-color: #444444;}
+
+#m1 {background-color: #dddddd;}
 
 #b1 {background-color: #2222ee;}
 #b2 {background-color: #ee0000;}
