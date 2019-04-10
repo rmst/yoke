@@ -1,0 +1,61 @@
+/* Gamepad settings the user might want to change. */
+
+#joypad {
+    grid-template-columns: repeat(16, 1fr);
+    grid-template-rows: repeat(9, 1fr);
+    grid-template-areas:
+    /* The map below must match the number of rows and columns specified above: */
+        ".   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   "
+        ".   .   .   .   .   .   .   .   .   .   .   .   b4  b4  .   .   "
+        ".   .   .   .   .   .   .   .   .   .   .   .   b4  b4  .   .   "
+        ".   j1  j1  j1  .   .   .   .   .   .   b3  b3  .   .   b2  b2  "
+        ".   j1  j1  j1  .   .   .   .   .   .   b3  b3  .   .   b2  b2  "
+        ".   j1  j1  j1  .   .   .   .   .   .   .   .   b1  b1  .   .   "
+        ".   .   .   .   .   .   s2  s2  .   .   .   .   b1  b1  .   .   "
+        ".   .   .   .   .   .   s2  s2  .   .   .   .   .   .   .   .   "
+        ".   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   "
+        ;
+        /* Possible values:
+         * j1, j2, j3... for joystick (returns to center when released);
+         * s1, s2, s3... for joystick (stays in place when released);
+         * m_ for motion detector, where _ is one of these letters:
+              * x for acceleration in the X-axis (left to right),
+              * y for acceleration in the Y-axis (bottom to top),
+              * z for acceleration in the Z-axis (back to front),
+              * a for α (alpha) angle -- rotation around the Z-axis,
+              * b for β (beta) angle -- rotation around the X-axis,
+              * g for γ (gamma) angle -- rotation around the Y-axis:
+         * p1, p2... for pedals;
+         * k1, k2... for knobs;
+         * b1 to b32 for buttons;
+         * d_ for D-PAD, where _ is one of these letters:
+              * u, for the key UP,
+              * d, for the key DOWN,
+              * l, for the key LEFT,
+              * r, for the key RIGHT;
+         * dbg for debug messages;
+         * a period for empty space. */
+}
+
+.joystick { background-color: #bbb; }
+.circle {
+    background-color: black;
+    width: 10px;
+    height: 10px;
+    border-radius: 100%;
+}
+
+.motion {background-color: #ddd;}
+
+.pedal {background-color: #444;}
+
+.button { background-color: #bbb; }
+#b1 {background-color: #22e;}
+#b2 {background-color: #e00;}
+#b3 {background-color: #dd0;}
+#b4 {background-color: #0d0;}
+
+#du { /* please insert icon here :( */ }
+#dd { /* please insert icon here :( */ }
+#dl { /* please insert icon here :( */ }
+#dr { /* please insert icon here :( */ }

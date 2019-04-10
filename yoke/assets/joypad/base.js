@@ -1,18 +1,18 @@
 'use strict';
 // those 3 are recommended for non-kiosk/non-embedded browsers
-var WAIT_FOR_FULLSCREEN = false;
+var WAIT_FOR_FULLSCREEN = true;
 var DEBUG_NO_CONSOLE_SPAM = true;
 
 var VIBRATION_MILLISECONDS_IN = 50;
 var VIBRATION_MILLISECONDS_OUT = 50;
-var VELOCITY_CONSTANT = 4000;
+var ACCELERATION_CONSTANT = 0.025;
 
 //
 // MISCELLANEOUS HELPER FUNCTIONS
 //
 function prettyAlert(message) {
     var warningDiv = document.getElementById('warning');
-    warningDiv.innerHTML = message + '<p class="dismiss">Tap to dismiss.</p>';
+    warningDiv.innerHTML = message + '<p class=\'dismiss\'>Tap to dismiss.</p>';
     warningDiv.style.display = 'inline';
 }
 
@@ -27,17 +27,10 @@ function mnemonics(a, b) {
         // if b is a callback function, mnemonics() chooses the correct control for the joypad
         callback = b;
         ids = [a];
-    } else if (typeof b == 'string') {
+    } else {
         // if b is a string, mnemonics() serves as a custom sorting algorithm
         callback = null;
         ids = [a, b];
-    } else {
-        prettyAlert(
-            'FATAL JAVASCRIPT ERROR: \
-          in mnemonics(a, b), b can only be a function or a string.<br>\
-          Please consult the developers.'
-        );
-        throw new Error('mnemonics internal error'); // stops the execution
     }
     var sortScores = ids.slice();
     // sortScores contains arbitrary numbers.
@@ -47,7 +40,9 @@ function mnemonics(a, b) {
         if (id == 'dbg') { sortScores[i] = 998; } else {
             sortScores[i] = 997;
             switch (id[0]) {
+                case 's':
                 case 'j':
+                    // 's' is a locking joystick, 'j' - non-locking
                     if (typeof callback == 'function') {
                         sortScores[i] = new Joystick(id, callback);
                     } else { sortScores[i] = 100; }
@@ -55,24 +50,81 @@ function mnemonics(a, b) {
                 case 'm':
                     if (typeof callback == 'function') {
                         sortScores[i] = new Motion(id, callback);
-                    } else { sortScores[i] = 200; }
+                    } else {
+                        sortScores[i] = 200;
+                        switch (id[1]) {
+                            case 'x':
+                                sortScores[i] += 0;
+                                break;
+                            case 'y':
+                                sortScores[i] += 10;
+                                break;
+                            case 'z':
+                                sortScores[i] += 20;
+                                break;
+                            case 'a':
+                                sortScores[i] += 50;
+                                break;
+                            case 'b':
+                                sortScores[i] += 30;
+                                break;
+                            case 'g':
+                                sortScores[i] += 40;
+                                break;
+                            default:
+                                prettyAlert('Motion detection error: \
+                              Unrecognised coordinate <code>' + id[1] + '</code>.');
+                                break;
+                        }
+                    }
                     break;
                 case 'p':
                     if (typeof callback == 'function') {
                         sortScores[i] = new Pedal(id, callback);
                     } else { sortScores[i] = 300; }
                     break;
+                case 'k':
+                    if (typeof callback == 'function') {
+                        sortScores[i] = new Knob(id, callback);
+                    } else { sortScores[i] = 400; }
+                    break;
                 case 'b':
                     if (typeof callback == 'function') {
                         sortScores[i] = new Button(id, callback);
                     } else { sortScores[i] = 600; }
+                    break;
+                case 'd':
+                    if (typeof callback == 'function') {
+                        sortScores[i] = new Button(id, callback);
+                    } else {
+                        sortScores[i] = 700;
+                        switch (id.substr(1, 1)) {
+                            case 'u':
+                                sortScores[i] += 20;
+                                break;
+                            case 'd':
+                                sortScores[i] += 30;
+                                break;
+                            case 'l':
+                                sortScores[i] += 40;
+                                break;
+                            case 'r':
+                                sortScores[i] += 50;
+                                break;
+                        }
+                    }
                     break;
                 default:
                     sortScores[i] = 999;
                     prettyAlert('Unrecognised control <code>' + id + '</code> at user.css.');
                     break;
             }
-            if (sortScores[i] < 990) { sortScores[i] += Number(id.substring(1)); }
+            if (sortScores[i] < 990) {
+                var maybeNumber = Number(id.substring(1));
+                // Number return a NaN if there are no digits. The following conditional discards those NaNs:
+                // (also zeros, but they would have the same effect anyways)
+                if (maybeNumber) { sortScores[i] += maybeNumber; }
+            }
         }
     });
     if (typeof callback == 'function') {
@@ -100,22 +152,20 @@ function Joystick(id, updateStateCallback) {
     Control.call(this, 'joystick', id, updateStateCallback);
     this._stateX = 0.5;
     this._stateY = 0.5;
-    this._locking = false;
+    this._locking = (id[0] == 's');
     this._offset = {};
     this._circle = document.createElement('div');
     this._circle.className = 'circle';
-    this._circle.style.top = '99999px';
     this.element.appendChild(this._circle);
+    axes += 2;
 }
 Joystick.prototype = Object.create(Control.prototype);
 Joystick.prototype.onAttached = function() {
-    this._locking = getComputedStyle(this.element)['animation-name'] == 'locking';
     this._offset = this.element.getBoundingClientRect();
     this._updateCircle();
     this.element.addEventListener('touchmove', this.onTouch.bind(this), false);
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
-    axes += 2;
 };
 Joystick.prototype.onTouch = function(ev) {
     var pos = ev.targetTouches[0];
@@ -150,69 +200,80 @@ Joystick.prototype._updateCircle = function() {
     this._circle.style.top = (this._offset.y + this._offset.height * this._stateY) + 'px';
 };
 
-function Button(id, updateStateCallback) {
-    Control.call(this, 'button', id, updateStateCallback);
-    this._state = 0;
-}
-Button.prototype = Object.create(Control.prototype);
-Button.prototype.onAttached = function() {
-    this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
-    this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
-    buttons += 1;
-};
-Button.prototype.onTouchStart = function() {
-    this._state = 1;
-    this.updateStateCallback();
-    window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
-};
-Button.prototype.onTouchEnd = function() {
-    this._state = 0;
-    this.updateStateCallback();
-    window.navigator.vibrate(VIBRATION_MILLISECONDS_OUT);
-};
-Button.prototype.state = function() {
-    return this._state.toString();
-};
-
 function Motion(id, updateStateCallback) {
+    // Motion reads the letters in id to decide which coordinates should it send to the Yoke server.
+    // This way is easy to program and avoids conditionals, loops, and objects,
+    // but maybe it's not the most performant.
+    // Motion calculates always every coordinate, then applies a mask on it.
+    // The slightly weird mapping is me following two simultaneous, different conventions:
+    // users write x/y/z/a/b/g in the CSS (using the HTML device orientation notation),
+    // but this._state is in the format [X, Y, Z, RX, RY, RZ] (following the vJoy notation).
+    if (id.length != 2) { prettyAlert('Please use only one coordinate per motion sensor.'); }
+    this._mask = null;
+    switch (id[1]) {
+        case 'x':
+            this._mask = 0;
+            break;
+        case 'y':
+            this._mask = 1;
+            break;
+        case 'z':
+            this._mask = 2;
+            break;
+        case 'a':
+            this._mask = 5;
+            break;
+        case 'b':
+            this._mask = 3;
+            break;
+        case 'g':
+            this._mask = 4;
+            break;
+        default:
+            prettyAlert('Motion detection error: Unrecognised coordinate <code>' + id[1] + '</code>.');
+            break;
+    }
+    // Only the last defined sensor sends events.
+    // It's a really hacky and ugly method, but all the motion information
+    // is a property of the window anyways, not of any Motion instance.
+    motionSensor = this;
+    if (this._mask <= 2 && !deviceMotionEL) {
+        deviceMotionEL = window.addEventListener('devicemotion', Motion.prototype.onDeviceMotion, true);
+    } else if (this._mask >= 3 && !deviceOrientationEL) {
+        deviceOrientationEL = window.addEventListener('deviceorientation', Motion.prototype.onDeviceOrientation, true);
+    }
     Control.call(this, 'motion', id, updateStateCallback);
-    this._stateAlpha = 0.5;
-    this._stateBeta = 0.5;
-    this._stateGamma = 0.5;
-    this._stateX = 0.5;
-    this._stateY = 0.5;
-    this._stateZ = 0.5;
-    this._interval = 0;
+    axes += 1;
 }
 Motion.prototype = Object.create(Control.prototype);
-Motion.prototype._truncate = function(f) {
+Motion.prototype._normalize = function(f) {
+    f *= ACCELERATION_CONSTANT;
     if (f < -0.5) { f = -0.5; }
     if (f > 0.5) { f = 0.5; }
     return f + 0.5;
 };
-Motion.prototype.onAttached = function() {
-    window.addEventListener('devicemotion', Motion.prototype.onDeviceMotion.bind(this), true);
-    axes += 2;
-};
+Motion.prototype.onAttached = function() {};
 Motion.prototype.onDeviceMotion = function(ev) {
-    this._interval = ev.interval;
-    this._stateAlpha += ev.rotationRate.alpha / 180000 * this._interval;
-    this._stateBeta += ev.rotationRate.beta / 180000 * this._interval;
-    this._stateGamma += ev.rotationRate.gamma / 360000 * this._interval;
-    this._stateX = Motion.prototype._truncate(ev.accelerationIncludingGravity.x / VELOCITY_CONSTANT * this._interval);
-    this._stateY = Motion.prototype._truncate(ev.accelerationIncludingGravity.y / VELOCITY_CONSTANT * this._interval);
-    this._stateZ = Motion.prototype._truncate(ev.accelerationIncludingGravity.z / VELOCITY_CONSTANT * this._interval);
-    this.updateStateCallback();
+    motionState[0] = Motion.prototype._normalize(ev.accelerationIncludingGravity.x);
+    motionState[1] = Motion.prototype._normalize(ev.accelerationIncludingGravity.y);
+    motionState[2] = Motion.prototype._normalize(ev.accelerationIncludingGravity.z);
+    motionSensor.updateStateCallback();
 };
-Motion.prototype.onDeviceOrientation = function() {};
+Motion.prototype.onDeviceOrientation = function(ev) {
+    motionState[3] = ev.alpha / 360;
+    motionState[4] = ev.beta / 360 + .5;
+    motionState[5] = ev.gamma / 180 + .5;
+    motionSensor.updateStateCallback();
+};
 Motion.prototype.state = function() {
-    return this._stateX.toString() + ',' + this._stateGamma.toString();
+    return motionState[this._mask].toString();
 };
 
 function Pedal(id, updateStateCallback) {
     Control.call(this, 'button', id, updateStateCallback);
     this._state = 0;
     this._offset = {};
+    axes += 1;
 }
 Pedal.prototype = Object.create(Control.prototype);
 Pedal.prototype._truncate = function(f) {
@@ -225,7 +286,6 @@ Pedal.prototype.onAttached = function() {
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchmove', this.onTouchMove.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
-    axes += 1;
 };
 Pedal.prototype.onTouchStart = function(ev) {
     window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
@@ -251,11 +311,93 @@ Pedal.prototype.state = function() {
     return this._state.toString();
 };
 
+function Knob(id, updateStateCallback) {
+    Control.call(this, 'knob', id, updateStateCallback);
+    this._state = 0;
+    this._offset = {};
+    this._knobcircle = document.createElement('div');
+    this._knobcircle.className = 'knobcircle';
+    this.element.appendChild(this._knobcircle);
+    this._circle = document.createElement('div');
+    this._circle.className = 'circle';
+    this._knobcircle.appendChild(this._circle);
+    axes += 1;
+}
+Knob.prototype = Object.create(Control.prototype);
+Knob.prototype.onAttached = function() {
+    // First approximation to the knob coordinates.
+    this._offset = this.element.getBoundingClientRect();
+    // Centering the knob within the boundary.
+    var mindimension = Math.min(this._offset.width, this._offset.height);
+    if (mindimension == this._offset.width) {
+        this._knobcircle.style.top = this._offset.y + (this._offset.height - this._offset.width) / 2 + 'px';
+        this._offset.height = this._offset.width;
+    } else {
+        this._knobcircle.style.left = this._offset.x + (this._offset.width - this._offset.height) / 2 + 'px';
+        this._offset.width = this._offset.height;
+    }
+    this._knobcircle.style.height = this._offset.width + 'px';
+    this._knobcircle.style.width = this._offset.height + 'px';
+    // Calculating the exact center.
+    this._offset = this._knobcircle.getBoundingClientRect();
+    this._offset.x += this._offset.width / 2;
+    this._offset.y += this._offset.height / 2;
+    this._updateCircles();
+    this.element.addEventListener('touchmove', this.onTouch.bind(this), false);
+    this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
+    this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
+};
+Knob.prototype.onTouch = function(ev) {
+    var pos = ev.targetTouches[0];
+    this._state = Math.atan2(pos.pageY - this._offset.y, pos.pageX - this._offset.x) / 2 / Math.PI + 0.5;
+    this._updateCircles();
+    this.updateStateCallback();
+};
+Knob.prototype.onTouchStart = function(ev) {
+    this.onTouch(ev);
+    window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
+};
+Knob.prototype.onTouchEnd = function() {
+    this._updateCircles();
+    this.updateStateCallback();
+    window.navigator.vibrate(VIBRATION_MILLISECONDS_OUT);
+};
+Knob.prototype.state = function() {
+    return this._state.toString();
+};
+Knob.prototype._updateCircles = function() {
+    this._knobcircle.style.transform = 'rotate(' + ((this._state - 0.5) * 360) + 'deg)';
+};
+
+function Button(id, updateStateCallback) {
+    Control.call(this, 'button', id, updateStateCallback);
+    this._state = 0;
+    buttons += 1;
+}
+Button.prototype = Object.create(Control.prototype);
+Button.prototype.onAttached = function() {
+    this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
+    this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
+};
+Button.prototype.onTouchStart = function() {
+    this._state = 1;
+    this.updateStateCallback();
+    window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
+};
+Button.prototype.onTouchEnd = function() {
+    this._state = 0;
+    this.updateStateCallback();
+    window.navigator.vibrate(VIBRATION_MILLISECONDS_OUT);
+};
+Button.prototype.state = function() {
+    return this._state.toString();
+};
+
 function Dummy(id, updateStateCallback) {
     Control.call(this, 'dummy', 'dum', updateStateCallback);
+    buttons += 1;
 }
 Dummy.prototype = Object.create(Control.prototype);
-Dummy.prototype.onAttached = function() { buttons += 1; };
 Dummy.prototype.state = function() { return '0'; };
 
 //
@@ -266,26 +408,30 @@ function Joypad() {
 
     this._controls = [];
 
-    var joypad = document.getElementById('joypad');
-    var gridAreas = getComputedStyle(joypad)
+    this.element = document.getElementById('joypad');
+    var gridAreas = getComputedStyle(this.element)
         .gridTemplateAreas
         .split('"').join('')
         .split(' ')
         .filter(function(x) { return x != '' && x != '.'; });
     var controlIDs = gridAreas.sort(mnemonics).filter(unique);
+    this._debugLabel = null;
     controlIDs.forEach(function(id) {
         if (id != 'dbg') {
             this._controls.push(mnemonics(id, updateStateCallback));
+        } else if (this._debugLabel == null) {
+            this._debugLabel = new Control('debug', 'dbg');
+            this.element.appendChild(this._debugLabel.element);
         }
     }, this);
     this._controls.forEach(function(control) {
-        joypad.appendChild(control.element);
+        this.element.appendChild(control.element);
         control.onAttached();
-    });
+    }, this);
     if (axes == 0 && buttons == 0) {
         prettyAlert('You don\'t seem to have any controls in your gamepad. Is <code>user.css</code> missing or broken?');
     }
-    // This section is to be excised later
+    // This section is to be excised later.
     if (axes != 4) {
         prettyAlert('Currently, Yoke requires precisely 4 axes: please edit your CSS to incorporate two joysticks, or one joystick and a motion sensor.');
     }
@@ -296,10 +442,8 @@ function Joypad() {
             this._controls.push(new Dummy('dum', updateStateCallback));
         }
     }
-    // end of section to be deleted
+    // End of section to be deleted.
 
-    this._debugLabel = new Control('debug', 'dbg');
-    joypad.appendChild(this._debugLabel.element);
 }
 Joypad.prototype.updateState = function() {
     var state = this._controls.map(function(control) { return control.state(); }).join(',');
@@ -307,50 +451,65 @@ Joypad.prototype.updateState = function() {
     Yoke.update_vals(state); // only works in yoke webview
 
     this._debugLabel.element.innerHTML = state;
-    if (!DEBUG_NO_CONSOLE_SPAM) {
-        console.log(state);
-    }
+    if (!DEBUG_NO_CONSOLE_SPAM) { console.log(state); }
 };
 
 //
 // BASE CODE
 //
+// These variables are automatically updated by the code
 var joypad = null;
 var buttons = 0; // number of buttons total
 var axes = 0; // number of analog axes total
+var motionState = [0, 0, 0, 0, 0, 0];
+var motionSensor = null;
+var deviceMotionEL = null;
+var deviceOrientationEL = null;
 
-window.addEventListener('resize', function() {
-    if (joypad != null) {
-        joypad._controls.forEach(function(control) {
-            control.onAttached();
-        });
-    }
-});
+// If the user's browser needs permission to vibrate
+// it's more convenient to ask for it first before entering fullscreen.
+// This is useful e.g. in Firefox for Android.
+window.navigator.vibrate(50);
 
-window.addEventListener('load', function() {
-    var warningDiv = document.getElementById('warning');
-    if (window.CSS && CSS.supports('display', 'grid')) {
-        warningDiv.addEventListener('click', function() { warningDiv.style.display = 'none'; }, false);
-        warningDiv.style.display = 'none';
-    }
+function loadPad(filename) {
+    var head = document.head;
+    var link = document.createElement('link');
+    link.type = 'text/css';
+    link.rel = 'stylesheet';
+    link.href = filename;
+
+    document.getElementById('menu').style.display = 'none';
+
+    window.addEventListener('resize', function() {
+        if (joypad != null) {
+            joypad._controls.forEach(function(control) {
+                control.onAttached();
+            });
+        }
+    });
+
+    // https://stackoverflow.com/a/7966541/5108318
+    // https://stackoverflow.com/a/38711009/5108318
+    // https://stackoverflow.com/a/25876513/5108318
     var el = document.documentElement;
     var rfs = el.requestFullScreen ||
         el.webkitRequestFullScreen ||
         el.mozRequestFullScreen ||
         el.msRequestFullscreen;
-    if (rfs && WAIT_FOR_FULLSCREEN) {
-        // https://stackoverflow.com/a/7966541/5108318
-        // https://stackoverflow.com/a/38711009/5108318
-        // https://stackoverflow.com/a/25876513/5108318
-        var btn = document.createElement('button');
-        btn.innerHTML = 'click';
-        btn.addEventListener('click', function() {
-            rfs.bind(el)();
-            this.parentNode.removeChild(this);
-            setTimeout(function() { new Joypad(); }, 1000);
-        });
-        document.getElementById('joypad').appendChild(btn);
-    } else {
+    if (rfs && WAIT_FOR_FULLSCREEN) { rfs.bind(el)(); }
+    link.onload = function() {
+        document.getElementById('joypad').style.display = 'grid';
+        var warningDiv = document.getElementById('warning');
+        if (window.CSS && CSS.supports('display', 'grid')) {
+            warningDiv.addEventListener('click', function() { warningDiv.style.display = 'none'; }, false);
+            warningDiv.style.display = 'none';
+        }
         joypad = new Joypad();
-    }
-});
+    };
+
+    head.appendChild(link);
+}
+
+document.getElementById('racing').addEventListener('click', function() { loadPad('racing.css'); });
+document.getElementById('gamepad').addEventListener('click', function() { loadPad('gamepad.css'); });
+document.getElementById('testing').addEventListener('click', function() { loadPad('testing.css'); });

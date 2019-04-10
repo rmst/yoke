@@ -9,7 +9,7 @@ body {
 }
 
 #joypad {
-    display: grid;
+    display: none;
     width: 100vw;
     height: 100vh;
 }
@@ -28,6 +28,24 @@ body {
     filter: drop-shadow(0px 0px 5px black)
 }
 
+#menu {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: space-evenly;
+}
+
+#menu > * {
+    flex: 1 1 auto;
+    background: #cccccc;
+    border-radius: 10px;
+    margin: 3px;
+    padding-top: 30vh;
+    text-align: center;
+    vertical-align: middle;
+}
+
 .dismiss {
     margin-top: 5vh;
     font-size: 80%;
@@ -36,9 +54,26 @@ body {
 .circle {
     position: absolute;
     transform: translate(-50%, -50%);
+    top: 99999px;
+}
+
+.knobcircle {
+    position: absolute;
+    border-radius: 100%;
+    transform: rotate(0);
+}
+
+.knobcircle > .circle {
+    position: absolute;
+    top: 50%;
+    left: 90%;
 }
 
 #dbg {
-    word-wrap: break-word;
+    vertical-align: middle;
     overflow: hidden;
+    background: #000;
+    color: #0f0;
+    font-family: monospace;
+    word-wrap: break-word;
 }
