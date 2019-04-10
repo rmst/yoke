@@ -282,7 +282,6 @@ Pedal.prototype._truncate = function(f) {
     return f;
 };
 Pedal.prototype.onAttached = function() {
-    this._handbrake = getComputedStyle(this.element)['animation-name'] == 'handbrake';
     this._offset = this.element.getBoundingClientRect();
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchmove', this.onTouchMove.bind(this), false);
@@ -469,6 +468,7 @@ var deviceOrientationEL = null;
 
 // If the user's browser needs permission to vibrate
 // it's more convenient to ask for it first before entering fullscreen.
+// This is useful e.g. in Firefox for Android.
 window.navigator.vibrate(50);
 
 function loadPad(filename) {
