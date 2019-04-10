@@ -452,7 +452,10 @@ Joypad.prototype.updateState = function() {
         window.Yoke.update_vals(state); // only works in yoke webview
     }
 
-    this._debugLabel.element.innerHTML = state;
+    if (this._debugLabel != null) {
+        this._debugLabel.element.innerHTML = state;
+    }
+
     if (!DEBUG_NO_CONSOLE_SPAM) { console.log(state); }
 };
 
