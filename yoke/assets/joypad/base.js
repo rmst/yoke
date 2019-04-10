@@ -448,7 +448,9 @@ function Joypad() {
 Joypad.prototype.updateState = function() {
     var state = this._controls.map(function(control) { return control.state(); }).join(',');
 
-    Yoke.update_vals(state); // only works in yoke webview
+    if (typeof window.Yoke !== 'undefined') {
+        window.Yoke.update_vals(state); // only works in yoke webview
+    }
 
     this._debugLabel.element.innerHTML = state;
     if (!DEBUG_NO_CONSOLE_SPAM) { console.log(state); }
