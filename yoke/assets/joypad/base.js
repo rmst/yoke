@@ -53,24 +53,12 @@ function mnemonics(a, b) {
                     } else {
                         sortScores[i] = 200;
                         switch (id[1]) {
-                            case 'x':
-                                sortScores[i] += 0;
-                                break;
-                            case 'y':
-                                sortScores[i] += 10;
-                                break;
-                            case 'z':
-                                sortScores[i] += 20;
-                                break;
-                            case 'a':
-                                sortScores[i] += 30;
-                                break;
-                            case 'b':
-                                sortScores[i] += 40;
-                                break;
-                            case 'g':
-                                sortScores[i] += 50;
-                                break;
+                            case 'x': sortScores[i] += 0; break;
+                            case 'y': sortScores[i] += 10; break;
+                            case 'z': sortScores[i] += 20; break;
+                            case 'a': sortScores[i] += 30; break;
+                            case 'b': sortScores[i] += 40; break;
+                            case 'g': sortScores[i] += 50; break;
                             default:
                                 prettyAlert('Motion detection error: \
                               Unrecognised coordinate <code>' + id[1] + '</code>.');
@@ -99,18 +87,10 @@ function mnemonics(a, b) {
                     } else {
                         sortScores[i] = 700;
                         switch (id.substr(1, 1)) {
-                            case 'u':
-                                sortScores[i] += 20;
-                                break;
-                            case 'd':
-                                sortScores[i] += 30;
-                                break;
-                            case 'l':
-                                sortScores[i] += 40;
-                                break;
-                            case 'r':
-                                sortScores[i] += 50;
-                                break;
+                            case 'u': sortScores[i] += 20; break;
+                            case 'd': sortScores[i] += 30; break;
+                            case 'l': sortScores[i] += 40; break;
+                            case 'r': sortScores[i] += 50; break;
                         }
                     }
                     break;
@@ -134,6 +114,12 @@ function mnemonics(a, b) {
     }
 }
 
+function truncate(f, vibration) {
+    if (f < 0) { if (vibration) {window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);}; return 0; }
+    if (f > 1) { if (vibration) {window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);}; return 1; }
+    return f;
+};
+
 //
 // CONTROL DEFINITIONS
 //
@@ -144,9 +130,12 @@ function Control(type, id, updateStateCallback) {
     this.element.style.gridArea = id;
     this.gridArea = id;
     this.updateStateCallback = updateStateCallback;
+    this._state = 0;
 }
 Control.prototype.onAttached = function() {};
-Control.prototype.state = function() {};
+Control.prototype.state = function() {
+    return this._state.toString();
+};
 
 function Joystick(id, updateStateCallback) {
     Control.call(this, 'joystick', id, updateStateCallback);
@@ -169,8 +158,8 @@ Joystick.prototype.onAttached = function() {
 };
 Joystick.prototype.onTouch = function(ev) {
     var pos = ev.targetTouches[0];
-    this._stateX = this._truncate((pos.pageX - this._offset.x) / this._offset.width);
-    this._stateY = this._truncate((pos.pageY - this._offset.y) / this._offset.height);
+    this._stateX = truncate((pos.pageX - this._offset.x) / this._offset.width, true);
+    this._stateY = truncate((pos.pageY - this._offset.y) / this._offset.height, true);
     this._updateCircle();
     this.updateStateCallback();
 };
@@ -190,11 +179,6 @@ Joystick.prototype.onTouchEnd = function() {
 Joystick.prototype.state = function() {
     return this._stateX.toString() + ',' + this._stateY.toString();
 };
-Joystick.prototype._truncate = function(f) {
-    if (f < 0) { window.navigator.vibrate(VIBRATION_MILLISECONDS_IN); return 0; }
-    if (f > 1) { window.navigator.vibrate(VIBRATION_MILLISECONDS_IN); return 1; }
-    return f;
-};
 Joystick.prototype._updateCircle = function() {
     this._circle.style.left = (this._offset.x + this._offset.width * this._stateX) + 'px';
     this._circle.style.top = (this._offset.y + this._offset.height * this._stateY) + 'px';
@@ -208,24 +192,12 @@ function Motion(id, updateStateCallback) {
     if (id.length != 2) { prettyAlert('Please use only one coordinate per motion sensor.'); }
     this._mask = null;
     switch (id[1]) {
-        case 'x':
-            this._mask = 0;
-            break;
-        case 'y':
-            this._mask = 1;
-            break;
-        case 'z':
-            this._mask = 2;
-            break;
-        case 'a':
-            this._mask = 3;
-            break;
-        case 'b':
-            this._mask = 4;
-            break;
-        case 'g':
-            this._mask = 5;
-            break;
+        case 'x': this._mask = 0; break;
+        case 'y': this._mask = 1; break;
+        case 'z': this._mask = 2; break;
+        case 'a': this._mask = 3; break;
+        case 'b': this._mask = 4; break;
+        case 'g': this._mask = 5; break;
         default:
             prettyAlert('Motion detection error: Unrecognised coordinate <code>' + id[1] + '</code>.');
             break;
@@ -273,11 +245,6 @@ function Pedal(id, updateStateCallback) {
     axes += 1;
 }
 Pedal.prototype = Object.create(Control.prototype);
-Pedal.prototype._truncate = function(f) {
-    if (f < 0) { return 0; }
-    if (f > 1) { return 1; }
-    return f;
-};
 Pedal.prototype.onAttached = function() {
     this._offset = this.element.getBoundingClientRect();
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
@@ -290,22 +257,19 @@ Pedal.prototype.onTouchStart = function(ev) {
 };
 Pedal.prototype.onTouchMove = function(ev) {
     /*
-    //Some screens can detect finger pressure, but not all, and it's difficult to calibrate and detect support.
+    //Not every screen can detect finger pressure, and the ones that do are difficult to calibrate.
     this._state = ev.touches[0].force;
     if (this._state == 0) {this.state = 0.5};
     */
     // Detection based on Y-coordinate, on the other hand, is intuitive and reliable in any device:
     var pos = ev.targetTouches[0];
-    this._state = this._truncate((this._offset.y - pos.pageY) / this._offset.height + 1);
+    this._state = truncate((this._offset.y - pos.pageY) / this._offset.height + 1, false);
     this.updateStateCallback();
 };
 Pedal.prototype.onTouchEnd = function() {
     this._state = 0;
     this.updateStateCallback();
     window.navigator.vibrate(VIBRATION_MILLISECONDS_OUT);
-};
-Pedal.prototype.state = function() {
-    return this._state.toString();
 };
 
 function Knob(id, updateStateCallback) {
@@ -359,9 +323,6 @@ Knob.prototype.onTouchEnd = function() {
     this.updateStateCallback();
     window.navigator.vibrate(VIBRATION_MILLISECONDS_OUT);
 };
-Knob.prototype.state = function() {
-    return this._state.toString();
-};
 Knob.prototype._updateCircles = function() {
     this._knobcircle.style.transform = 'rotate(' + ((this._state - 0.5) * 360) + 'deg)';
 };
@@ -386,16 +347,12 @@ Button.prototype.onTouchEnd = function() {
     this.updateStateCallback();
     window.navigator.vibrate(VIBRATION_MILLISECONDS_OUT);
 };
-Button.prototype.state = function() {
-    return this._state.toString();
-};
 
 function Dummy(id, updateStateCallback) {
     Control.call(this, 'dummy', 'dum', updateStateCallback);
     buttons += 1;
 }
 Dummy.prototype = Object.create(Control.prototype);
-Dummy.prototype.state = function() { return '0'; };
 
 //
 // JOYPAD
