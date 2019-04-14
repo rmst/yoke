@@ -5,7 +5,7 @@
     grid-template-rows: repeat(9, 1fr);
     grid-template-areas:
     /* The map below must match the number of rows and columns specified above: */
-        ".   .   .   .   .   .   .   ma  mg  .   .   .   .   .   .   .   "
+        ".   .   .   .   .   .   .   mb  mg  .   .   .   .   .   .   .   "
         ".   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   "
         ".   p1  p1  p1  .   b1  .   .   .   .   b2  .   p2  p2  p2  .   "
         ".   p1  p1  p1  .   b1  .   .   .   .   b2  .   p2  p2  p2  .   "

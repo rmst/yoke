@@ -63,13 +63,13 @@ function mnemonics(a, b) {
                                 sortScores[i] += 20;
                                 break;
                             case 'a':
-                                sortScores[i] += 50;
-                                break;
-                            case 'b':
                                 sortScores[i] += 30;
                                 break;
-                            case 'g':
+                            case 'b':
                                 sortScores[i] += 40;
+                                break;
+                            case 'g':
+                                sortScores[i] += 50;
                                 break;
                             default:
                                 prettyAlert('Motion detection error: \
@@ -205,9 +205,6 @@ function Motion(id, updateStateCallback) {
     // This way is easy to program and avoids conditionals, loops, and objects,
     // but maybe it's not the most performant.
     // Motion calculates always every coordinate, then applies a mask on it.
-    // The slightly weird mapping is me following two simultaneous, different conventions:
-    // users write x/y/z/a/b/g in the CSS (using the HTML device orientation notation),
-    // but this._state is in the format [X, Y, Z, RX, RY, RZ] (following the vJoy notation).
     if (id.length != 2) { prettyAlert('Please use only one coordinate per motion sensor.'); }
     this._mask = null;
     switch (id[1]) {
@@ -221,13 +218,13 @@ function Motion(id, updateStateCallback) {
             this._mask = 2;
             break;
         case 'a':
-            this._mask = 5;
-            break;
-        case 'b':
             this._mask = 3;
             break;
-        case 'g':
+        case 'b':
             this._mask = 4;
+            break;
+        case 'g':
+            this._mask = 5;
             break;
         default:
             prettyAlert('Motion detection error: Unrecognised coordinate <code>' + id[1] + '</code>.');
@@ -261,7 +258,7 @@ Motion.prototype.onDeviceMotion = function(ev) {
 };
 Motion.prototype.onDeviceOrientation = function(ev) {
     motionState[3] = ev.alpha / 360;
-    motionState[4] = ev.beta / 360 + .5;
+    motionState[4] = ev.beta / 180 + .5;
     motionState[5] = ev.gamma / 180 + .5;
     motionSensor.updateStateCallback();
 };
@@ -433,7 +430,7 @@ function Joypad() {
     }
     // This section is to be excised later.
     if (axes != 4) {
-        prettyAlert('Currently, Yoke requires precisely 4 axes: please edit your CSS to incorporate two joysticks, or one joystick and a motion sensor.');
+        prettyAlert('Currently, Yoke requires precisely 4 analog axes. Please edit your CSS.');
     }
     if (buttons > 32) {
         prettyAlert('Currently, Yoke allows a maximum of 32 buttons.');
