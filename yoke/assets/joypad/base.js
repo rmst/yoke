@@ -115,10 +115,10 @@ function mnemonics(a, b) {
 }
 
 function truncate(f, vibration) {
-    if (f < 0) { if (vibration) {window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);}; return 0; }
-    if (f > 1) { if (vibration) {window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);}; return 1; }
+    if (f < 0) { if (vibration) {window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);} return 0; }
+    if (f > 1) { if (vibration) {window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);} return 1; }
     return f;
-};
+}
 
 //
 // CONTROL DEFINITIONS
