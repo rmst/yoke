@@ -166,8 +166,9 @@ class Service:
     info = None
     dt = 0.02
 
-    def __init__(self, dev, port=0, client_path=DEFAULT_CLIENT_PATH):
+    def __init__(self, dev, iface='auto', port=0, client_path=DEFAULT_CLIENT_PATH):
         self.dev = dev
+        self.iface = iface
         self.port = port
         self.client_path = client_path
         
@@ -195,10 +196,13 @@ class Service:
     def run(self):
         atexit.register(self.close_atexit)
 
+        if self.iface == 'auto':
+            self.iface = get_ip_address()
+
         # open udp socket on random available port
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 128)  # small buffer for low latency
-        self.sock.bind((get_ip_address(), self.port))
+        self.sock.bind((self.iface, self.port))
         self.sock.settimeout(0)
         adr, port = self.sock.getsockname()
         self.port = port
