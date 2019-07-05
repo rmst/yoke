@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1" viewBox="0 0 1 1">
+    <defs><style>
+        rect, path {
+            fill: none;
+            stroke: #999;
+            stroke-linecap: square;
+        }
+        path { stroke-width: 0.05px; }
+        rect { stroke-width: 0.1px; }
+    </style></defs>
+    <rect x="0" y="0" height="1" width="1" />
+    <path d="M 0.4,0.4 H 0.6 V 0.6 H 0.4 Z" />
+    <path d="M 0.5,0 V 0.4 M 0.5,0.6 V 1 M 0,0.5 H 0.4 M 0.6,0.5 H 1" />
+</svg>

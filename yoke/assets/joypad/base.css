@@ -1,5 +1,11 @@
 /* Basic properties */
 
+html {
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
 body {
     margin: 0;
     padding: 0;
@@ -14,19 +20,40 @@ body {
     height: 100vh;
 }
 
-#warning {
+#warning, #calibration {
     display: none;
     position: fixed;
-    width: 64vw;
-    height: 44vh;
-    top: 25vh;
-    left: 15vw;
     z-index: 1;
-    background: #F0B080;
     border-radius: 10px;
     padding: 3vh 3vw 3vh;
     filter: drop-shadow(0px 0px 5px black)
 }
+
+#warning {
+    background: #F0B080;
+    width: 64vw;
+    height: 44vh;
+    top: 25vh;
+    left: 18vw;
+}
+
+#calibration {
+    background: #B0B0B0;
+    width: 80vw;
+    height: 74vh;
+    top: 6vw;
+    left: 7vw;
+}
+
+#force {
+    position: absolute;
+    background: #008000;
+    width: 70vw;
+    height: 11px;
+    transform-origin: left;
+}
+
+#calibrationOk, #calibrationNo { width: 48%; padding: 4vh 0vh 4vh; }
 
 #menu {
     width: 100vw;
@@ -54,7 +81,8 @@ body {
 .circle {
     position: absolute;
     transform: translate(-50%, -50%);
-    top: 99999px;
+    top: 0px;
+    left: 0px;
 }
 
 .knobcircle {
