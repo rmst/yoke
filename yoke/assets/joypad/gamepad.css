@@ -8,7 +8,7 @@
         ".   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   "
         ".   .   .   .   .   .   .   .   .   .   .   .   b4  b4  .   .   "
         ".   .   .   .   .   .   .   .   .   .   .   .   b4  b4  .   .   "
-        ".   j1  j1  j1  .   .   .   .   .   .   b3  b3  .   .   b2  b2  "
+        ".   j1  j1  j1  .   bg  .   .   bs  .   b3  b3  .   .   b2  b2  "
         ".   j1  j1  j1  .   .   .   .   .   .   b3  b3  .   .   b2  b2  "
         ".   j1  j1  j1  .   .   s2  s2  .   .   .   .   b1  b1  .   .   "
         ".   .   .   .   .   .   s2  s2  .   .   .   .   b1  b1  .   .   "
@@ -24,10 +24,14 @@
               * z for acceleration in the Z-axis (back to front),
               * a for α (alpha) angle -- rotation around the Z-axis,
               * b for β (beta) angle -- rotation around the X-axis,
-              * g for γ (gamma) angle -- rotation around the Y-axis:
+              * g for γ (gamma) angle -- rotation around the Y-axis;
          * pa, pb, pt for pedals (accelerator, brake, throttle);
          * k1, k2... for knobs;
-         * b1, b2... for buttons;
+         * b_ for buttons, where _ is:
+              * s for START button,
+              * g for SELECT button,
+              * m for the branded button (HOME or equivalent),
+              * 1, 2, 3, 4, 5, 6, 7, 8, 9, 10... for the rest.
          * d_ for D-PAD, where _ is one of these letters:
               * u, for the key UP,
               * d, for the key DOWN,
@@ -58,6 +62,7 @@
 #b2 {background-color: #e00;}
 #b3 {background-color: #dd0;}
 #b4 {background-color: #0d0;}
+#bg, #bs, #bm {background-color: #444;}
 
 #du { /* please insert icon here :( */ }
 #dd { /* please insert icon here :( */ }

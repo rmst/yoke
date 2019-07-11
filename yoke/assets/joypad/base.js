@@ -3,10 +3,10 @@
 var WAIT_FOR_FULLSCREEN = true;
 var DEBUG_NO_CONSOLE_SPAM = true;
 
-var VIBRATION_MILLISECONDS_IN = 30;
+var VIBRATION_MILLISECONDS_IN = 40;
 var VIBRATION_MILLISECONDS_OUT = 30;
-var VIBRATION_MILLISECONDS_OVER = 30;
-var VIBRATION_MILLISECONDS_SATURATION = [20, 20];
+var VIBRATION_MILLISECONDS_OVER = 40;
+var VIBRATION_MILLISECONDS_SATURATION = [10, 10];
 var ACCELERATION_CONSTANT = 0.025;
 
 //
@@ -39,8 +39,8 @@ function mnemonics(a, b) {
     // These only matter if mnemonics() is being used as a sort function;
     // the lower-ranking controls are attached earlier.
     ids.forEach(function(id, i) {
-        if (id == 'dbg') { sortScores[i] = 998; } else {
-            sortScores[i] = 997;
+        if (id == 'dbg') { sortScores[i] = 999998; } else {
+            sortScores[i] = 999997;
             switch (id[0]) {
                 case 's':
                 case 'j':
@@ -57,7 +57,7 @@ function mnemonics(a, b) {
                             case '6': sortScores[i].kernelEvent = 'ABS_HAT3X,ABS_HAT3Y'; break;
                             default: sortScores[i].kernelEvent = ','; break;
                         }
-                    } else { sortScores[i] = 100; }
+                    } else { sortScores[i] = 100000; }
                     break;
                 case 'm':
                     if (typeof callback == 'function') {
@@ -74,9 +74,7 @@ function mnemonics(a, b) {
                                     Unrecognised coordinate <code>' + id[1] + '</code>.');
                                 break;
                         }
-                    } else {
-                        sortScores[i] = 200 + id.charCodeAt(1) - 47;
-                    }
+                    } else { sortScores[i] = 200000; }
                     break;
                 case 'p':
                     if (typeof callback == 'function') {
@@ -91,7 +89,7 @@ function mnemonics(a, b) {
                                     and <code>pb</code> for brakes.');
                                 break;
                         }
-                    } else { sortScores[i] = 300; }
+                    } else { sortScores[i] = 300000; }
                     break;
                 case 'k':
                     if (typeof callback == 'function') {
@@ -109,34 +107,55 @@ function mnemonics(a, b) {
                             case '9': sortScores[i].kernelEvent = 'ABS_HAT3X'; break;
                             case '10': sortScores[i].kernelEvent = 'ABS_HAT3Y'; break;
                         }
-                    } else { sortScores[i] = 400; }
+                    } else { sortScores[i] = 400000; }
+                    break;
+                case 'a':
+                    if (typeof callback == 'function') {
+                        sortScores[i] = new AnalogButton(id, callback);
+                        switch (id.substring(1)) {
+                            // Until more suitable kernel codes are found, be careful with these:
+                            case '1': sortScores[i].kernelEvent = 'ABS_HAT0X'; break;
+                            case '2': sortScores[i].kernelEvent = 'ABS_HAT0Y'; break;
+                            case '3': sortScores[i].kernelEvent = 'ABS_HAT1X'; break;
+                            case '4': sortScores[i].kernelEvent = 'ABS_HAT1Y'; break;
+                            case '5': sortScores[i].kernelEvent = 'ABS_HAT2X'; break;
+                            case '6': sortScores[i].kernelEvent = 'ABS_HAT2Y'; break;
+                            case '7': sortScores[i].kernelEvent = 'ABS_HAT3X'; break;
+                            case '8': sortScores[i].kernelEvent = 'ABS_HAT3Y'; break;
+                        }
+                    } else { sortScores[i] = 500000; }
                     break;
                 case 'b':
                     if (typeof callback == 'function') {
                         sortScores[i] = new Button(id, callback);
                         switch (id.substring(1)) {
+                            case 's': sortScores[i].kernelEvent = 'BTN_START'; break;
+                            case 'g': sortScores[i].kernelEvent = 'BTN_SELECT'; break;
+                            case 'm': sortScores[i].kernelEvent = 'BTN_MODE'; break;
                             case '1': sortScores[i].kernelEvent = 'BTN_GAMEPAD'; break;
                             case '2': sortScores[i].kernelEvent = 'BTN_EAST'; break;
                             case '3': sortScores[i].kernelEvent = 'BTN_WEST'; break;
                             case '4': sortScores[i].kernelEvent = 'BTN_NORTH'; break;
-                            case '5': sortScores[i].kernelEvent = 'BTN_START'; break;
-                            case '6': sortScores[i].kernelEvent = 'BTN_SELECT'; break;
-                            case '7': sortScores[i].kernelEvent = 'BTN_MODE'; break;
-                            case '8': sortScores[i].kernelEvent = 'BTN_TL'; break;
-                            case '9': sortScores[i].kernelEvent = 'BTN_TR'; break;
-                            case '10': sortScores[i].kernelEvent = 'BTN_TL2'; break;
-                            case '11': sortScores[i].kernelEvent = 'BTN_TR2'; break;
-                            case '12': sortScores[i].kernelEvent = 'BTN_A'; break;
-                            case '13': sortScores[i].kernelEvent = 'BTN_B'; break;
-                            case '14': sortScores[i].kernelEvent = 'BTN_C'; break;
-                            case '15': sortScores[i].kernelEvent = 'BTN_X'; break;
-                            case '16': sortScores[i].kernelEvent = 'BTN_Y'; break;
-                            case '17': sortScores[i].kernelEvent = 'BTN_Z'; break;
-                            case '18': sortScores[i].kernelEvent = 'BTN_TRIGGER_HAPPY'; break;
+                            case '5': sortScores[i].kernelEvent = 'BTN_TL'; break;
+                            case '6': sortScores[i].kernelEvent = 'BTN_TR'; break;
+                            case '7': sortScores[i].kernelEvent = 'BTN_TL2'; break;
+                            case '8': sortScores[i].kernelEvent = 'BTN_TR2'; break;
+                            case '9': sortScores[i].kernelEvent = 'BTN_A'; break;
+                            case '10': sortScores[i].kernelEvent = 'BTN_B'; break;
+                            case '11': sortScores[i].kernelEvent = 'BTN_C'; break;
+                            case '12': sortScores[i].kernelEvent = 'BTN_X'; break;
+                            case '13': sortScores[i].kernelEvent = 'BTN_Y'; break;
+                            case '14': sortScores[i].kernelEvent = 'BTN_Z'; break;
+                            case '15': sortScores[i].kernelEvent = 'BTN_TRIGGER_HAPPY'; break;
                             default: sortScores[i].kernelEvent = 'BTN_TRIGGER_HAPPY' + (Number(id.substring(1)) - 18); break;
                             // if you use more than 58 buttons, it's on you.
                         }
-                    } else { sortScores[i] = 600; }
+                    } else {
+                        switch (id.substring(1)) {
+                            case 's': case 'g': case 'm': sortScores[i] = 600000; break;
+                            default: sortScores[i] = 600000; break;
+                        }
+                    }
                     break;
                 case 'd':
                     if (typeof callback == 'function') {
@@ -151,48 +170,35 @@ function mnemonics(a, b) {
                                     <code>' + id[1] + '</code> is not a cardinal direction.');
                                 break;
                         }
-                    } else {
-                        sortScores[i] = 700 + id.charCodeAt(1) - 47;
-                    }
+                    } else { sortScores[i] = 700000; }
                     break;
                 default:
-                    sortScores[i] = 999;
+                    sortScores[i] = 999999;
                     prettyAlert('Unrecognised control <code>' + id + '</code> at user.css.');
                     break;
             }
-            if (sortScores[i] < 990) {
-                var maybeNumber = Number(id.substring(1));
-                // Number returns a NaN if there are no digits. The following conditional discards those NaNs:
-                // (also zeros, but they would have the same effect anyways)
-                if (maybeNumber) { sortScores[i] += maybeNumber; }
+            if (sortScores[i] < 999990) {
+                // This line should sort controls in the same category by id length,
+                // and after that, by the ASCII codes in the id tag
+                // (the first letter may be different without changing the category)
+                // This shortcut reorders non-negative integers correctly, and letters with the same capitalization in alphabetical order.
+                sortScores[i] += id.substring(1).split('')
+                    .reduce(function(acc, cur) {return 256*acc + cur.charCodeAt();}, 0);
             }
         }
     });
-    if (typeof callback == 'function') {
-        return sortScores[0];
-    } else {
-        if (sortScores[0] < sortScores[1]) { return -1; } else { return 1; }
-    }
+    if (typeof callback == 'function') { return sortScores[0]; }
+    else { return (sortScores[0] < sortScores[1]) ? -1 : 1; }
 }
 
 function truncate(f, id, pattern) {
     var truncated = false;
-    f.forEach(function(val, index) {
-        if (val < 0) {
-            f[index] = 0;
-            truncated = true;
-        } else if (val > 1) {
-            f[index] = 1;
-            truncated = true;
-        }
+    f = f.map(function(val) {
+        if (val < 0) { truncated = true; return 0; }
+        else if (val > 1) { truncated = true; return 1; }
+        else { return val; }
     });
-    if (pattern) {
-        if (truncated) {
-            queueForVibration(id, pattern);
-        } else {
-            unqueueForVibration(id);
-        }
-    }
+    if (pattern) { truncated ? queueForVibration(id, pattern) : unqueueForVibration(id); }
     return f;
 }
 
@@ -203,13 +209,11 @@ var vibrating = {};
 function queueForVibration(id, pattern) {
     if (!(id in vibrating)) {vibrating[id] = {time: performance.now(), pulse: pattern[0], pause: pattern[1], kill: false};}
 }
-
 function unqueueForVibration(id) {
     if (id in vibrating) {vibrating[id].kill = true;}
     // And wait for checkVibration to kill it.
     // This is heavier for the browser, but also avoids race conditions between checkVibration() and unqueueForVibration().
 }
-
 function checkVibration() {
     for (var id in vibrating) {
         if (vibrating[id].kill) {
@@ -243,7 +247,7 @@ Control.prototype.state = function() {
 function Joystick(id, updateStateCallback) {
     Control.call(this, 'joystick', id, updateStateCallback);
     this._state = [0.5, 0.5];
-    this.quadrant = 0;
+    this.quadrant = -2;
     this._locking = (id[0] == 's');
     this._offset = {};
     this._circle = document.createElement('div');
@@ -265,29 +269,41 @@ Joystick.prototype.onTouch = function(ev) {
         (pos.pageX - this._offset.x) / this._offset.width,
         (pos.pageY - this._offset.y) / this._offset.height
     ], this.element.id, VIBRATION_MILLISECONDS_SATURATION);
+    this.updateStateCallback();
+    /*
     var currentQuadrant = 4 + (this._state[0] > 0.5) + (this._state[1] > 0.5) * 2;
     if (
-        this.state[0] > 0.4 && this.state[0] < 0.6 &&
-        this.state[1] > 0.4 && this.state[1] < 0.6
+        this._state[0] > 0.35 && this._state[0] < 0.65 &&
+        this._state[1] > 0.35 && this._state[1] < 0.65
     ) { currentQuadrant = 8; }
-    if (this.quadrant && this.quadrant != currentQuadrant) {
+    */
+    //if (Math.max(this._state[0], this._state[1]) > 0.65 ||
+    //    Math.min(this._state[0], this._state[1]) < 0.35) {
+    var currentQuadrant = Math.atan2(this._state[1] - .5, this._state[0] - .5) / Math.PI + 1.125; // rad ÷ pi, shited 22.5 deg. [0.25, 2.25]
+    currentQuadrant = Math.floor((currentQuadrant * 4) % 8); // [1, 9] → [1, 8)+[0, 1)
+    //} else { var currentQuadrant = -1; }
+    if (this.quadrant != -2 && this.quadrant != currentQuadrant) {
         window.navigator.vibrate(VIBRATION_MILLISECONDS_OVER);
     }
     this.quadrant = currentQuadrant;
     this._updateCircle();
-    this.updateStateCallback();
 };
 Joystick.prototype.onTouchStart = function(ev) {
-    window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
+    ev.preventDefault(); // Android Webview delays the vibration without this.
+    var oldstate = this._state;
     this.onTouch(ev);
+    if (Math.abs(oldstate[0] - this._state[0]) < 0.15 &&
+        Math.abs(oldstate[1] - this._state[1]) < 0.15) {
+        window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
+    }
 };
 Joystick.prototype.onTouchEnd = function() {
     if (!this._locking) {
         this._state = [0.5, 0.5];
-        this.quadrant = 0;
-        this._updateCircle();
         this.updateStateCallback();
+        this._updateCircle();
     }
+    this.quadrant = -2;
     unqueueForVibration(this.element.id);
     window.navigator.vibrate(VIBRATION_MILLISECONDS_OUT);
 };
@@ -363,17 +379,20 @@ Pedal.prototype.onAttached = function() {
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
 };
 Pedal.prototype.onTouchStart = function(ev) {
+    ev.preventDefault(); // Android Webview delays the vibration without this.
     window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
     this.onTouchMove(ev);
+    this.element.classList.add('pressed');
 };
 Pedal.prototype.onTouchMove = function(ev) {
     // This is the default handler, which uses the Y-coordinate to control the pedal.
     // This function is overwritten if the user confirms the screen can detect touch pressure:
     var pos = ev.targetTouches[0];
-    this._state = truncate([(this._offset.y - pos.pageY) / this._offset.height + 1]);
+    this._state = truncate([(this._offset.y - pos.pageY) / this._offset.height + 1],
+        this.element.id, VIBRATION_MILLISECONDS_SATURATION);
     this.updateStateCallback();
 };
-Pedal.prototype.onTouchMoveReplacement = function(ev) {
+Pedal.prototype.onTouchMoveForce = function(ev) {
     // This is the replacement handler, which uses touch pressure.
     // Overwriting the handler once is much faster than checking
     // minForce and maxForce at every updateStateCallback:
@@ -384,7 +403,65 @@ Pedal.prototype.onTouchMoveReplacement = function(ev) {
 Pedal.prototype.onTouchEnd = function() {
     this._state = 0;
     this.updateStateCallback();
+    unqueueForVibration(this.element.id);
     window.navigator.vibrate(VIBRATION_MILLISECONDS_OUT);
+    this.element.classList.remove('pressed');
+};
+
+function AnalogButton(id, updateStateCallback) {
+    this.onTouchMoveParticular = function() {};
+    Control.call(this, 'button', id, updateStateCallback);
+    this._state = 0;
+    this._offset = {};
+    axes += 1;
+}
+AnalogButton.prototype = Object.create(Control.prototype);
+AnalogButton.prototype.onAttached = function() {
+    this._offset = this.element.getBoundingClientRect();
+    this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
+    this.element.addEventListener('touchmove', this.onTouchMove.bind(this), false);
+    this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
+    if (this._offset.width > this._offset.height) {
+        this._offset.width /= 2;
+        this._offset.x += this._offset.width;
+        this.onTouchMoveParticular = function(ev) {
+            var pos = ev.targetTouches[0];
+            return truncate([1 - Math.abs(this._offset.x - pos.pageX) / this._offset.width]);
+
+        };
+    } else {
+        this._offset.height /= 2;
+        this._offset.y += this._offset.height;
+        this.onTouchMoveParticular = function(ev) {
+            var pos = ev.targetTouches[0];
+            return truncate([1 - Math.abs(this._offset.y - pos.pageY) / this._offset.height]);
+
+        };
+    }
+};
+AnalogButton.prototype.onTouchStart = function(ev) {
+    ev.preventDefault(); // Android Webview delays the vibration without this.
+    window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
+    this.onTouchMove(ev);
+    this.element.classList.add('pressed');
+};
+AnalogButton.prototype.onTouchMove = function(ev) {
+    // This is the default handler, which uses the distance to the center (horizontal in wide buttons, vertical in tall buttons).
+    // This function is overwritten if the user confirms the screen can detect touch pressure:
+    this._state = this.onTouchMoveParticular(ev);
+    this.updateStateCallback();
+};
+AnalogButton.prototype.onTouchMoveForce = function(ev) {
+    // This is the replacement handler, which uses touch pressure.
+    var pos = ev.targetTouches[0];
+    this._state = truncate([(pos.force - minForce) / (maxForce - minForce)]);
+    this.updateStateCallback();
+};
+AnalogButton.prototype.onTouchEnd = function() {
+    this._state = 0;
+    this.updateStateCallback();
+    window.navigator.vibrate(VIBRATION_MILLISECONDS_OUT);
+    this.element.classList.remove('pressed');
 };
 
 function Knob(id, updateStateCallback) {
@@ -419,6 +496,7 @@ Knob.prototype.onAttached = function() {
     this._offset.x += this._offset.width / 2;
     this._offset.y += this._offset.height / 2;
     this._updateCircles();
+    this.quadrant = 0;
     this.element.addEventListener('touchmove', this.onTouch.bind(this), false);
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
@@ -426,17 +504,23 @@ Knob.prototype.onAttached = function() {
 Knob.prototype.onTouch = function(ev) {
     var pos = ev.targetTouches[0];
     this._state = Math.atan2(pos.pageY - this._offset.y, pos.pageX - this._offset.x) / 2 / Math.PI + 0.5;
-    this._updateCircles();
     this.updateStateCallback();
+    var currentQuadrant = Math.floor(this._state * 16);
+    if (this.quadrant != currentQuadrant) {
+        window.navigator.vibrate(VIBRATION_MILLISECONDS_OVER);
+    }
+    this.quadrant = currentQuadrant;
+    this._updateCircles();
 };
 Knob.prototype.onTouchStart = function(ev) {
+    ev.preventDefault(); // Android Webview delays the vibration without this.
     this.onTouch(ev);
     window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
 };
 Knob.prototype.onTouchEnd = function() {
-    this._updateCircles();
     this.updateStateCallback();
     window.navigator.vibrate(VIBRATION_MILLISECONDS_OUT);
+    this._updateCircles();
 };
 Knob.prototype._updateCircles = function() {
     this._knobcircle.style.transform = 'rotate(' + ((this._state - 0.5) * 360) + 'deg)';
@@ -452,16 +536,17 @@ Button.prototype.onAttached = function() {
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
 };
-Button.prototype.onTouchStart = function() {
+Button.prototype.onTouchStart = function(ev) {
+    ev.preventDefault(); // Android Webview delays the vibration without this.
     this._state = 1;
-    this.element.classList.add('pressed');
     this.updateStateCallback();
+    this.element.classList.add('pressed');
     window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
 };
 Button.prototype.onTouchEnd = function() {
     this._state = 0;
-    this.element.classList.remove('pressed');
     this.updateStateCallback();
+    this.element.classList.remove('pressed');
     window.navigator.vibrate(VIBRATION_MILLISECONDS_OUT);
 };
 
@@ -507,8 +592,12 @@ function Joypad() {
         prettyAlert('Your gamepad looks empty. Is <code>user.css</code> missing or broken?');
     }
     // This section is to be excised later.
-    if (axes != 4) {
-        prettyAlert('Currently, Yoke requires precisely 4 analog axes. Please edit your CSS.');
+    if (axes > 4) {
+        prettyAlert('Currently, Yoke allows a maximum of 4 analog axes. Please edit your CSS.');
+    } else {
+        for (axes; axes < 4; axes++) {
+            this._controls.splice(axes, 0, new Dummy('dum', updateStateCallback));
+        }
     }
     if (buttons > 32) {
         prettyAlert('Currently, Yoke allows a maximum of 32 buttons. Pleae edit your CSS.');
@@ -618,7 +707,8 @@ function loadPad(filename) {
                 calibrationDiv.addEventListener('touchend', function() { forceBar.style.opacity = '0.2'; });
                 document.getElementById('calibrationOk').addEventListener('click', function() {
                     calibrationDiv.style.display = 'none';
-                    Pedal.prototype.onTouchMove = Pedal.prototype.onTouchMoveReplacement;
+                    Pedal.prototype.onTouchMove = Pedal.prototype.onTouchMoveForce;
+                    AnalogButton.prototype.onTouchMove = AnalogButton.prototype.onTouchMoveForce;
                     joypad = new Joypad();
                 });
                 document.getElementById('calibrationNo').addEventListener('click', function() {
