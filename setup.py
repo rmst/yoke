@@ -28,6 +28,7 @@ setup(name='yoke',
             'assets/joypad/*.css',
             'assets/joypad/*.js',
             'assets/joypad/*.html',
+            'assets/joypad/*.svg',
       ]},
       platforms=['GNU/Linux', 'Windows'],
       keywords=['gamepad', 'video games', 'gaming', 'controller', 'Android']
