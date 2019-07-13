@@ -5,13 +5,13 @@
     grid-template-rows: repeat(9, 1fr);
     grid-template-areas:
     /* The map below must match the number of rows and columns specified above: */
-        ".   k1  k1  .   .   .   .   .   .   .   .   .   .   .   .   .   "
-        ".   k1  k1  .   .   .   .   .   .   .   .   .   k2  k2  k2  .   "
-        ".   k1  k1  .   .   .   .   .   .   .   .   .   k2  k2  k2  .   "
+        ".   pa  pa  .   k1  k1  .   .   .   .   .   .   .   .   .   .   "
+        ".   pa  pa  .   k1  k1  .   .   .   .   .   .   .   .   .   .   "
+        ".   pa  pa  .   k1  k1  .   .   .   .   .   .   .   .   .   .   "
         ".   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   "
-        ".   j1  j1  j1  .   .   .   .   .   .   .   .   .   .   .   .   "
-        ".   j1  j1  j1  .   b1  b1  .   b2  b2  .   b3  b3  .   b4  b4  "
-        ".   j1  j1  j1  .   b1  b1  .   b2  b2  .   b3  b3  .   b4  b4  "
+        ".   mz  mz  mz  .   .   .   .   .   .   .   .   .   .   .   .   "
+        ".   mz  mz  mz  .   b1  b1  .   bg  .   bs  .   a1  a1  .   .   "
+        ".   mz  mz  mz  .   b1  b1  .   bg  .   bs  .   a1  a1  .   .   "
         ".   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   "
         "dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg "
         ;
@@ -25,9 +25,14 @@
               * a for α (alpha) angle -- rotation around the Z-axis,
               * b for β (beta) angle -- rotation around the X-axis,
               * g for γ (gamma) angle -- rotation around the Y-axis:
-         * p1, p2... for pedals;
+         * pa, pb, pt for pedals (accelerator, brake, throttle);
          * k1, k2... for knobs;
-         * b1 to b32 for buttons;
+         * b_ for buttons, where _ is:
+              * s for START button,
+              * g for SELECT button,
+              * m for the branded button (HOME or equivalent),
+              * 1, 2, 3, 4, 5, 6, 7, 8, 9, 10... for the rest;
+         * a_ for analog button/trigger, where _ is a number;
          * d_ for D-PAD, where _ is one of these letters:
               * u, for the key UP,
               * d, for the key DOWN,
@@ -37,7 +42,7 @@
          * a period for empty space. */
 }
 
-.joystick { background-color: #bbb; }
+.joystick { background: url("joystick.svg") #bbb; background-size: 100% 100%; }
 .circle {
     background-color: black;
     width: 10px;
@@ -53,10 +58,17 @@
 .knobcircle {background-color: #888;}
 
 .button { background-color: #bbb; }
+.pressed { filter: brightness(70%); }
 #b1 {background-color: #22e;}
 #b2 {background-color: #e00;}
 #b3 {background-color: #dd0;}
 #b4 {background-color: #0d0;}
+#bg, #bs, #bm {background-color: #444;}
+
+#a1 {background-color: #66f;}
+#a2 {background-color: #f33;}
+#a3 {background-color: #ff2;}
+#a4 {background-color: #2f2;}
 
 #du { /* please insert icon here :( */ }
 #dd { /* please insert icon here :( */ }

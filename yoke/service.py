@@ -36,17 +36,20 @@ GAMEPAD_EVENTS = (
     EVENTS.ABS_HAT0X,
     EVENTS.ABS_HAT0Y,
     EVENTS.BTN_GAMEPAD,
-    EVENTS.BTN_SOUTH,
     EVENTS.BTN_EAST,
+    EVENTS.BTN_WEST,
+    EVENTS.BTN_NORTH,
+    EVENTS.BTN_START,
+    EVENTS.BTN_SELECT,
     EVENTS.BTN_DPAD_DOWN,
     EVENTS.BTN_DPAD_RIGHT,
     EVENTS.BTN_DPAD_UP,
     EVENTS.BTN_DPAD_LEFT,
-    EVENTS.BTN_TR,
     EVENTS.BTN_TL,
-    EVENTS.BTN_START,
-    EVENTS.BTN_SELECT,
-    EVENTS.BTN_MODE,
+    EVENTS.BTN_TR,
+    EVENTS.BTN_TL2,
+    EVENTS.BTN_TR2,
+    EVENTS.BTN_MODE
     )
 
 
@@ -191,6 +194,12 @@ class Service:
                 v[4] * 2 - 1,
                 v[5] * 2 - 1,
             ) + tuple(v[6:])
+        if len(v) < len(GAMEPAD_EVENTS):
+            # Before reducing float precision, sometimes UDP messages were getting cut in half.
+            # Keeping the code just in case.
+            print('malformed message!')
+            print(v)
+            v += (0,) * (len(GAMEPAD_EVENTS) - len(v))
         return v
 
     def run(self):

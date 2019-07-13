@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1" viewBox="0 0 1 1">
+    <defs><style>
+        path {
+            fill: none;
+            stroke: #999;
+            stroke-linecap: square;
+            stroke-width: 0.03px;
+        }
+    </style></defs>
+    <path d="M -1,0.5 H 2" transform="rotate(22.5  0.5 0.5)" />
+    <path d="M -1,0.5 H 2" transform="rotate(67.5  0.5 0.5)" />
+    <path d="M -1,0.5 H 2" transform="rotate(112.5 0.5 0.5)" />
+    <path d="M -1,0.5 H 2" transform="rotate(157.5 0.5 0.5)" />
+</svg>
