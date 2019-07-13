@@ -270,18 +270,8 @@ Joystick.prototype.onTouch = function(ev) {
         (pos.pageY - this._offset.y) / this._offset.height
     ], this.element.id, VIBRATION_MILLISECONDS_SATURATION);
     this.updateStateCallback();
-    /*
-    var currentQuadrant = 4 + (this._state[0] > 0.5) + (this._state[1] > 0.5) * 2;
-    if (
-        this._state[0] > 0.35 && this._state[0] < 0.65 &&
-        this._state[1] > 0.35 && this._state[1] < 0.65
-    ) { currentQuadrant = 8; }
-    */
-    //if (Math.max(this._state[0], this._state[1]) > 0.65 ||
-    //    Math.min(this._state[0], this._state[1]) < 0.35) {
     var currentQuadrant = Math.atan2(this._state[1] - .5, this._state[0] - .5) / Math.PI + 1.125; // rad ÷ pi, shifted 22.5 deg. [0.25, 2.25]
     currentQuadrant = Math.floor((currentQuadrant * 4) % 8); // [1, 9] → [1, 8)+[0, 1)
-    //} else { var currentQuadrant = -1; }
     if (this.quadrant != -2 && this.quadrant != currentQuadrant) {
         window.navigator.vibrate(VIBRATION_MILLISECONDS_OVER);
     }
@@ -290,10 +280,10 @@ Joystick.prototype.onTouch = function(ev) {
 };
 Joystick.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
-    var oldstate = this._state;
+    var oldState = this._state;
     this.onTouch(ev);
-    if (Math.abs(oldstate[0] - this._state[0]) < 0.15 &&
-        Math.abs(oldstate[1] - this._state[1]) < 0.15) {
+    if (Math.abs(oldState[0] - this._state[0]) < 0.15 &&
+        Math.abs(oldState[1] - this._state[1]) < 0.15) {
         window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
     }
 };
@@ -481,8 +471,8 @@ Knob.prototype.onAttached = function() {
     // First approximation to the knob coordinates.
     this._offset = this.element.getBoundingClientRect();
     // Centering the knob within the boundary.
-    var mindimension = Math.min(this._offset.width, this._offset.height);
-    if (mindimension == this._offset.width) {
+    var minDimension = Math.min(this._offset.width, this._offset.height);
+    if (minDimension == this._offset.width) {
         this._knobcircle.style.top = this._offset.y + (this._offset.height - this._offset.width) / 2 + 'px';
         this._offset.height = this._offset.width;
     } else {
@@ -648,7 +638,7 @@ var minForce = 1;
 var maxForce = 0;
 
 // This function updates minForce and maxForce if the force is not exactly 0 or 1.
-// If minForce is not less than maxForce after a touchevent,
+// If minForce is not less than maxForce after a touch event,
 // the touchscreen can't detect finger pressure, even if it reports it can.
 function recordPressure(ev) {
     var force = ev.targetTouches[0].force;
