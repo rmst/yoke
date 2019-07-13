@@ -9,7 +9,13 @@ Get the Android app on [F-Droid](https://f-droid.org/packages/com.simonramstedt.
 The Linux client can be installed with
 ```bash
 # Requires Python 3.5+ which comes pre-installed in Ubuntu 16.04 and after.
-pip3 install git+https://github.com/rmst/yoke.git@v0.1 --upgrade
+git clone --branch v0.1 --depth 1 https://github.com/rmst/yoke
+cd yoke
+# Now tweak files in e.g. yoke/assets/joypad
+pip3 install .
+# Note: you can use pip3 install --user to install to home dir.
+# Note: you can use pip3 install -e to make pip create symlinks instead of copying files
+# so you won't have to rerun pip after changes
 ```
 On Linux to enable Yoke to create gamepad devices we need to add a udev rule
 ```bash
@@ -45,10 +51,6 @@ Each `yoke` process creates one virtual device. To run multiple processes on the
 The communication between the Linux client and the Android app are unencrypted UDP messages. You should therefore use it in networks you trust. However, if you are not in a trusted environment you can always create one via USB or Bluetooth. Just enable USB or Bluetooth tethering on your Android device and connect your Linux computer. This will create a mini-network for just your Phone and Computer and Yoke will work as usual.
 
 ### Tweaking
-Changing the controller mapping and behaviour of certain axes is very simple. Have a look at `bin/yoke` which is the Python script that is used for the `yoke` command.
-
-If you want to modify more low level stuff that's also pretty easy. The Yoke linux client basically consists of a single Python file `yoke/service.py`.
+Many aspects of Yoke behavior can be changed easily - ave a look at `yoke/assets/joypad`, `bin/yoke` and `yoke/service.py`.
 
 ![Thumbstick](media/thumbstick.gif)
-
-
