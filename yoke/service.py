@@ -28,13 +28,12 @@ def get_ip_address():
 
 from glob import glob
 
+# TODO: this is a hardcoded layout. We should get rid of it.
 GAMEPAD_EVENTS = (
     EVENTS.ABS_X,
     EVENTS.ABS_Y,
     EVENTS.ABS_RX,
     EVENTS.ABS_RY,
-    EVENTS.ABS_HAT0X,
-    EVENTS.ABS_HAT0Y,
     EVENTS.BTN_GAMEPAD,
     EVENTS.BTN_EAST,
     EVENTS.BTN_WEST,
@@ -184,16 +183,15 @@ class Service:
     def preprocess(self, message):
         _, *v, _ = message.split(b',')  # first and last value is nothing
         _, *v = v  # first real value (from accelerometer) is not important yet
-        # import pdb; pdb.set_trace()
+        _, _, *v = v # ignore 2 values from accelerometer in Android code
+                     # TODO: remove when removing corresponding Android code
         v = [float(m) for m in v]
-        v = (
-                (v[0]/9.81 - 0)    * 1.5,
-                (v[1]/9.81 - 0.52) * 3.0,
+        v = ( # TODO: normalize from [0, 1] to [-1, 1] on JS side
+                v[0] * 2 - 1,
+                v[1] * 2 - 1,
                 v[2] * 2 - 1,
                 v[3] * 2 - 1,
-                v[4] * 2 - 1,
-                v[5] * 2 - 1,
-            ) + tuple(v[6:])
+            ) + tuple(v[4:])
         if len(v) < len(GAMEPAD_EVENTS):
             # Before reducing float precision, sometimes UDP messages were getting cut in half.
             # Keeping the code just in case.
