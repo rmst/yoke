@@ -279,7 +279,7 @@ Joystick.prototype.onTouch = function(ev) {
     */
     //if (Math.max(this._state[0], this._state[1]) > 0.65 ||
     //    Math.min(this._state[0], this._state[1]) < 0.35) {
-    var currentQuadrant = Math.atan2(this._state[1] - .5, this._state[0] - .5) / Math.PI + 1.125; // rad ÷ pi, shited 22.5 deg. [0.25, 2.25]
+    var currentQuadrant = Math.atan2(this._state[1] - .5, this._state[0] - .5) / Math.PI + 1.125; // rad ÷ pi, shifted 22.5 deg. [0.25, 2.25]
     currentQuadrant = Math.floor((currentQuadrant * 4) % 8); // [1, 9] → [1, 8)+[0, 1)
     //} else { var currentQuadrant = -1; }
     if (this.quadrant != -2 && this.quadrant != currentQuadrant) {
@@ -600,7 +600,7 @@ function Joypad() {
         }
     }
     if (buttons > 32) {
-        prettyAlert('Currently, Yoke allows a maximum of 32 buttons. Pleae edit your CSS.');
+        prettyAlert('Currently, Yoke allows a maximum of 32 buttons. Please edit your CSS.');
     } else {
         for (buttons; buttons < 32; buttons++) {
             this._controls.push(new Dummy('dum', updateStateCallback));
