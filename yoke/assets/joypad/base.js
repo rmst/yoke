@@ -313,10 +313,6 @@ Joystick.prototype.onTouchEnd = function() {
 Joystick.prototype._updateCircle = function() {
     this._circle.style.transform = 'translate(-50%, -50%) translate(' + (this._offset.x + this._offset.width * this._state[0]) + 'px, ' + (this._offset.y + this._offset.height * this._state[1]) + 'px)';
 };
-Joystick.prototype.state = function() {
-    // We are reducing float precision to avoid getting UDP messages cut in half.
-    return this._state.map(function(axis) { return axis.toString().substr(0, 6); }).join(',');
-};
 
 function Motion(id, updateStateCallback) {
     // Motion reads the letters in id to decide which coordinates should it send to the Yoke server.
@@ -618,6 +614,11 @@ function Joypad() {
 }
 Joypad.prototype.updateState = function() {
     var state = this._controls.map(function(control) { return control.state(); }).join(',');
+
+    // We are reducing float precision to avoid getting UDP messages cut in half.
+    // We are re-splitting the string since some control.state() above return strings
+    // (e.g. because [0.5, 0.5].toString() == '0.5,0.5')
+    state = state.split(',').map(function(x) { return x.substr(0, 6); }).join(',');
 
     // Within the Yoke webview, sends the joypad state.
     // Outside the Yoke webview, window.Yoke.update_vals() is redefined to have no effect.
