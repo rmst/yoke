@@ -10,9 +10,9 @@
         ".   .   .   .   .   .   .   .   .   .   .   .   b4  b4  .   .   "
         ".   j1  j1  j1  .   bg  .   .   bs  .   b3  b3  .   .   b2  b2  "
         ".   j1  j1  j1  .   .   .   .   .   .   b3  b3  .   .   b2  b2  "
-        ".   j1  j1  j1  .   .   s2  s2  .   .   .   .   b1  b1  .   .   "
-        ".   .   .   .   .   .   s2  s2  .   .   .   .   b1  b1  .   .   "
-        "dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg "
+        ".   j1  j1  j1  .   .   j2  j2  .   .   .   .   b1  b1  .   .   "
+        ".   .   .   .   .   .   j2  j2  .   .   .   .   b1  b1  .   .   "
+        ".   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   "
         "dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg "
         ;
         /* Possible values:
@@ -63,8 +63,3 @@
 #b3 {background-color: #dd0;}
 #b4 {background-color: #0d0;}
 #bg, #bs, #bm {background-color: #444;}
-
-#du { /* please insert icon here :( */ }
-#dd { /* please insert icon here :( */ }
-#dl { /* please insert icon here :( */ }
-#dr { /* please insert icon here :( */ }
