@@ -199,7 +199,7 @@ class Service:
             # Keeping the code just in case.
             print('malformed message!')
             print(v)
-            v += (0,) * len(GAMEPAD_EVENTS)
+            v += (0,) * (len(GAMEPAD_EVENTS) - len(v))
         return v
 
     def run(self):
