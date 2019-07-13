@@ -300,6 +300,10 @@ Joystick.prototype.onTouchEnd = function() {
 Joystick.prototype._updateCircle = function() {
     this._circle.style.transform = 'translate(-50%, -50%) translate(' + (this._offset.x + this._offset.width * this._state[0]) + 'px, ' + (this._offset.y + this._offset.height * this._state[1]) + 'px)';
 };
+Joystick.prototype.state = function() {
+    // We are reducing float precision to avoid getting UDP messages cut in half.
+    return this._state.map(function(axis) { return axis.toString().substr(0, 6); }).join(',');
+};
 
 function Motion(id, updateStateCallback) {
     // Motion reads the letters in id to decide which coordinates should it send to the Yoke server.

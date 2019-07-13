@@ -194,6 +194,12 @@ class Service:
                 v[4] * 2 - 1,
                 v[5] * 2 - 1,
             ) + tuple(v[6:])
+        if len(v) < len(GAMEPAD_EVENTS):
+            # Before reducing float precision, sometimes UDP messages were getting cut in half.
+            # Keeping the code just in case.
+            print('malformed message!')
+            print(v)
+            v += (0,) * len(GAMEPAD_EVENTS)
         return v
 
     def run(self):
