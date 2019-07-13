@@ -1,5 +1,12 @@
 'use strict';
-// these 2 are recommended for non-kiosk/non-embedded browsers:
+
+// Settings:
+var VIBRATE_ON_QUADRANT_BOUNDARY = true;
+var VIBRATE_ON_PAD_BOUNDARY = true;
+
+// Code:
+
+// These 2 options are recommended for testing in non-kiosk/non-embedded browsers:
 var WAIT_FOR_FULLSCREEN = true;
 var DEBUG_NO_CONSOLE_SPAM = true;
 
@@ -198,7 +205,13 @@ function truncate(f, id, pattern) {
         else if (val > 1) { truncated = true; return 1; }
         else { return val; }
     });
-    if (pattern) { truncated ? queueForVibration(id, pattern) : unqueueForVibration(id); }
+    if (VIBRATE_ON_PAD_BOUNDARY && pattern) {
+        if (truncated) {
+            queueForVibration(id, pattern)
+        } else {
+            unqueueForVibration(id);
+        }
+    }
     return f;
 }
 
@@ -272,7 +285,7 @@ Joystick.prototype.onTouch = function(ev) {
     this.updateStateCallback();
     var currentQuadrant = Math.atan2(this._state[1] - .5, this._state[0] - .5) / Math.PI + 1.125; // rad ÷ pi, shifted 22.5 deg. [0.25, 2.25]
     currentQuadrant = Math.floor((currentQuadrant * 4) % 8); // [1, 9] → [1, 8)+[0, 1)
-    if (this.quadrant != -2 && this.quadrant != currentQuadrant) {
+    if (VIBRATE_ON_QUADRANT_BOUNDARY && this.quadrant != -2 && this.quadrant != currentQuadrant) {
         window.navigator.vibrate(VIBRATION_MILLISECONDS_OVER);
     }
     this.quadrant = currentQuadrant;
@@ -500,7 +513,7 @@ Knob.prototype.onTouch = function(ev) {
     this._state = Math.atan2(pos.pageY - this._offset.y, pos.pageX - this._offset.x) / 2 / Math.PI + 0.5;
     this.updateStateCallback();
     var currentQuadrant = Math.floor(this._state * 16);
-    if (this.quadrant != currentQuadrant) {
+    if (VIBRATE_ON_QUADRANT_BOUNDARY && this.quadrant != currentQuadrant) {
         window.navigator.vibrate(VIBRATION_MILLISECONDS_OVER);
     }
     this.quadrant = currentQuadrant;
