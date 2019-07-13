@@ -105,3 +105,31 @@ body {
     font-family: monospace;
     word-wrap: break-word;
 }
+
+div {
+    background-size: 100% 100%;
+}
+
+/* seq 1 16 | xargs -I xx echo "#bxx { background-image: url('img/xx.svg'); }" */
+#b1 { background-image: url('img/1.svg'); }
+#b2 { background-image: url('img/2.svg'); }
+#b3 { background-image: url('img/3.svg'); }
+#b4 { background-image: url('img/4.svg'); }
+#b5 { background-image: url('img/5.svg'); }
+#b6 { background-image: url('img/6.svg'); }
+#b7 { background-image: url('img/7.svg'); }
+#b8 { background-image: url('img/8.svg'); }
+#b9 { background-image: url('img/9.svg'); }
+#b10 { background-image: url('img/10.svg'); }
+#b11 { background-image: url('img/11.svg'); }
+#b12 { background-image: url('img/12.svg'); }
+#b13 { background-image: url('img/13.svg'); }
+#b14 { background-image: url('img/14.svg'); }
+#b15 { background-image: url('img/15.svg'); }
+#b16 { background-image: url('img/16.svg'); }
+
+/* printf "du\ndl\ndd\ndr" | xargs -I xx echo "#xx { background-image: url('img/xx.svg'); }" */
+#du { background-image: url('img/du.svg'); }
+#dl { background-image: url('img/dl.svg'); }
+#dd { background-image: url('img/dd.svg'); }
+#dr { background-image: url('img/dr.svg'); }

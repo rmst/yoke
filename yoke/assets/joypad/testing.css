@@ -5,9 +5,9 @@
     grid-template-rows: repeat(9, 1fr);
     grid-template-areas:
     /* The map below must match the number of rows and columns specified above: */
-        ".   pa  pa  .   k1  k1  .   .   .   .   .   .   .   .   .   .   "
-        ".   pa  pa  .   k1  k1  .   .   .   .   .   .   .   .   .   .   "
-        ".   pa  pa  .   k1  k1  .   .   .   .   .   .   .   .   .   .   "
+        ".   pa  pa  .   k1  k1  .   .   .   .   .   .   du  .   .   .   "
+        ".   pa  pa  .   k1  k1  .   .   .   .   .   dl  .   dr  .   .   "
+        ".   pa  pa  .   k1  k1  .   .   .   .   .   .   dd  .   .   .   "
         ".   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   "
         ".   mz  mz  mz  .   .   .   .   .   .   .   .   .   .   .   .   "
         ".   mz  mz  mz  .   b1  b1  .   bg  .   bs  .   a1  a1  .   .   "
@@ -42,7 +42,7 @@
          * a period for empty space. */
 }
 
-.joystick { background: url("joystick.svg") #bbb; background-size: 100% 100%; }
+.joystick { background-image: url("img/joystick.svg"); background-color: #bbb; }
 .circle {
     background-color: black;
     width: 10px;

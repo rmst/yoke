@@ -41,7 +41,7 @@
          * a period for empty space. */
 }
 
-.joystick { background: url("joystick.svg") #bbb; background-size: 100% 100%; }
+.joystick { background-image: url("img/joystick.svg"); background-color: #bbb; }
 .circle {
     background-color: black;
     width: 10px;
