@@ -207,7 +207,7 @@ function truncate(f, id, pattern) {
     });
     if (VIBRATE_ON_PAD_BOUNDARY && pattern) {
         if (truncated) {
-            queueForVibration(id, pattern)
+            queueForVibration(id, pattern);
         } else {
             unqueueForVibration(id);
         }
