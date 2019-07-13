@@ -25,7 +25,7 @@ def get_ip_address():
     ip = s.getsockname()[0]
     s.close()
     return ip
-    
+
 from glob import glob
 
 GAMEPAD_EVENTS = (
@@ -174,13 +174,13 @@ class Service:
         self.iface = iface
         self.port = port
         self.client_path = client_path
-        
+
     def make_events(self, values):
         """returns a (event_code, value) tuple for each value in values
         values are in (-1, 1) and should be returned in (-1, 1)
         """
         raise NotImplementedError()
-    
+
     def preprocess(self, message):
         _, *v, _ = message.split(b',')  # first and last value is nothing
         _, *v = v  # first real value (from accelerometer) is not important yet
@@ -249,10 +249,10 @@ class Service:
 
                     else:
                         pass  # ignore packets from other addresses
-                    
+
                 except (socket.timeout, socket.error):
                     pass
-                
+
                 tdelta = time() - trecv
 
                 if connection is not None and tdelta > 3:
