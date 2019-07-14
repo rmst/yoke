@@ -555,7 +555,6 @@ Button.prototype.onTouchEnd = function() {
 
 function Dummy(id, updateStateCallback) {
     Control.call(this, 'dummy', 'dum', updateStateCallback);
-    buttons += 1;
 }
 Dummy.prototype = Object.create(Control.prototype);
 
@@ -586,11 +585,6 @@ function Joypad() {
         this.element.appendChild(control.element);
         control.onAttached();
     }, this);
-    var kernelEvents = this._controls.map(function(control) { return control.kernelEvent; }).join(',');
-    if (this._debugLabel != null) {
-        this._debugLabel.element.innerHTML = kernelEvents;
-    }
-    if (!DEBUG_NO_CONSOLE_SPAM) { console.log(kernelEvents); }
     if (axes == 0 && buttons == 0) {
         prettyAlert('Your gamepad looks empty. Is <code>user.css</code> missing or broken?');
     }
@@ -602,14 +596,19 @@ function Joypad() {
             this._controls.splice(axes, 0, new Dummy('dum', updateStateCallback));
         }
     }
-    if (buttons > 32) {
-        prettyAlert('Currently, Yoke allows a maximum of 32 buttons. Please edit your CSS.');
+    if (buttons > 15) {
+        prettyAlert('Currently, Yoke allows a maximum of 15 buttons. Please edit your CSS.');
     } else {
-        for (buttons; buttons < 32; buttons++) {
+        for (buttons; buttons < 15; buttons++) {
             this._controls.push(new Dummy('dum', updateStateCallback));
         }
     }
     // End of section to be deleted.
+    var kernelEvents = this._controls.map(function(control) { return control.kernelEvent; }).join(',');
+    if (this._debugLabel != null) {
+        this._debugLabel.element.innerHTML = kernelEvents;
+    }
+    if (!DEBUG_NO_CONSOLE_SPAM) { console.log(kernelEvents); }
     checkVibration();
 }
 Joypad.prototype.updateState = function() {
