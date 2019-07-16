@@ -37,11 +37,9 @@ class VjoyDevice:
 
 	def set_button(self, id, on):
 		return self.lib.SetBtn(on, self.id, id)
-		
+
 	def set_axis(self,id, v):
 		return self.lib.SetAxis(v, self.id, id)
 
 	def close(self):
 		return self.lib.RelinquishVJD(self.id)
-		
-	

@@ -1,5 +1,12 @@
 'use strict';
-// these 2 are recommended for non-kiosk/non-embedded browsers:
+
+// Settings:
+var VIBRATE_ON_QUADRANT_BOUNDARY = true;
+var VIBRATE_ON_PAD_BOUNDARY = true;
+
+// Code:
+
+// These 2 options are recommended for testing in non-kiosk/non-embedded browsers:
 var WAIT_FOR_FULLSCREEN = true;
 var DEBUG_NO_CONSOLE_SPAM = true;
 
@@ -198,7 +205,13 @@ function truncate(f, id, pattern) {
         else if (val > 1) { truncated = true; return 1; }
         else { return val; }
     });
-    if (pattern) { truncated ? queueForVibration(id, pattern) : unqueueForVibration(id); }
+    if (VIBRATE_ON_PAD_BOUNDARY && pattern) {
+        if (truncated) {
+            queueForVibration(id, pattern);
+        } else {
+            unqueueForVibration(id);
+        }
+    }
     return f;
 }
 
@@ -272,7 +285,7 @@ Joystick.prototype.onTouch = function(ev) {
     this.updateStateCallback();
     var currentQuadrant = Math.atan2(this._state[1] - .5, this._state[0] - .5) / Math.PI + 1.125; // rad ÷ pi, shifted 22.5 deg. [0.25, 2.25]
     currentQuadrant = Math.floor((currentQuadrant * 4) % 8); // [1, 9] → [1, 8)+[0, 1)
-    if (this.quadrant != -2 && this.quadrant != currentQuadrant) {
+    if (VIBRATE_ON_QUADRANT_BOUNDARY && this.quadrant != -2 && this.quadrant != currentQuadrant) {
         window.navigator.vibrate(VIBRATION_MILLISECONDS_OVER);
     }
     this.quadrant = currentQuadrant;
@@ -299,10 +312,6 @@ Joystick.prototype.onTouchEnd = function() {
 };
 Joystick.prototype._updateCircle = function() {
     this._circle.style.transform = 'translate(-50%, -50%) translate(' + (this._offset.x + this._offset.width * this._state[0]) + 'px, ' + (this._offset.y + this._offset.height * this._state[1]) + 'px)';
-};
-Joystick.prototype.state = function() {
-    // We are reducing float precision to avoid getting UDP messages cut in half.
-    return this._state.map(function(axis) { return axis.toString().substr(0, 6); }).join(',');
 };
 
 function Motion(id, updateStateCallback) {
@@ -500,7 +509,7 @@ Knob.prototype.onTouch = function(ev) {
     this._state = Math.atan2(pos.pageY - this._offset.y, pos.pageX - this._offset.x) / 2 / Math.PI + 0.5;
     this.updateStateCallback();
     var currentQuadrant = Math.floor(this._state * 16);
-    if (this.quadrant != currentQuadrant) {
+    if (VIBRATE_ON_QUADRANT_BOUNDARY && this.quadrant != currentQuadrant) {
         window.navigator.vibrate(VIBRATION_MILLISECONDS_OVER);
     }
     this.quadrant = currentQuadrant;
@@ -546,7 +555,6 @@ Button.prototype.onTouchEnd = function() {
 
 function Dummy(id, updateStateCallback) {
     Control.call(this, 'dummy', 'dum', updateStateCallback);
-    buttons += 1;
 }
 Dummy.prototype = Object.create(Control.prototype);
 
@@ -577,11 +585,6 @@ function Joypad() {
         this.element.appendChild(control.element);
         control.onAttached();
     }, this);
-    var kernelEvents = this._controls.map(function(control) { return control.kernelEvent; }).join(',');
-    if (this._debugLabel != null) {
-        this._debugLabel.element.innerHTML = kernelEvents;
-    }
-    if (!DEBUG_NO_CONSOLE_SPAM) { console.log(kernelEvents); }
     if (axes == 0 && buttons == 0) {
         prettyAlert('Your gamepad looks empty. Is <code>user.css</code> missing or broken?');
     }
@@ -593,18 +596,28 @@ function Joypad() {
             this._controls.splice(axes, 0, new Dummy('dum', updateStateCallback));
         }
     }
-    if (buttons > 32) {
-        prettyAlert('Currently, Yoke allows a maximum of 32 buttons. Please edit your CSS.');
+    if (buttons > 15) {
+        prettyAlert('Currently, Yoke allows a maximum of 15 buttons. Please edit your CSS.');
     } else {
-        for (buttons; buttons < 32; buttons++) {
+        for (buttons; buttons < 15; buttons++) {
             this._controls.push(new Dummy('dum', updateStateCallback));
         }
     }
     // End of section to be deleted.
+    var kernelEvents = this._controls.map(function(control) { return control.kernelEvent; }).join(',');
+    if (this._debugLabel != null) {
+        this._debugLabel.element.innerHTML = kernelEvents;
+    }
+    if (!DEBUG_NO_CONSOLE_SPAM) { console.log(kernelEvents); }
     checkVibration();
 }
 Joypad.prototype.updateState = function() {
     var state = this._controls.map(function(control) { return control.state(); }).join(',');
+
+    // We are reducing float precision to avoid getting UDP messages cut in half.
+    // We are re-splitting the string since some control.state() above return strings
+    // (e.g. because [0.5, 0.5].toString() == '0.5,0.5')
+    state = state.split(',').map(function(x) { return x.substr(0, 6); }).join(',');
 
     // Within the Yoke webview, sends the joypad state.
     // Outside the Yoke webview, window.Yoke.update_vals() is redefined to have no effect.
