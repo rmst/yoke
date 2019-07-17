@@ -20,15 +20,12 @@ setup(name='yoke',
             *(['python-uinput'] if system() == 'Linux' else [])
             ],
       extras_require={
-
       },
       scripts=['bin/yoke', 'bin/yoke-enable-uinput', 'bin/yoke-disable-uinput'],
       packages=find_packages(),
       package_data={'yoke': [
-            'assets/joypad/*.css',
-            'assets/joypad/*.js',
-            'assets/joypad/*.html',
-            'assets/joypad/*.svg',
+            'assets/joypad/*',
+            'assets/joypad/img/*',
       ]},
       platforms=['GNU/Linux', 'Windows'],
       keywords=['gamepad', 'video games', 'gaming', 'controller', 'Android']
