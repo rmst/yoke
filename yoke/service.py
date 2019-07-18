@@ -52,8 +52,6 @@ GAMEPAD_EVENTS = (
     )
 
 
-
-
 ABS_EVENTS = [getattr(EVENTS, n) for n in dir(EVENTS) if n.startswith("ABS_")]
 
 class Device:
@@ -181,10 +179,7 @@ class Service:
         raise NotImplementedError()
 
     def preprocess(self, message):
-        _, *v, _ = message.split(b',')  # first and last value is nothing
-        _, *v = v  # first real value (from accelerometer) is not important yet
-        _, _, *v = v # ignore 2 values from accelerometer in Android code
-                     # TODO: remove when removing corresponding Android code
+        v = message.split(b',')
         v = [float(m) for m in v]
         v = ( # TODO: normalize from [0, 1] to [-1, 1] on JS side
                 v[0] * 2 - 1,
