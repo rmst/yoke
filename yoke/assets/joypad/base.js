@@ -7,7 +7,7 @@ var VIBRATE_ON_PAD_BOUNDARY = true;
 // Code:
 
 // These 2 options are recommended for testing in non-kiosk/non-embedded browsers:
-var WAIT_FOR_FULLSCREEN = true;
+var WAIT_FOR_FULLSCREEN = false; // FIXME true;
 var DEBUG_NO_CONSOLE_SPAM = true;
 
 var VIBRATION_MILLISECONDS_IN = 40;
@@ -206,11 +206,7 @@ function truncate(f, id, pattern) {
         else { return val; }
     });
     if (VIBRATE_ON_PAD_BOUNDARY && pattern) {
-        if (truncated) {
-            queueForVibration(id, pattern);
-        } else {
-            unqueueForVibration(id);
-        }
+        truncated ? queueForVibration(id, pattern) : unqueueForVibration(id);
     }
     return f;
 }
@@ -252,6 +248,13 @@ function Control(type, id, updateStateCallback) {
     this._state = 0;
     this.kernelEvent = '';
 }
+Control.prototype.getBoundingClientRect = function() {
+    this._offset = this.element.getBoundingClientRect();
+    this._offset.semiwidth = this._offset.width / 2;
+    this._offset.semiheight = this._offset.height / 2;
+    this._offset.xCenter = this._offset.x + this._offset.semiwidth;
+    this._offset.yCenter = this._offset.y + this._offset.semiheight;
+};
 Control.prototype.onAttached = function() {};
 Control.prototype.state = function() {
     return this._state.toString();
@@ -262,7 +265,6 @@ function Joystick(id, updateStateCallback) {
     this._state = [0.5, 0.5];
     this.quadrant = -2;
     this._locking = (id[0] == 's');
-    this._offset = {};
     this._circle = document.createElement('div');
     this._circle.className = 'circle';
     this.element.appendChild(this._circle);
@@ -270,7 +272,6 @@ function Joystick(id, updateStateCallback) {
 }
 Joystick.prototype = Object.create(Control.prototype);
 Joystick.prototype.onAttached = function() {
-    this._offset = this.element.getBoundingClientRect();
     this._updateCircle();
     this.element.addEventListener('touchmove', this.onTouch.bind(this), false);
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
@@ -311,7 +312,9 @@ Joystick.prototype.onTouchEnd = function() {
     window.navigator.vibrate(VIBRATION_MILLISECONDS_OUT);
 };
 Joystick.prototype._updateCircle = function() {
-    this._circle.style.transform = 'translate(-50%, -50%) translate(' + (this._offset.x + this._offset.width * this._state[0]) + 'px, ' + (this._offset.y + this._offset.height * this._state[1]) + 'px)';
+    this._circle.style.transform = 'translate(-50%, -50%) translate(' +
+        (this._offset.x + this._offset.width * this._state[0]) + 'px, ' +
+        (this._offset.y + this._offset.height * this._state[1]) + 'px)';
 };
 
 function Motion(id, updateStateCallback) {
@@ -371,12 +374,10 @@ Motion.prototype.state = function() {
 function Pedal(id, updateStateCallback) {
     Control.call(this, 'button', id, updateStateCallback);
     this._state = 0;
-    this._offset = {};
     axes += 1;
 }
 Pedal.prototype = Object.create(Control.prototype);
 Pedal.prototype.onAttached = function() {
-    this._offset = this.element.getBoundingClientRect();
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchmove', this.onTouchMove.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
@@ -415,30 +416,22 @@ function AnalogButton(id, updateStateCallback) {
     this.onTouchMoveParticular = function() {};
     Control.call(this, 'button', id, updateStateCallback);
     this._state = 0;
-    this._offset = {};
     axes += 1;
 }
 AnalogButton.prototype = Object.create(Control.prototype);
 AnalogButton.prototype.onAttached = function() {
-    this._offset = this.element.getBoundingClientRect();
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchmove', this.onTouchMove.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
     if (this._offset.width > this._offset.height) {
-        this._offset.width /= 2;
-        this._offset.x += this._offset.width;
         this.onTouchMoveParticular = function(ev) {
             var pos = ev.targetTouches[0];
-            return truncate([1 - Math.abs(this._offset.x - pos.pageX) / this._offset.width]);
-
+            return truncate([1 - Math.abs(this._offset.xCenter - pos.pageX) / this._offset.semiwidth]);
         };
     } else {
-        this._offset.height /= 2;
-        this._offset.y += this._offset.height;
         this.onTouchMoveParticular = function(ev) {
             var pos = ev.targetTouches[0];
-            return truncate([1 - Math.abs(this._offset.y - pos.pageY) / this._offset.height]);
-
+            return truncate([1 - Math.abs(this._offset.yCenter - pos.pageY) / this._offset.semiheight]);
         };
     }
 };
@@ -470,7 +463,6 @@ AnalogButton.prototype.onTouchEnd = function() {
 function Knob(id, updateStateCallback) {
     Control.call(this, 'knob', id, updateStateCallback);
     this._state = 0;
-    this._offset = {};
     this._knobcircle = document.createElement('div');
     this._knobcircle.className = 'knobcircle';
     this.element.appendChild(this._knobcircle);
@@ -481,23 +473,20 @@ function Knob(id, updateStateCallback) {
 }
 Knob.prototype = Object.create(Control.prototype);
 Knob.prototype.onAttached = function() {
-    // First approximation to the knob coordinates.
-    this._offset = this.element.getBoundingClientRect();
     // Centering the knob within the boundary.
-    var minDimension = Math.min(this._offset.width, this._offset.height);
-    if (minDimension == this._offset.width) {
-        this._knobcircle.style.top = this._offset.y + (this._offset.height - this._offset.width) / 2 + 'px';
+    if (this._offset.width < this._offset.height) {
+        this._offset.y += this._offset.semiheight - this._offset.semiwidth;
         this._offset.height = this._offset.width;
+        this._offset.semiheight = this._offset.semiwidth;
     } else {
-        this._knobcircle.style.left = this._offset.x + (this._offset.width - this._offset.height) / 2 + 'px';
+        this._offset.x += this._offset.semiwidth - this._offset.semiheight;
         this._offset.width = this._offset.height;
+        this._offset.semiwidth = this._offset.semiheight;
     }
+    this._knobcircle.style.top = this._offset.y + 'px';
+    this._knobcircle.style.left = this._offset.x + 'px';
     this._knobcircle.style.height = this._offset.width + 'px';
     this._knobcircle.style.width = this._offset.height + 'px';
-    // Calculating the exact center.
-    this._offset = this._knobcircle.getBoundingClientRect();
-    this._offset.x += this._offset.width / 2;
-    this._offset.y += this._offset.height / 2;
     this._updateCircles();
     this.quadrant = 0;
     this.element.addEventListener('touchmove', this.onTouch.bind(this), false);
@@ -506,7 +495,7 @@ Knob.prototype.onAttached = function() {
 };
 Knob.prototype.onTouch = function(ev) {
     var pos = ev.targetTouches[0];
-    this._state = Math.atan2(pos.pageY - this._offset.y, pos.pageX - this._offset.x) / 2 / Math.PI + 0.5;
+    this._state = Math.atan2(pos.pageY - this._offset.yCenter, pos.pageX - this._offset.xCenter) / 2 / Math.PI + 0.5;
     this.updateStateCallback();
     var currentQuadrant = Math.floor(this._state * 16);
     if (VIBRATE_ON_QUADRANT_BOUNDARY && this.quadrant != currentQuadrant) {
@@ -583,6 +572,7 @@ function Joypad() {
     }, this);
     this._controls.forEach(function(control) {
         this.element.appendChild(control.element);
+        control.getBoundingClientRect();
         control.onAttached();
     }, this);
     if (axes == 0 && buttons == 0) {
