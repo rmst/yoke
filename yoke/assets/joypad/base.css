@@ -110,11 +110,24 @@ div {
     background-size: 100% 100%;
 }
 
+/* Joysticks */
+.joystick { background-image: url("img/joystick.svg"); background-color: #bbb; }
+.circle {
+    background-color: black;
+    width: 10px;
+    height: 10px;
+    border-radius: 100%;
+}
+
+/* Buttons */
+.button { background-color: #bbb; }
+.pressed { filter: brightness(70%); }
 /* seq 1 16 | xargs -I xx echo "#bxx { background-image: url('img/xx.svg'); }" */
-#b1 { background-image: url('img/1.svg'); }
-#b2 { background-image: url('img/2.svg'); }
-#b3 { background-image: url('img/3.svg'); }
-#b4 { background-image: url('img/4.svg'); }
+/* Some edits done by hand */
+#b1 { background-image: url('img/1.svg'); background-color: #00d; }
+#b2 { background-image: url('img/2.svg'); background-color: #e00; }
+#b3 { background-image: url('img/3.svg'); background-color: #dd0; }
+#b4 { background-image: url('img/4.svg'); background-color: #0d0; }
 #b5 { background-image: url('img/5.svg'); }
 #b6 { background-image: url('img/6.svg'); }
 #b7 { background-image: url('img/7.svg'); }
@@ -127,9 +140,27 @@ div {
 #b14 { background-image: url('img/14.svg'); }
 #b15 { background-image: url('img/15.svg'); }
 #b16 { background-image: url('img/16.svg'); }
-
+#bg { background-image: url('img/g.svg'); background-color: #444; }
+#bs { background-image: url('img/s.svg'); background-color: #444; }
+#bm { background-image: url('img/m.svg'); background-color: #444; }
 /* printf "du\ndl\ndd\ndr" | xargs -I xx echo "#xx { background-image: url('img/xx.svg'); }" */
 #du { background-image: url('img/du.svg'); }
 #dl { background-image: url('img/dl.svg'); }
 #dd { background-image: url('img/dd.svg'); }
 #dr { background-image: url('img/dr.svg'); }
+
+/* Analog buttons */
+#a1 {background-color: #66f;}
+#a2 {background-color: #f33;}
+#a3 {background-color: #ff2;}
+#a4 {background-color: #2f2;}
+
+/* Motion controls */
+.motion {background-color: #ddd;}
+
+/* Pedals */
+.pedal {background-color: #444;}
+
+/* Knobs */
+.knob { }
+.knobcircle {background-color: #888;}
