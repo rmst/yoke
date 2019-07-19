@@ -61,6 +61,6 @@ The communication between the Linux client and the Android app are unencrypted U
 
 ## Tweaking
 
-Many aspects of Yoke behavior can be changed easily - ave a look at `yoke/assets/joypad`, `bin/yoke` and `yoke/service.py`.
+Many aspects of Yoke behavior can be changed easily - have a look at `yoke/assets/joypad`, `bin/yoke` and `yoke/service.py`.
 
 ![Thumbstick](media/thumbstick.gif)
