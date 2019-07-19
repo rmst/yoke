@@ -7,7 +7,7 @@ var VIBRATE_ON_PAD_BOUNDARY = true;
 // Code:
 
 // These 2 options are recommended for testing in non-kiosk/non-embedded browsers:
-var WAIT_FOR_FULLSCREEN = false; // FIXME true;
+var WAIT_FOR_FULLSCREEN = true;
 var DEBUG_NO_CONSOLE_SPAM = true;
 
 var VIBRATION_MILLISECONDS_IN = 40;
@@ -317,8 +317,8 @@ Joystick.prototype._updateCircle = function() {
         (this._offset.y + this._offset.height * this._state[1]) + 'px)';
 };
 Joystick.prototype.state = function() {
-    return this._state.map(function(val) {return Math.round(255 * val);})
-}
+    return this._state.map(function(val) {return Math.round(255 * val);});
+};
 
 function Motion(id, updateStateCallback) {
     // Motion reads the letters in id to decide which coordinates should it send to the Yoke server.
