@@ -257,7 +257,7 @@ Control.prototype.getBoundingClientRect = function() {
 };
 Control.prototype.onAttached = function() {};
 Control.prototype.state = function() {
-    return this._state.toString();
+    return Math.round(255 * this._state);
 };
 
 function Joystick(id, updateStateCallback) {
@@ -316,6 +316,9 @@ Joystick.prototype._updateCircle = function() {
         (this._offset.x + this._offset.width * this._state[0]) + 'px, ' +
         (this._offset.y + this._offset.height * this._state[1]) + 'px)';
 };
+Joystick.prototype.state = function() {
+    return this._state.map(function(val) {return Math.round(255 * val);})
+}
 
 function Motion(id, updateStateCallback) {
     // Motion reads the letters in id to decide which coordinates should it send to the Yoke server.
@@ -368,7 +371,7 @@ Motion.prototype.onDeviceOrientation = function(ev) {
     motionSensor.updateStateCallback();
 };
 Motion.prototype.state = function() {
-    return motionState[this._mask].toString();
+    return Math.round(255 * motionState[this._mask]);
 };
 
 function Pedal(id, updateStateCallback) {
@@ -520,7 +523,7 @@ Knob.prototype._updateCircles = function() {
 
 function Button(id, updateStateCallback) {
     Control.call(this, 'button', id, updateStateCallback);
-    this._state = 0;
+    this._state = false;
     buttons += 1;
 }
 Button.prototype = Object.create(Control.prototype);
@@ -530,16 +533,19 @@ Button.prototype.onAttached = function() {
 };
 Button.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
-    this._state = 1;
+    this._state = true;
     this.updateStateCallback();
     this.element.classList.add('pressed');
     window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
 };
 Button.prototype.onTouchEnd = function() {
-    this._state = 0;
+    this._state = false;
     this.updateStateCallback();
     this.element.classList.remove('pressed');
     window.navigator.vibrate(VIBRATION_MILLISECONDS_OUT);
+};
+Button.prototype.state = function() {
+    return (this._state ? 1 : 0);
 };
 
 function Dummy(id, updateStateCallback) {
@@ -603,11 +609,6 @@ function Joypad() {
 }
 Joypad.prototype.updateState = function() {
     var state = this._controls.map(function(control) { return control.state(); }).join(',');
-
-    // We are reducing float precision to avoid getting UDP messages cut in half.
-    // We are re-splitting the string since some control.state() above return strings
-    // (e.g. because [0.5, 0.5].toString() == '0.5,0.5')
-    state = state.split(',').map(function(x) { return x.substr(0, 6); }).join(',');
 
     // Within the Yoke webview, sends the joypad state.
     // Outside the Yoke webview, window.Yoke.update_vals() is redefined to have no effect.

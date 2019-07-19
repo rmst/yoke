@@ -75,8 +75,6 @@ class Device:
     def emit(self, d, v):
         if d not in self.events:
             raise AttributeError("Event {} has not been registered.".format(d))
-        if d in ABS_EVENTS:
-            v = (v+1)/2 * 255
         self.device.emit(d, int(v), syn=False)
 
     def flush(self):
@@ -107,7 +105,7 @@ if system() is 'Windows':
                 if d in range(1, 8+1):
                     self.device.set_button(d, v)
                 else:
-                    self.device.set_axis(d, int((v+1)/2 * 32768))
+                    self.device.set_axis(d, int(v * 32767 / 255))
         def flush(self):
             pass
         def close(self):
@@ -173,20 +171,11 @@ class Service:
         self.client_path = client_path
 
     def make_events(self, values):
-        """returns a (event_code, value) tuple for each value in values
-        values are in (-1, 1) and should be returned in (-1, 1)
-        """
         raise NotImplementedError()
 
     def preprocess(self, message):
         v = message.split(b',')
-        v = [float(m) for m in v]
-        v = ( # TODO: normalize from [0, 1] to [-1, 1] on JS side
-                v[0] * 2 - 1,
-                v[1] * 2 - 1,
-                v[2] * 2 - 1,
-                v[3] * 2 - 1,
-            ) + tuple(v[4:])
+        v = tuple([int(m) for m in v])
         if len(v) < len(GAMEPAD_EVENTS):
             # Before reducing float precision, sometimes UDP messages were getting cut in half.
             # Keeping the code just in case.
