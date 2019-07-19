@@ -201,8 +201,8 @@ function mnemonics(a, b) {
 function truncate(f, id, pattern) {
     var truncated = false;
     f = f.map(function(val) {
-        if (val < 0) { truncated = true; return 0; }
-        else if (val > 1) { truncated = true; return 1; }
+        if (val < 0.000001) { truncated = true; return 0.000001; }
+        else if (val > 0.999999) { truncated = true; return 0.999999; }
         else { return val; }
     });
     if (VIBRATE_ON_PAD_BOUNDARY && pattern) {
@@ -257,7 +257,7 @@ Control.prototype.getBoundingClientRect = function() {
 };
 Control.prototype.onAttached = function() {};
 Control.prototype.state = function() {
-    return Math.round(255 * this._state);
+    return Math.floor(256 * this._state);
 };
 
 function Joystick(id, updateStateCallback) {
@@ -317,7 +317,7 @@ Joystick.prototype._updateCircle = function() {
         (this._offset.y + this._offset.height * this._state[1]) + 'px)';
 };
 Joystick.prototype.state = function() {
-    return this._state.map(function(val) {return Math.round(255 * val);});
+    return this._state.map(function(val) {return Math.floor(256 * val);});
 };
 
 function Motion(id, updateStateCallback) {
@@ -353,8 +353,8 @@ function Motion(id, updateStateCallback) {
 Motion.prototype = Object.create(Control.prototype);
 Motion.prototype._normalize = function(f) {
     f *= ACCELERATION_CONSTANT;
-    if (f < -0.5) { f = -0.5; }
-    if (f > 0.5) { f = 0.5; }
+    if (f < -0.499999) { f = -0.499999; }
+    if (f > 0.499999) { f = 0.499999; }
     return f + 0.5;
 };
 Motion.prototype.onAttached = function() {};
@@ -371,7 +371,7 @@ Motion.prototype.onDeviceOrientation = function(ev) {
     motionSensor.updateStateCallback();
 };
 Motion.prototype.state = function() {
-    return Math.round(255 * motionState[this._mask]);
+    return Math.floor(256 * motionState[this._mask]);
 };
 
 function Pedal(id, updateStateCallback) {
