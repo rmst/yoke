@@ -267,6 +267,7 @@ Joystick.prototype.onAttached = function() {
     this.element.addEventListener('touchmove', this.onTouch.bind(this), false);
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
+    this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
 };
 Joystick.prototype.onTouch = function(ev) {
     var pos = ev.targetTouches[0];
@@ -375,6 +376,7 @@ Pedal.prototype.onAttached = function() {
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchmove', this.onTouchMove.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
+    this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
 };
 Pedal.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
@@ -417,6 +419,7 @@ AnalogButton.prototype.onAttached = function() {
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchmove', this.onTouchMove.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
+    this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
     if (this._offset.width > this._offset.height) {
         this.onTouchMoveParticular = function(ev) {
             var pos = ev.targetTouches[0];
@@ -486,6 +489,7 @@ Knob.prototype.onAttached = function() {
     this.element.addEventListener('touchmove', this.onTouch.bind(this), false);
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
+    this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
 };
 Knob.prototype.onTouch = function(ev) {
     var pos = ev.targetTouches[0];
@@ -521,6 +525,7 @@ Button.prototype = Object.create(Control.prototype);
 Button.prototype.onAttached = function() {
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
+    this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
 };
 Button.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
