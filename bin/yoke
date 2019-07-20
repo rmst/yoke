@@ -3,15 +3,6 @@ import yoke
 from yoke import EVENTS
 import argparse
 
-class GamepadService(yoke.Service):
-    events = yoke.GAMEPAD_EVENTS
-
-    def make_events(self, v):
-        e = []
-        for i in range(len(yoke.GAMEPAD_EVENTS)):
-            e.append((yoke.GAMEPAD_EVENTS[i], v[i]))
-        return tuple(e)
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--name', type=str, default='Yoke', help='virtual device name')
 parser.add_argument('--id', type=int, default=1, help='virtual device id (an integer larger than 0 in case there are multiple virtual devices)')
@@ -19,9 +10,8 @@ parser.add_argument('--iface', type=str, default='auto', help='IP of network int
 parser.add_argument('--port', type=int, default=0, help='port to listen on')
 args = parser.parse_args()
 
-Service = GamepadService
-dev = yoke.Device(args.id, args.name, events=Service.events)
-service = Service(dev, args.iface, args.port)
+dev = yoke.Device(args.id, args.name)
+service = yoke.Service(dev, args.iface, args.port)
 
 try:
     print('Starting service... Press Ctrl+C to exit.')

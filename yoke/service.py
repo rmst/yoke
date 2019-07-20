@@ -170,9 +170,6 @@ class Service:
         self.port = port
         self.client_path = client_path
 
-    def make_events(self, values):
-        raise NotImplementedError()
-
     def preprocess(self, message):
         v = message.split(b',')
         v = tuple([int(m) for m in v])
@@ -225,8 +222,8 @@ class Service:
                         trecv = time()
                         irecv = 0
                         v = self.preprocess(m)
-                        for e in self.make_events(v):
-                            self.dev.emit(*e)
+                        for e in range(0, len(v)):
+                            self.dev.emit(self.dev.events[e], v[e])
                         self.dev.flush()
 
                     else:
@@ -237,6 +234,8 @@ class Service:
 
                 tdelta = time() - trecv
 
+                # TODO: improve disconnection detection, preferably without sending extra events
+                # Currently a layout with no motion controls disconnects easily.
                 if connection is not None and tdelta > 3:
                     print('Timeout (3 seconds), disconnected.')
                     print('  (listened {} times per second)'.format(int(irecv/tdelta)))
