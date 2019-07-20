@@ -28,34 +28,11 @@ def get_ip_address():
 
 from glob import glob
 
-# TODO: this is a hardcoded layout. We should get rid of it.
-GAMEPAD_EVENTS = (
-    EVENTS.ABS_X,
-    EVENTS.ABS_Y,
-    EVENTS.ABS_RX,
-    EVENTS.ABS_RY,
-    EVENTS.BTN_GAMEPAD,
-    EVENTS.BTN_EAST,
-    EVENTS.BTN_WEST,
-    EVENTS.BTN_NORTH,
-    EVENTS.BTN_START,
-    EVENTS.BTN_SELECT,
-    EVENTS.BTN_DPAD_DOWN,
-    EVENTS.BTN_DPAD_RIGHT,
-    EVENTS.BTN_DPAD_UP,
-    EVENTS.BTN_DPAD_LEFT,
-    EVENTS.BTN_TL,
-    EVENTS.BTN_TR,
-    EVENTS.BTN_TL2,
-    EVENTS.BTN_TR2,
-    EVENTS.BTN_MODE
-    )
-
 
 ABS_EVENTS = [getattr(EVENTS, n) for n in dir(EVENTS) if n.startswith("ABS_")]
 
 class Device:
-    def __init__(self, id=1, name="Yoke", events=GAMEPAD_EVENTS):
+    def __init__(self, id=1, name="Yoke", events=()):
         self.name = name + '-' + str(id)
         for fn in glob('/sys/class/input/js*/device/name'):
             with open(fn) as f:
@@ -74,7 +51,7 @@ class Device:
 
     def emit(self, d, v):
         if d not in self.events:
-            raise AttributeError("Event {} has not been registered.".format(d))
+            print("Event {d} has not been registered... yet?")
         self.device.emit(d, int(v), False)
 
     def flush(self):
@@ -95,7 +72,7 @@ if system() is 'Windows':
         setattr(EVENTS, k, getattr(VjoyConstants, k, None))
 
     class Device:
-        def __init__(self, id, name, events=GAMEPAD_EVENTS):
+        def __init__(self, id, name, events=()):
             super().__init__()
             self.name = name + '-' + id
             self.device = VjoyDevice(id)
@@ -167,19 +144,23 @@ class Service:
 
     def __init__(self, devname='Yoke', devid='1', iface='auto', port=0, client_path=DEFAULT_CLIENT_PATH):
         self.dev = Device(devid, devname)
+        self.name = devname
+        self.devid = devid
         self.iface = iface
         self.port = port
         self.client_path = client_path
 
-    def preprocess(self, message):
+    def preprocess(self, message, expectedlength):
         v = message.split(b',')
         v = tuple([int(m) for m in v])
-        if len(v) < len(GAMEPAD_EVENTS):
+        if len(v) < expectedlength:
             # Before reducing float precision, sometimes UDP messages were getting cut in half.
             # Keeping the code just in case.
             print('malformed message!')
             print(v)
-            v += (0,) * (len(GAMEPAD_EVENTS) - len(v))
+            v += (0,) * (expectedlength - len(v))
+        elif len(v) > expectedlength:
+            v = v[0:expectedlength]
         return v
 
     def run(self):
@@ -222,10 +203,22 @@ class Service:
                     if connection == address:
                         trecv = time()
                         irecv = 0
-                        v = self.preprocess(m)
-                        for e in range(0, len(v)):
-                            self.dev.emit(self.dev.events[e], v[e])
-                        self.dev.flush()
+                        # Right now, messages can begin with an uppercase letter (if layouts) or a number (if status)
+                        # When we receive a layout, we recreate the device:
+                        if (m[0] >= 65 and m[0] <= 90): #if uppercase letter
+                            v = m.decode(encoding='UTF-8').split(',')
+                            try:
+                                events = [getattr(EVENTS, n) for n in v]
+                                self.dev.close()
+                                self.dev = Device(self.devid, self.name, events)
+                                print('New control layout chosen.')
+                            except AttributeError:
+                                print('ERROR. Invalid layout discarded.')
+                        else:
+                            v = self.preprocess(m, len(self.dev.events))
+                            for e in range(0, len(v)):
+                                self.dev.emit(self.dev.events[e], v[e])
+                            self.dev.flush()
 
                     else:
                         pass  # ignore packets from other addresses

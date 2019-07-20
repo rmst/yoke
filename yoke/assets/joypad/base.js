@@ -49,6 +49,8 @@ function mnemonics(a, b) {
         if (id == 'dbg') { sortScores[i] = 999998; } else {
             sortScores[i] = 999997;
             switch (id[0]) {
+                // Some of the kernel events specified here are arbitrary.
+                // There are not appropriately named kernel events from every layout.
                 case 's':
                 case 'j':
                     // 's' is a locking joystick, 'j' - non-locking
@@ -57,11 +59,7 @@ function mnemonics(a, b) {
                         switch (id[1]) {
                             case '1': sortScores[i].kernelEvent = 'ABS_X,ABS_Y'; break;
                             case '2': sortScores[i].kernelEvent = 'ABS_RX,ABS_RY'; break;
-                            // Until more suitable kernel codes are found, be careful with these:
-                            case '3': sortScores[i].kernelEvent = 'ABS_HAT0X,ABS_HAT0Y'; break;
-                            case '4': sortScores[i].kernelEvent = 'ABS_HAT1X,ABS_HAT1Y'; break;
-                            case '5': sortScores[i].kernelEvent = 'ABS_HAT2X,ABS_HAT2Y'; break;
-                            case '6': sortScores[i].kernelEvent = 'ABS_HAT3X,ABS_HAT3Y'; break;
+                            case '3': sortScores[i].kernelEvent = 'ABS_MISC,ABS_MAX'; break;
                             default: sortScores[i].kernelEvent = ','; break;
                         }
                     } else { sortScores[i] = 100000; }
@@ -104,15 +102,9 @@ function mnemonics(a, b) {
                         switch (id.substring(1)) {
                             case '1': sortScores[i].kernelEvent = 'ABS_VOLUME'; break;
                             case '2': sortScores[i].kernelEvent = 'ABS_RUDDER'; break;
-                            // Until more suitable kernel codes are found, be careful with these:
-                            case '3': sortScores[i].kernelEvent = 'ABS_HAT0X'; break;
-                            case '4': sortScores[i].kernelEvent = 'ABS_HAT0Y'; break;
-                            case '5': sortScores[i].kernelEvent = 'ABS_HAT1X'; break;
-                            case '6': sortScores[i].kernelEvent = 'ABS_HAT1Y'; break;
-                            case '7': sortScores[i].kernelEvent = 'ABS_HAT2X'; break;
-                            case '8': sortScores[i].kernelEvent = 'ABS_HAT2Y'; break;
-                            case '9': sortScores[i].kernelEvent = 'ABS_HAT3X'; break;
-                            case '10': sortScores[i].kernelEvent = 'ABS_HAT3Y'; break;
+                            case '3': sortScores[i].kernelEvent = 'ABS_PRESSURE'; break;
+                            case '4': sortScores[i].kernelEvent = 'ABS_DISTANCE'; break;
+                            case '5': sortScores[i].kernelEvent = 'ABS_TOOL_WIDTH'; break;
                         }
                     } else { sortScores[i] = 400000; }
                     break;
@@ -120,7 +112,6 @@ function mnemonics(a, b) {
                     if (typeof callback == 'function') {
                         sortScores[i] = new AnalogButton(id, callback);
                         switch (id.substring(1)) {
-                            // Until more suitable kernel codes are found, be careful with these:
                             case '1': sortScores[i].kernelEvent = 'ABS_HAT0X'; break;
                             case '2': sortScores[i].kernelEvent = 'ABS_HAT0Y'; break;
                             case '3': sortScores[i].kernelEvent = 'ABS_HAT1X'; break;
@@ -548,11 +539,6 @@ Button.prototype.state = function() {
     return (this._state ? 1 : 0);
 };
 
-function Dummy(id, updateStateCallback) {
-    Control.call(this, 'dummy', 'dum', updateStateCallback);
-}
-Dummy.prototype = Object.create(Control.prototype);
-
 //
 // JOYPAD
 //
@@ -584,27 +570,12 @@ function Joypad() {
     if (axes == 0 && buttons == 0) {
         prettyAlert('Your gamepad looks empty. Is <code>user.css</code> missing or broken?');
     }
-    // This section is to be excised later.
-    if (axes > 4) {
-        prettyAlert('Currently, Yoke allows a maximum of 4 analog axes. Please edit your CSS.');
-    } else {
-        for (axes; axes < 4; axes++) {
-            this._controls.splice(axes, 0, new Dummy('dum', updateStateCallback));
-        }
-    }
-    if (buttons > 15) {
-        prettyAlert('Currently, Yoke allows a maximum of 15 buttons. Please edit your CSS.');
-    } else {
-        for (buttons; buttons < 15; buttons++) {
-            this._controls.push(new Dummy('dum', updateStateCallback));
-        }
-    }
-    // End of section to be deleted.
     var kernelEvents = this._controls.map(function(control) { return control.kernelEvent; }).join(',');
     if (this._debugLabel != null) {
         this._debugLabel.element.innerHTML = kernelEvents;
     }
     if (!DEBUG_NO_CONSOLE_SPAM) { console.log(kernelEvents); }
+    window.Yoke.update_vals(kernelEvents);
     checkVibration();
 }
 Joypad.prototype.updateState = function() {
