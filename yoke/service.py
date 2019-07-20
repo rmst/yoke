@@ -75,7 +75,7 @@ class Device:
     def emit(self, d, v):
         if d not in self.events:
             raise AttributeError("Event {} has not been registered.".format(d))
-        self.device.emit(d, int(v), syn=False)
+        self.device.emit(d, int(v), False)
 
     def flush(self):
         self.device.syn()
@@ -95,7 +95,7 @@ if system() is 'Windows':
         setattr(EVENTS, k, getattr(VjoyConstants, k, None))
 
     class Device:
-        def __init__(self, id=1, name='Yoke', events=GAMEPAD_EVENTS):
+        def __init__(self, id, name, events=GAMEPAD_EVENTS):
             super().__init__()
             self.name = name + '-' + id
             self.device = VjoyDevice(id)
@@ -159,13 +159,14 @@ def run_webserver(port, path):
 DEFAULT_CLIENT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "yoke", "assets", "joypad")
 
 class Service:
-    dev = None
     sock = None
     info = None
+    name = None
+    devid = None
     dt = 0.02
 
-    def __init__(self, dev, iface='auto', port=0, client_path=DEFAULT_CLIENT_PATH):
-        self.dev = dev
+    def __init__(self, devname='Yoke', devid='1', iface='auto', port=0, client_path=DEFAULT_CLIENT_PATH):
+        self.dev = Device(devid, devname)
         self.iface = iface
         self.port = port
         self.client_path = client_path

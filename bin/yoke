@@ -10,8 +10,7 @@ parser.add_argument('--iface', type=str, default='auto', help='IP of network int
 parser.add_argument('--port', type=int, default=0, help='port to listen on')
 args = parser.parse_args()
 
-dev = yoke.Device(args.id, args.name)
-service = yoke.Service(dev, args.iface, args.port)
+service = yoke.Service(args.name, args.id, args.iface, args.port)
 
 try:
     print('Starting service... Press Ctrl+C to exit.')
