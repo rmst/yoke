@@ -1,19 +1,8 @@
-from zeroconf import ServiceBrowser, Zeroconf, InterfaceChoice
-import ipaddress
-import logging
+from zeroconf import ServiceBrowser, Zeroconf, InterfaceChoice, ServiceInfo
 import socket
-import sys
-from time import sleep
-from zeroconf import ServiceInfo, Zeroconf
 
-import time
-import socket
 from time import sleep, time
 from platform import system
-from threading import Thread, Event
-import sys
-import json
-import argparse
 import atexit
 
 from yoke import events as EVENTS
@@ -126,13 +115,14 @@ class Device:
 
 # Override on Windows
 if system() is 'Windows':
-    # print("Warning: This is not well tested on Windows!")
+    print("Warning: This is not well tested on Windows!")
 
     from yoke.vjoy.vjoydevice import VjoyConstants, VjoyDevice
 
     # ovverride EVENTS with the correct constants
     for k in vars(EVENTS):
         setattr(EVENTS, k, getattr(VjoyConstants, k, None))
+    ABS_EVENTS = [getattr(EVENTS, n) for n in dir(EVENTS) if n.startswith("ABS_")]
 
     class Device:
         def __init__(self, id="1", name="Yoke", events=(), bytestring=b'!impossible?aliases#string$'):
@@ -143,10 +133,13 @@ if system() is 'Windows':
             self.bytestring = bytestring
         def emit(self, d, v):
             if d is not None:
-                if d in range(1, 8+1):
-                    self.device.set_button(d, v)
+                if d in ABS_EVENTS:
+                    v = int(v)
+                    # if v is made up from the bits abcdefgh,
+                    # send number abcdefghabcdefg to vJoy.
+                    self.device.set_axis(d, (v << 7) | (v >> 1))
                 else:
-                    self.device.set_axis(d, int(v * 32767 / 255))
+                    self.device.set_button(d, v)
         def flush(self):
             pass
         def close(self):
@@ -296,8 +289,6 @@ class Service:
 
                 tdelta = time() - trecv
 
-                # TODO: improve disconnection detection, preferably without sending extra events
-                # Currently a layout with no motion controls disconnects easily.
                 if connection is not None and tdelta > 3:
                     print('Timeout (3 seconds), disconnected.')
                     print('  (listened {} times per second)'.format(int(irecv/tdelta)))
