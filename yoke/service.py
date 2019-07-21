@@ -18,6 +18,68 @@ import atexit
 
 from yoke import events as EVENTS
 
+ALIAS_TO_EVENT = {
+    'j1':  'ABS_X,ABS_Y',
+    'j2':  'ABS_RX,ABS_RY',
+    'j3':  'ABS_MISC,ABS_MAX',
+    's1':  'ABS_X,ABS_Y',
+    's2':  'ABS_RX,ABS_RY',
+    's3':  'ABS_TOOL_WIDTH,ABS_MAX',
+    'mx':  'ABS_MISC',
+    'my':  'ABS_RZ',
+    'mz':  'ABS_Z',
+    'ma':  'ABS_TILT_X',
+    'mb':  'ABS_WHEEL',
+    'mg':  'ABS_TILT_Y',
+    'pa':  'ABS_GAS',
+    'pb':  'ABS_BRAKE',
+    'pt':  'ABS_THROTTLE',
+    'k1':  'ABS_VOLUME',
+    'k2':  'ABS_RUDDER',
+    'k3':  'ABS_PRESSURE',
+    'k4':  'ABS_DISTANCE',
+    'a1':  'ABS_HAT0X',
+    'a2':  'ABS_HAT0Y',
+    'a3':  'ABS_HAT1X',
+    'a4':  'ABS_HAT1Y',
+    'a5':  'ABS_HAT2X',
+    'a6':  'ABS_HAT2Y',
+    'a7':  'ABS_HAT3X',
+    'a8':  'ABS_HAT3Y',
+    'bs':  'BTN_START',
+    'bg':  'BTN_SELECT',
+    'bm':  'BTN_MODE',
+    'b1':  'BTN_GAMEPAD',
+    'b2':  'BTN_EAST',
+    'b3':  'BTN_WEST',
+    'b4':  'BTN_NORTH',
+    'b5':  'BTN_TL',
+    'b6':  'BTN_TR',
+    'b7':  'BTN_TL2',
+    'b8':  'BTN_TR2',
+    'b9':  'BTN_A',
+    'b10': 'BTN_B',
+    'b11': 'BTN_C',
+    'b12': 'BTN_X',
+    'b13': 'BTN_Y',
+    'b14': 'BTN_Z',
+    'b15': 'BTN_TOP',
+    'b16': 'BTN_TOP2',
+    'b17': 'BTN_PINKIE',
+    'b18': 'BTN_BASE',
+    'b19': 'BTN_BASE2',
+    'b20': 'BTN_BASE3',
+    'b21': 'BTN_BASE4',
+    'b22': 'BTN_BASE5',
+    'b23': 'BTN_BASE6',
+    'b24': 'BTN_THUMB',
+    'b25': 'BTN_THUMB2',
+    'b26': 'BTN_TRIGGER',
+    'du':  'BTN_DPAD_UP',
+    'dd':  'BTN_DPAD_DOWN',
+    'dl':  'BTN_DPAD_LEFT',
+    'dr':  'BTN_DPAD_RIGHT',
+}
 
 def get_ip_address():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -32,7 +94,7 @@ from glob import glob
 ABS_EVENTS = [getattr(EVENTS, n) for n in dir(EVENTS) if n.startswith("ABS_")]
 
 class Device:
-    def __init__(self, id=1, name="Yoke", events=()):
+    def __init__(self, id=1, name="Yoke", events=(), bytestring=b'!impossible?aliases#string$'):
         self.name = name + '-' + str(id)
         for fn in glob('/sys/class/input/js*/device/name'):
             with open(fn) as f:
@@ -42,6 +104,7 @@ class Device:
 
         # set range (0, 255) for abs events
         self.events = events
+        self.bytestring = bytestring
         events = [e + (0, 255, 0, 0) if e in ABS_EVENTS else e for e in events]
 
         BUS_VIRTUAL = 0x06
@@ -72,11 +135,12 @@ if system() is 'Windows':
         setattr(EVENTS, k, getattr(VjoyConstants, k, None))
 
     class Device:
-        def __init__(self, id, name, events=()):
+        def __init__(self, id="1", name="Yoke", events=(), bytestring=b'!impossible?aliases#string$'):
             super().__init__()
             self.name = name + '-' + id
             self.device = VjoyDevice(id)
             self.events = events
+            self.bytestring = bytestring
         def emit(self, d, v):
             if d is not None:
                 if d in range(1, 8+1):
@@ -203,17 +267,21 @@ class Service:
                     if connection == address:
                         trecv = time()
                         irecv = 0
-                        # Right now, messages can begin with an uppercase letter (if layouts) or a number (if status)
-                        # When we receive a layout, we recreate the device:
-                        if (m[0] >= 65 and m[0] <= 90): #if uppercase letter
-                            v = m.decode(encoding='UTF-8').split(',')
-                            try:
-                                events = [getattr(EVENTS, n) for n in v]
-                                self.dev.close()
-                                self.dev = Device(self.devid, self.name, events)
-                                print('New control layout chosen.')
-                            except AttributeError:
-                                print('ERROR. Invalid layout discarded.')
+                        # If the message begins with a lowercase letter, it is a layout.
+                        # If it's different than the current one, replace device.
+                        if (m[0] >= 97 and m[0] <= 122):
+                            if m != self.dev.bytestring:
+                                v = m.decode(encoding='UTF-8')
+                                for key, value in ALIAS_TO_EVENT.items():
+                                    v = v.replace(key, value)
+                                v = v.split(',')
+                                try:
+                                    events = [getattr(EVENTS, n) for n in v]
+                                    self.dev.close()
+                                    self.dev = Device(self.devid, self.name, events, m)
+                                    print('New control layout chosen.')
+                                except AttributeError:
+                                    print('ERROR. Invalid layout discarded.')
                         else:
                             v = self.preprocess(m, len(self.dev.events))
                             for e in range(0, len(v)):

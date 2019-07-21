@@ -49,31 +49,17 @@ function mnemonics(a, b) {
         if (id == 'dbg') { sortScores[i] = 999998; } else {
             sortScores[i] = 999997;
             switch (id[0]) {
-                // Some of the kernel events specified here are arbitrary.
-                // There are not appropriately named kernel events from every layout.
-                case 's':
-                case 'j':
+                case 's': case 'j':
                     // 's' is a locking joystick, 'j' - non-locking
                     if (typeof callback == 'function') {
                         sortScores[i] = new Joystick(id, callback);
-                        switch (id[1]) {
-                            case '1': sortScores[i].kernelEvent = 'ABS_X,ABS_Y'; break;
-                            case '2': sortScores[i].kernelEvent = 'ABS_RX,ABS_RY'; break;
-                            case '3': sortScores[i].kernelEvent = 'ABS_MISC,ABS_MAX'; break;
-                            default: sortScores[i].kernelEvent = ','; break;
-                        }
                     } else { sortScores[i] = 100000; }
                     break;
                 case 'm':
                     if (typeof callback == 'function') {
                         sortScores[i] = new Motion(id, callback);
                         switch (id[1]) {
-                            case 'x': sortScores[i].kernelEvent = 'ABS_MISC'; break;
-                            case 'y': sortScores[i].kernelEvent = 'ABS_RZ'; break;
-                            case 'z': sortScores[i].kernelEvent = 'ABS_Z'; break;
-                            case 'a': sortScores[i].kernelEvent = 'ABS_TILT_X'; break;
-                            case 'b': sortScores[i].kernelEvent = 'ABS_WHEEL'; break;
-                            case 'g': sortScores[i].kernelEvent = 'ABS_TILT_Y'; break;
+                            case 'x': case 'y': case 'z': case 'a': case 'b': case 'g': break;
                             default:
                                 prettyAlert('Motion detection error: \
                                     Unrecognised coordinate <code>' + id[1] + '</code>.');
@@ -85,9 +71,7 @@ function mnemonics(a, b) {
                     if (typeof callback == 'function') {
                         sortScores[i] = new Pedal(id, callback);
                         switch (id[1]) {
-                            case 'a': sortScores[i].kernelEvent = 'ABS_GAS'; break;
-                            case 'b': sortScores[i].kernelEvent = 'ABS_BRAKE'; break;
-                            case 't': sortScores[i].kernelEvent = 'ABS_THROTTLE'; break;
+                            case 'a': case 'b': case 't': break;
                             default:
                                 prettyAlert('<code>' + id + '</code> is not a valid pedal. \
                                     Please use <code>pa</code> or <code>pt</code> for accelerator \
@@ -99,70 +83,23 @@ function mnemonics(a, b) {
                 case 'k':
                     if (typeof callback == 'function') {
                         sortScores[i] = new Knob(id, callback);
-                        switch (id.substring(1)) {
-                            case '1': sortScores[i].kernelEvent = 'ABS_VOLUME'; break;
-                            case '2': sortScores[i].kernelEvent = 'ABS_RUDDER'; break;
-                            case '3': sortScores[i].kernelEvent = 'ABS_PRESSURE'; break;
-                            case '4': sortScores[i].kernelEvent = 'ABS_DISTANCE'; break;
-                            case '5': sortScores[i].kernelEvent = 'ABS_TOOL_WIDTH'; break;
-                        }
                     } else { sortScores[i] = 400000; }
                     break;
                 case 'a':
                     if (typeof callback == 'function') {
                         sortScores[i] = new AnalogButton(id, callback);
-                        switch (id.substring(1)) {
-                            case '1': sortScores[i].kernelEvent = 'ABS_HAT0X'; break;
-                            case '2': sortScores[i].kernelEvent = 'ABS_HAT0Y'; break;
-                            case '3': sortScores[i].kernelEvent = 'ABS_HAT1X'; break;
-                            case '4': sortScores[i].kernelEvent = 'ABS_HAT1Y'; break;
-                            case '5': sortScores[i].kernelEvent = 'ABS_HAT2X'; break;
-                            case '6': sortScores[i].kernelEvent = 'ABS_HAT2Y'; break;
-                            case '7': sortScores[i].kernelEvent = 'ABS_HAT3X'; break;
-                            case '8': sortScores[i].kernelEvent = 'ABS_HAT3Y'; break;
-                        }
                     } else { sortScores[i] = 500000; }
                     break;
                 case 'b':
                     if (typeof callback == 'function') {
                         sortScores[i] = new Button(id, callback);
-                        switch (id.substring(1)) {
-                            case 's': sortScores[i].kernelEvent = 'BTN_START'; break;
-                            case 'g': sortScores[i].kernelEvent = 'BTN_SELECT'; break;
-                            case 'm': sortScores[i].kernelEvent = 'BTN_MODE'; break;
-                            case '1': sortScores[i].kernelEvent = 'BTN_GAMEPAD'; break;
-                            case '2': sortScores[i].kernelEvent = 'BTN_EAST'; break;
-                            case '3': sortScores[i].kernelEvent = 'BTN_WEST'; break;
-                            case '4': sortScores[i].kernelEvent = 'BTN_NORTH'; break;
-                            case '5': sortScores[i].kernelEvent = 'BTN_TL'; break;
-                            case '6': sortScores[i].kernelEvent = 'BTN_TR'; break;
-                            case '7': sortScores[i].kernelEvent = 'BTN_TL2'; break;
-                            case '8': sortScores[i].kernelEvent = 'BTN_TR2'; break;
-                            case '9': sortScores[i].kernelEvent = 'BTN_A'; break;
-                            case '10': sortScores[i].kernelEvent = 'BTN_B'; break;
-                            case '11': sortScores[i].kernelEvent = 'BTN_C'; break;
-                            case '12': sortScores[i].kernelEvent = 'BTN_X'; break;
-                            case '13': sortScores[i].kernelEvent = 'BTN_Y'; break;
-                            case '14': sortScores[i].kernelEvent = 'BTN_Z'; break;
-                            case '15': sortScores[i].kernelEvent = 'BTN_TRIGGER_HAPPY'; break;
-                            default: sortScores[i].kernelEvent = 'BTN_TRIGGER_HAPPY' + (Number(id.substring(1)) - 18); break;
-                            // if you use more than 58 buttons, it's on you.
-                        }
-                    } else {
-                        switch (id.substring(1)) {
-                            case 's': case 'g': case 'm': sortScores[i] = 600000; break;
-                            default: sortScores[i] = 600000; break;
-                        }
-                    }
+                    } else { sortScores[i] = 600000; }
                     break;
                 case 'd':
                     if (typeof callback == 'function') {
                         sortScores[i] = new Button(id, callback);
                         switch (id[1]) {
-                            case 'u': sortScores[i].kernelEvent = 'BTN_DPAD_UP'; break;
-                            case 'd': sortScores[i].kernelEvent = 'BTN_DPAD_DOWN'; break;
-                            case 'l': sortScores[i].kernelEvent = 'BTN_DPAD_LEFT'; break;
-                            case 'r': sortScores[i].kernelEvent = 'BTN_DPAD_RIGHT'; break;
+                            case 'u': case 'd': case 'l': case 'r': break;
                             default:
                                 prettyAlert('D-pad error: \
                                     <code>' + id[1] + '</code> is not a cardinal direction.');
@@ -181,7 +118,7 @@ function mnemonics(a, b) {
                 // (the first letter may be different without changing the category)
                 // This shortcut reorders non-negative integers correctly, and letters with the same capitalization in alphabetical order.
                 sortScores[i] += id.substring(1).split('')
-                    .reduce(function(acc, cur) {return 256*acc + cur.charCodeAt();}, 0);
+                    .reduce(function(acc, cur) {return 256 * acc + cur.charCodeAt();}, 0);
             }
         }
     });
@@ -237,7 +174,6 @@ function Control(type, id, updateStateCallback) {
     this.gridArea = id;
     this.updateStateCallback = updateStateCallback;
     this._state = 0;
-    this.kernelEvent = '';
 }
 Control.prototype.getBoundingClientRect = function() {
     this._offset = this.element.getBoundingClientRect();
@@ -575,7 +511,7 @@ function Joypad() {
     if (axes == 0 && buttons == 0) {
         prettyAlert('Your gamepad looks empty. Is <code>user.css</code> missing or broken?');
     }
-    var kernelEvents = this._controls.map(function(control) { return control.kernelEvent; }).join(',');
+    var kernelEvents = this._controls.map(function(control) { return control.element.id; }).join(',');
     if (this._debugLabel != null) {
         this._debugLabel.element.innerHTML = kernelEvents;
     }
