@@ -72,7 +72,7 @@ ALIAS_TO_EVENT = {
 
 def get_ip_address():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("8.8.8.8", 80))
+    s.connect(('8.8.8.8', 80))
     ip = s.getsockname()[0]
     s.close()
     return ip
@@ -80,10 +80,10 @@ def get_ip_address():
 from glob import glob
 
 
-ABS_EVENTS = [getattr(EVENTS, n) for n in dir(EVENTS) if n.startswith("ABS_")]
+ABS_EVENTS = [getattr(EVENTS, n) for n in dir(EVENTS) if n.startswith('ABS_')]
 
 class Device:
-    def __init__(self, id=1, name="Yoke", events=(), bytestring=b'!impossible?aliases#string$'):
+    def __init__(self, id=1, name='Yoke', events=(), bytestring=b'!impossible?aliases#string$'):
         self.name = name + '-' + str(id)
         for fn in glob('/sys/class/input/js*/device/name'):
             with open(fn) as f:
@@ -103,7 +103,7 @@ class Device:
 
     def emit(self, d, v):
         if d not in self.events:
-            print("Event {d} has not been registered... yet?")
+            print('Event {d} has not been registered... yet?')
         self.device.emit(d, int(v), False)
 
     def flush(self):
@@ -115,31 +115,34 @@ class Device:
 
 # Override on Windows
 if system() is 'Windows':
-    print("Warning: This is not well tested on Windows!")
+    print('Warning: This is not well tested on Windows!')
 
     from yoke.vjoy.vjoydevice import VjoyConstants, VjoyDevice
 
-    # ovverride EVENTS with the correct constants
-    for k in vars(EVENTS):
-        setattr(EVENTS, k, getattr(VjoyConstants, k, None))
-    ABS_EVENTS = [getattr(EVENTS, n) for n in dir(EVENTS) if n.startswith("ABS_")]
-
     class Device:
-        def __init__(self, id="1", name="Yoke", events=(), bytestring=b'!impossible?aliases#string$'):
+        def __init__(self, id=1, name='Yoke', events=(), bytestring=b'!impossible?aliases#string$'):
             super().__init__()
-            self.name = name + '-' + id
+            self.name = name + '-' + str(id)
             self.device = VjoyDevice(id)
-            self.events = events
+            self.events = []
             self.bytestring = bytestring
+            #a vJoy controller has up to 8 axis with fixed names, and 128 buttons with no names.
+            #TODO: Improve mapping between uinput events and vJoy controls.
+            axes = 0x2f
+            buttons = 0
+            for event in events:
+                if event[0] == 0x01: # button/key
+                    buttons += 1; self.events.append((event[0], buttons));
+                elif event[0] == 0x03: # analog axis
+                    axes += 1; self.events.append((event[0], axes));
         def emit(self, d, v):
             if d is not None:
-                if d in ABS_EVENTS:
-                    v = int(v)
-                    # if v is made up from the bits abcdefgh,
-                    # send number abcdefghabcdefg to vJoy.
-                    self.device.set_axis(d, (v << 7) | (v >> 1))
+                if d[0] == 0x03: #analog axis
+                    # To map from [0, 255] to [0x1, 0x8000], take the bitstring abcdefgh,
+                    # parse the bitstring abcdefghabcdefg, and then sum 1.
+                    self.device.set_axis(d[1], ((v << 7) | (v >> 1)) + 1)
                 else:
-                    self.device.set_button(d, v)
+                    self.device.set_button(d[1], v)
         def flush(self):
             pass
         def close(self):
@@ -190,7 +193,7 @@ def run_webserver(port, path):
         httpd.serve_forever()
 
 
-DEFAULT_CLIENT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "yoke", "assets", "joypad")
+DEFAULT_CLIENT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'yoke', 'assets', 'joypad')
 
 class Service:
     sock = None
@@ -237,7 +240,7 @@ class Service:
         Thread(target=run_webserver, args=(self.port, self.client_path), daemon=True).start()
 
         # create zeroconf service
-        stype = "_yoke._udp.local."
+        stype = '_yoke._udp.local.'
         netname = socket.gethostname() + '-' + self.dev.name
         fullname = netname + '.' + stype
         self.info = ServiceInfo(stype, fullname, socket.inet_aton(adr), port, 0, 0, {}, fullname)
@@ -298,7 +301,7 @@ class Service:
                 irecv += 1
 
     def close_atexit(self):
-        print("Yoke: Unregistering zeroconf service...")
+        print('Yoke: Unregistering zeroconf service...')
         self.close()
 
     def close(self):

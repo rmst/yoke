@@ -1,5 +1,6 @@
 import os
 from ctypes import cdll
+import platform
 
 class VjoyException(Exception):
     pass
@@ -28,10 +29,27 @@ class VjoyConstants:
 class VjoyDevice:
     def __init__(self, id=None):
         self.id = id
-        lib_path = os.path.join(os.path.dirname(__file__), "vJoyInterface.dll")
-        self.lib = cdll.LoadLibrary(lib_path)
-        #if not self.lib.DriverMatch():
-        #    raise VjoyException('The installed version of vjoy and {} do not match'.format(lib_path))
+        if platform.release() in ('10', 'post10') and [int(v) for v in platform.version().split('.')[0:3]] > [10, 0, 1803]:
+            lib_name = "vJoyInterface-" + platform.architecture()[0] + "-modern.dll"
+        else:
+            lib_name = "vJoyInterface-" + platform.architecture()[0] + "-legacy.dll"
+        lib_path = os.path.join(os.path.dirname(__file__), lib_name)
+        try:
+            self.lib = cdll.LoadLibrary(lib_path)
+        except OSError as err:
+            if err.winerror == 126:
+                print("ERROR: " + lib_name + " could not be found. Please reinstall Yoke.\n"
+                    "Exiting now.")
+                exit(err.winerror)
+            elif err.winerror == 193:
+                print("ERROR: The DLL found does not match your vJoy driver, OS and/or Python machine. Please reinstall Yoke.\n"
+                    "Exiting now.")
+                exit(err.winerror)
+            else:
+                raise
+        except:
+            raise
+
         self.lib.vJoyEnabled()
         self.lib.AcquireVJD(id)
 
