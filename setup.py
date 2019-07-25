@@ -2,16 +2,11 @@
 
 from setuptools import setup, find_packages
 import platform
-from setuptools.command.install import install # https://stackoverflow.com/questions/20288711/
-
-# https://github.com/shauleiz/vJoy de windows 7 a windows 10 1803 (10.0.17134)
-# https://sourceforge.net/projects/vjoystick/files/Beta%202.x/2.1.8.39-270518/vJoySetup.exe/download
-# https://github.com/jshafer817/vJoy en adelante
-# https://sourceforge.net/projects/vjoystick/files/latest/download
 
 yoke_package_data = [
     'assets/joypad/*',
-    'assets/joypad/img/*'
+    'assets/joypad/img/*',
+    'vjoy/LICENSE.TXT'
 ]
 
 if platform.system() == 'Windows':
@@ -22,6 +17,7 @@ if platform.system() == 'Windows':
         DLL_path = 'vjoy/vJoyInterface-' + platform.architecture()[0] + '-legacy.dll'
     else:
         DLL_path = 'vjoy/vJoyInterface-' + platform.architecture()[0] + '-modern.dll'
+    yoke_package_data.append(DLL_path)
 elif platform.system() == 'Android':
     raise SystemError('This program is supposed to be installed on an external computer. '
         'For Android, you can download the APK at '
@@ -30,12 +26,11 @@ elif platform.system() != 'Linux':
     raise SystemError('Yoke is not yet compatible with ' + platform.system() + '. '
         'Please contact the author if you know any virtual joystick driver for your system.')
 
-yoke_package_data.append(DLL_path)
-
-DLL_path = None
-vJoy_url = None
-
+# https://stackoverflow.com/questions/20288711/
+from setuptools.command.install import install
 class PostInstallCommand(install):
+    # vJoy_url cannot be cached from the previous conditionals.
+    # After installation, pip parses setup.py again and the previous content of every variable is lost.
     def run(self):
         if platform.system() == 'Windows':
             if platform.release() in ('Vista', '7', '8', '8.1', 'post8.1') or [int(v) for v in platform.version().split('.')[0:3]] <= [10, 0, 1803]:
@@ -44,10 +39,12 @@ class PostInstallCommand(install):
                 vJoy_url = 'https://sourceforge.net/projects/vjoystick/files/latest/download'
             print('You should now see a prompt to download the vJoy driver.\n'
                 'If you need to install this driver, you can do so anytime by visiting ' + vJoy_url)
-            answer = ctypes.windll.user32.MessageBoxW(0, 'Yoke was installed succesfully, but can only work if the correct vJoy driver is installed. '
+            answer = ctypes.windll.user32.MessageBoxW(0,
+                'Yoke was installed succesfully, but can only work if the correct vJoy driver is installed. '
                 'The driver for Windows ' + platform.release() + ', version ' + platform.version() + ' at:\n\n' + vJoy_url + '\n\n'
-                'Click OK if you want to download the installer now, or Cancel otherwise.', 'vJoy driver required', 33) # 33 = question icon, OK and Cancel buttons
-            if answer == 1: # 1 is OK, 2 is cancel or close.
+                'Click OK if you want to download the installer now, or Cancel otherwise.',
+                'vJoy driver required', 33) # question prompt (33), OK (answer == 1) and Cancel (answer == 2) buttons
+            if answer == 1:
                 import webbrowser
                 webbrowser.open_new(vJoy_url)
         install.run(self)

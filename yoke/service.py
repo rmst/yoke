@@ -158,6 +158,13 @@ from threading import Thread
 import socketserver
 import os, urllib, posixpath
 
+# TODO: These three lines allow using the syntax with socketserver with
+# old versions of Python like in Debian.
+# Please delete once socketserver.py is updated in every major Linux distro.
+if not "__enter__" in dir(socketserver.BaseServer):
+    socketserver.BaseServer.__enter__ = lambda self: self
+    socketserver.BaseServer.__exit__ = lambda self, *args: self.server_close()
+
 class HTTPRequestHandler(SimpleHTTPRequestHandler):
     basepath = os.getcwd()
 
