@@ -1,18 +1,18 @@
-/* Driving settings the user might want to change. */
+/* Gamepad settings the user might want to change. */
 
 #joypad {
     grid-template-columns: repeat(16, 1fr);
     grid-template-rows: repeat(9, 1fr);
     grid-template-areas:
     /* The map below must match the number of rows and columns specified above: */
-        ".   .   .   .   .   .   .   mb  mg  .   .   .   .   .   .   .   "
+        "b5  b5  b5  b5  .   .   .   .   .   .   .   .   b6  b6  b6  b6  "
         ".   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   "
-        ".   pb  pb  pb  .   b1  .   .   .   .   b2  .   pa  pa  pa  .   "
-        ".   pb  pb  pb  .   b1  .   bg  bs  .   b2  .   pa  pa  pa  .   "
-        ".   pb  pb  pb  .   .   .   .   .   .   .   .   pa  pa  pa  .   "
-        ".   pb  pb  pb  .   b3  .   .   .   .   b4  .   pa  pa  pa  .   "
-        ".   pb  pb  pb  .   b3  .   .   .   .   b4  .   pa  pa  pa  .   "
-        ".   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   "
+        ".   .   du  du  .   .   .    .  .   .   .   .   b4  b4  .   .   "
+        ".   .   du  du  .   .   .   bg  bg  .   .   .   b4  b4  .   .   "
+        "dl  dl  .   .   dr  dr  .   .   .   .   b3  b3  .   .   b2  b2  "
+        "dl  dl  .   .   dr  dr  .   bs  bs  .   b3  b3  .   .   b2  b2  "
+        ".   .   dd  dd  .   .   .   .   .   .   .   .   b1  b1  .   .   "
+        ".   .   dd  dd  .   .   .   .   .   .   .   .   b1  b1  .   .   "
         "dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg "
         ;
         /* Possible values:

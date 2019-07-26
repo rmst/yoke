@@ -49,33 +49,17 @@ function mnemonics(a, b) {
         if (id == 'dbg') { sortScores[i] = 999998; } else {
             sortScores[i] = 999997;
             switch (id[0]) {
-                case 's':
-                case 'j':
+                case 's': case 'j':
                     // 's' is a locking joystick, 'j' - non-locking
                     if (typeof callback == 'function') {
                         sortScores[i] = new Joystick(id, callback);
-                        switch (id[1]) {
-                            case '1': sortScores[i].kernelEvent = 'ABS_X,ABS_Y'; break;
-                            case '2': sortScores[i].kernelEvent = 'ABS_RX,ABS_RY'; break;
-                            // Until more suitable kernel codes are found, be careful with these:
-                            case '3': sortScores[i].kernelEvent = 'ABS_HAT0X,ABS_HAT0Y'; break;
-                            case '4': sortScores[i].kernelEvent = 'ABS_HAT1X,ABS_HAT1Y'; break;
-                            case '5': sortScores[i].kernelEvent = 'ABS_HAT2X,ABS_HAT2Y'; break;
-                            case '6': sortScores[i].kernelEvent = 'ABS_HAT3X,ABS_HAT3Y'; break;
-                            default: sortScores[i].kernelEvent = ','; break;
-                        }
                     } else { sortScores[i] = 100000; }
                     break;
                 case 'm':
                     if (typeof callback == 'function') {
                         sortScores[i] = new Motion(id, callback);
                         switch (id[1]) {
-                            case 'x': sortScores[i].kernelEvent = 'ABS_MISC'; break;
-                            case 'y': sortScores[i].kernelEvent = 'ABS_RZ'; break;
-                            case 'z': sortScores[i].kernelEvent = 'ABS_Z'; break;
-                            case 'a': sortScores[i].kernelEvent = 'ABS_TILT_X'; break;
-                            case 'b': sortScores[i].kernelEvent = 'ABS_WHEEL'; break;
-                            case 'g': sortScores[i].kernelEvent = 'ABS_TILT_Y'; break;
+                            case 'x': case 'y': case 'z': case 'a': case 'b': case 'g': break;
                             default:
                                 prettyAlert('Motion detection error: \
                                     Unrecognised coordinate <code>' + id[1] + '</code>.');
@@ -87,9 +71,7 @@ function mnemonics(a, b) {
                     if (typeof callback == 'function') {
                         sortScores[i] = new Pedal(id, callback);
                         switch (id[1]) {
-                            case 'a': sortScores[i].kernelEvent = 'ABS_GAS'; break;
-                            case 'b': sortScores[i].kernelEvent = 'ABS_BRAKE'; break;
-                            case 't': sortScores[i].kernelEvent = 'ABS_THROTTLE'; break;
+                            case 'a': case 'b': case 't': break;
                             default:
                                 prettyAlert('<code>' + id + '</code> is not a valid pedal. \
                                     Please use <code>pa</code> or <code>pt</code> for accelerator \
@@ -101,77 +83,23 @@ function mnemonics(a, b) {
                 case 'k':
                     if (typeof callback == 'function') {
                         sortScores[i] = new Knob(id, callback);
-                        switch (id.substring(1)) {
-                            case '1': sortScores[i].kernelEvent = 'ABS_VOLUME'; break;
-                            case '2': sortScores[i].kernelEvent = 'ABS_RUDDER'; break;
-                            // Until more suitable kernel codes are found, be careful with these:
-                            case '3': sortScores[i].kernelEvent = 'ABS_HAT0X'; break;
-                            case '4': sortScores[i].kernelEvent = 'ABS_HAT0Y'; break;
-                            case '5': sortScores[i].kernelEvent = 'ABS_HAT1X'; break;
-                            case '6': sortScores[i].kernelEvent = 'ABS_HAT1Y'; break;
-                            case '7': sortScores[i].kernelEvent = 'ABS_HAT2X'; break;
-                            case '8': sortScores[i].kernelEvent = 'ABS_HAT2Y'; break;
-                            case '9': sortScores[i].kernelEvent = 'ABS_HAT3X'; break;
-                            case '10': sortScores[i].kernelEvent = 'ABS_HAT3Y'; break;
-                        }
                     } else { sortScores[i] = 400000; }
                     break;
                 case 'a':
                     if (typeof callback == 'function') {
                         sortScores[i] = new AnalogButton(id, callback);
-                        switch (id.substring(1)) {
-                            // Until more suitable kernel codes are found, be careful with these:
-                            case '1': sortScores[i].kernelEvent = 'ABS_HAT0X'; break;
-                            case '2': sortScores[i].kernelEvent = 'ABS_HAT0Y'; break;
-                            case '3': sortScores[i].kernelEvent = 'ABS_HAT1X'; break;
-                            case '4': sortScores[i].kernelEvent = 'ABS_HAT1Y'; break;
-                            case '5': sortScores[i].kernelEvent = 'ABS_HAT2X'; break;
-                            case '6': sortScores[i].kernelEvent = 'ABS_HAT2Y'; break;
-                            case '7': sortScores[i].kernelEvent = 'ABS_HAT3X'; break;
-                            case '8': sortScores[i].kernelEvent = 'ABS_HAT3Y'; break;
-                        }
                     } else { sortScores[i] = 500000; }
                     break;
                 case 'b':
                     if (typeof callback == 'function') {
                         sortScores[i] = new Button(id, callback);
-                        switch (id.substring(1)) {
-                            case 's': sortScores[i].kernelEvent = 'BTN_START'; break;
-                            case 'g': sortScores[i].kernelEvent = 'BTN_SELECT'; break;
-                            case 'm': sortScores[i].kernelEvent = 'BTN_MODE'; break;
-                            case '1': sortScores[i].kernelEvent = 'BTN_GAMEPAD'; break;
-                            case '2': sortScores[i].kernelEvent = 'BTN_EAST'; break;
-                            case '3': sortScores[i].kernelEvent = 'BTN_WEST'; break;
-                            case '4': sortScores[i].kernelEvent = 'BTN_NORTH'; break;
-                            case '5': sortScores[i].kernelEvent = 'BTN_TL'; break;
-                            case '6': sortScores[i].kernelEvent = 'BTN_TR'; break;
-                            case '7': sortScores[i].kernelEvent = 'BTN_TL2'; break;
-                            case '8': sortScores[i].kernelEvent = 'BTN_TR2'; break;
-                            case '9': sortScores[i].kernelEvent = 'BTN_A'; break;
-                            case '10': sortScores[i].kernelEvent = 'BTN_B'; break;
-                            case '11': sortScores[i].kernelEvent = 'BTN_C'; break;
-                            case '12': sortScores[i].kernelEvent = 'BTN_X'; break;
-                            case '13': sortScores[i].kernelEvent = 'BTN_Y'; break;
-                            case '14': sortScores[i].kernelEvent = 'BTN_Z'; break;
-                            case '15': sortScores[i].kernelEvent = 'BTN_TRIGGER_HAPPY'; break;
-                            default: sortScores[i].kernelEvent = 'BTN_TRIGGER_HAPPY' + (Number(id.substring(1)) - 18); break;
-                            // if you use more than 58 buttons, it's on you.
-                        }
-                    } else {
-                        switch (id.substring(1)) {
-                            case 's': case 'g': case 'm': sortScores[i] = 600000; break;
-                            default: sortScores[i] = 600000; break;
-                        }
-                    }
+                    } else { sortScores[i] = 600000; }
                     break;
                 case 'd':
                     if (typeof callback == 'function') {
                         sortScores[i] = new Button(id, callback);
                         switch (id[1]) {
-                            case 'u': sortScores[i].kernelEvent = 'BTN_DPAD_UP'; break;
-                            case 'd': sortScores[i].kernelEvent = 'BTN_DPAD_DOWN'; break;
-                            case 'l': sortScores[i].kernelEvent = 'BTN_DPAD_LEFT'; break;
-                            case 'r': sortScores[i].kernelEvent = 'BTN_DPAD_RIGHT'; break;
+                            case 'u': case 'd': case 'l': case 'r': break;
                             default:
                                 prettyAlert('D-pad error: \
                                     <code>' + id[1] + '</code> is not a cardinal direction.');
@@ -190,7 +118,7 @@ function mnemonics(a, b) {
                 // (the first letter may be different without changing the category)
                 // This shortcut reorders non-negative integers correctly, and letters with the same capitalization in alphabetical order.
                 sortScores[i] += id.substring(1).split('')
-                    .reduce(function(acc, cur) {return 256*acc + cur.charCodeAt();}, 0);
+                    .reduce(function(acc, cur) {return 256 * acc + cur.charCodeAt();}, 0);
             }
         }
     });
@@ -201,16 +129,12 @@ function mnemonics(a, b) {
 function truncate(f, id, pattern) {
     var truncated = false;
     f = f.map(function(val) {
-        if (val < 0) { truncated = true; return 0; }
-        else if (val > 1) { truncated = true; return 1; }
+        if (val < 0.000001) { truncated = true; return 0.000001; }
+        else if (val > 0.999999) { truncated = true; return 0.999999; }
         else { return val; }
     });
     if (VIBRATE_ON_PAD_BOUNDARY && pattern) {
-        if (truncated) {
-            queueForVibration(id, pattern);
-        } else {
-            unqueueForVibration(id);
-        }
+        truncated ? queueForVibration(id, pattern) : unqueueForVibration(id);
     }
     return f;
 }
@@ -250,11 +174,17 @@ function Control(type, id, updateStateCallback) {
     this.gridArea = id;
     this.updateStateCallback = updateStateCallback;
     this._state = 0;
-    this.kernelEvent = '';
 }
+Control.prototype.getBoundingClientRect = function() {
+    this._offset = this.element.getBoundingClientRect();
+    this._offset.semiwidth = this._offset.width / 2;
+    this._offset.semiheight = this._offset.height / 2;
+    this._offset.xCenter = this._offset.x + this._offset.semiwidth;
+    this._offset.yCenter = this._offset.y + this._offset.semiheight;
+};
 Control.prototype.onAttached = function() {};
 Control.prototype.state = function() {
-    return this._state.toString();
+    return Math.floor(256 * this._state);
 };
 
 function Joystick(id, updateStateCallback) {
@@ -262,7 +192,6 @@ function Joystick(id, updateStateCallback) {
     this._state = [0.5, 0.5];
     this.quadrant = -2;
     this._locking = (id[0] == 's');
-    this._offset = {};
     this._circle = document.createElement('div');
     this._circle.className = 'circle';
     this.element.appendChild(this._circle);
@@ -270,11 +199,11 @@ function Joystick(id, updateStateCallback) {
 }
 Joystick.prototype = Object.create(Control.prototype);
 Joystick.prototype.onAttached = function() {
-    this._offset = this.element.getBoundingClientRect();
     this._updateCircle();
     this.element.addEventListener('touchmove', this.onTouch.bind(this), false);
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
+    this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
 };
 Joystick.prototype.onTouch = function(ev) {
     var pos = ev.targetTouches[0];
@@ -311,7 +240,12 @@ Joystick.prototype.onTouchEnd = function() {
     window.navigator.vibrate(VIBRATION_MILLISECONDS_OUT);
 };
 Joystick.prototype._updateCircle = function() {
-    this._circle.style.transform = 'translate(-50%, -50%) translate(' + (this._offset.x + this._offset.width * this._state[0]) + 'px, ' + (this._offset.y + this._offset.height * this._state[1]) + 'px)';
+    this._circle.style.transform = 'translate(-50%, -50%) translate(' +
+        (this._offset.x + this._offset.width * this._state[0]) + 'px, ' +
+        (this._offset.y + this._offset.height * this._state[1]) + 'px)';
+};
+Joystick.prototype.state = function() {
+    return this._state.map(function(val) {return Math.floor(256 * val);});
 };
 
 function Motion(id, updateStateCallback) {
@@ -347,8 +281,8 @@ function Motion(id, updateStateCallback) {
 Motion.prototype = Object.create(Control.prototype);
 Motion.prototype._normalize = function(f) {
     f *= ACCELERATION_CONSTANT;
-    if (f < -0.5) { f = -0.5; }
-    if (f > 0.5) { f = 0.5; }
+    if (f < -0.499999) { f = -0.499999; }
+    if (f > 0.499999) { f = 0.499999; }
     return f + 0.5;
 };
 Motion.prototype.onAttached = function() {};
@@ -365,21 +299,20 @@ Motion.prototype.onDeviceOrientation = function(ev) {
     motionSensor.updateStateCallback();
 };
 Motion.prototype.state = function() {
-    return motionState[this._mask].toString();
+    return Math.floor(256 * motionState[this._mask]);
 };
 
 function Pedal(id, updateStateCallback) {
     Control.call(this, 'button', id, updateStateCallback);
     this._state = 0;
-    this._offset = {};
     axes += 1;
 }
 Pedal.prototype = Object.create(Control.prototype);
 Pedal.prototype.onAttached = function() {
-    this._offset = this.element.getBoundingClientRect();
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchmove', this.onTouchMove.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
+    this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
 };
 Pedal.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
@@ -415,30 +348,23 @@ function AnalogButton(id, updateStateCallback) {
     this.onTouchMoveParticular = function() {};
     Control.call(this, 'button', id, updateStateCallback);
     this._state = 0;
-    this._offset = {};
     axes += 1;
 }
 AnalogButton.prototype = Object.create(Control.prototype);
 AnalogButton.prototype.onAttached = function() {
-    this._offset = this.element.getBoundingClientRect();
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchmove', this.onTouchMove.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
+    this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
     if (this._offset.width > this._offset.height) {
-        this._offset.width /= 2;
-        this._offset.x += this._offset.width;
         this.onTouchMoveParticular = function(ev) {
             var pos = ev.targetTouches[0];
-            return truncate([1 - Math.abs(this._offset.x - pos.pageX) / this._offset.width]);
-
+            return truncate([1 - Math.abs(this._offset.xCenter - pos.pageX) / this._offset.semiwidth]);
         };
     } else {
-        this._offset.height /= 2;
-        this._offset.y += this._offset.height;
         this.onTouchMoveParticular = function(ev) {
             var pos = ev.targetTouches[0];
-            return truncate([1 - Math.abs(this._offset.y - pos.pageY) / this._offset.height]);
-
+            return truncate([1 - Math.abs(this._offset.yCenter - pos.pageY) / this._offset.semiheight]);
         };
     }
 };
@@ -470,7 +396,6 @@ AnalogButton.prototype.onTouchEnd = function() {
 function Knob(id, updateStateCallback) {
     Control.call(this, 'knob', id, updateStateCallback);
     this._state = 0;
-    this._offset = {};
     this._knobcircle = document.createElement('div');
     this._knobcircle.className = 'knobcircle';
     this.element.appendChild(this._knobcircle);
@@ -481,32 +406,30 @@ function Knob(id, updateStateCallback) {
 }
 Knob.prototype = Object.create(Control.prototype);
 Knob.prototype.onAttached = function() {
-    // First approximation to the knob coordinates.
-    this._offset = this.element.getBoundingClientRect();
     // Centering the knob within the boundary.
-    var minDimension = Math.min(this._offset.width, this._offset.height);
-    if (minDimension == this._offset.width) {
-        this._knobcircle.style.top = this._offset.y + (this._offset.height - this._offset.width) / 2 + 'px';
+    if (this._offset.width < this._offset.height) {
+        this._offset.y += this._offset.semiheight - this._offset.semiwidth;
         this._offset.height = this._offset.width;
+        this._offset.semiheight = this._offset.semiwidth;
     } else {
-        this._knobcircle.style.left = this._offset.x + (this._offset.width - this._offset.height) / 2 + 'px';
+        this._offset.x += this._offset.semiwidth - this._offset.semiheight;
         this._offset.width = this._offset.height;
+        this._offset.semiwidth = this._offset.semiheight;
     }
+    this._knobcircle.style.top = this._offset.y + 'px';
+    this._knobcircle.style.left = this._offset.x + 'px';
     this._knobcircle.style.height = this._offset.width + 'px';
     this._knobcircle.style.width = this._offset.height + 'px';
-    // Calculating the exact center.
-    this._offset = this._knobcircle.getBoundingClientRect();
-    this._offset.x += this._offset.width / 2;
-    this._offset.y += this._offset.height / 2;
     this._updateCircles();
     this.quadrant = 0;
     this.element.addEventListener('touchmove', this.onTouch.bind(this), false);
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
+    this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
 };
 Knob.prototype.onTouch = function(ev) {
     var pos = ev.targetTouches[0];
-    this._state = Math.atan2(pos.pageY - this._offset.y, pos.pageX - this._offset.x) / 2 / Math.PI + 0.5;
+    this._state = Math.atan2(pos.pageY - this._offset.yCenter, pos.pageX - this._offset.xCenter) / 2 / Math.PI + 0.5;
     this.updateStateCallback();
     var currentQuadrant = Math.floor(this._state * 16);
     if (VIBRATE_ON_QUADRANT_BOUNDARY && this.quadrant != currentQuadrant) {
@@ -531,32 +454,31 @@ Knob.prototype._updateCircles = function() {
 
 function Button(id, updateStateCallback) {
     Control.call(this, 'button', id, updateStateCallback);
-    this._state = 0;
+    this._state = false;
     buttons += 1;
 }
 Button.prototype = Object.create(Control.prototype);
 Button.prototype.onAttached = function() {
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
+    this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
 };
 Button.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
-    this._state = 1;
+    this._state = true;
     this.updateStateCallback();
     this.element.classList.add('pressed');
     window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
 };
 Button.prototype.onTouchEnd = function() {
-    this._state = 0;
+    this._state = false;
     this.updateStateCallback();
     this.element.classList.remove('pressed');
     window.navigator.vibrate(VIBRATION_MILLISECONDS_OUT);
 };
-
-function Dummy(id, updateStateCallback) {
-    Control.call(this, 'dummy', 'dum', updateStateCallback);
-}
-Dummy.prototype = Object.create(Control.prototype);
+Button.prototype.state = function() {
+    return (this._state ? 1 : 0);
+};
 
 //
 // JOYPAD
@@ -583,41 +505,22 @@ function Joypad() {
     }, this);
     this._controls.forEach(function(control) {
         this.element.appendChild(control.element);
+        control.getBoundingClientRect();
         control.onAttached();
     }, this);
     if (axes == 0 && buttons == 0) {
         prettyAlert('Your gamepad looks empty. Is <code>user.css</code> missing or broken?');
     }
-    // This section is to be excised later.
-    if (axes > 4) {
-        prettyAlert('Currently, Yoke allows a maximum of 4 analog axes. Please edit your CSS.');
-    } else {
-        for (axes; axes < 4; axes++) {
-            this._controls.splice(axes, 0, new Dummy('dum', updateStateCallback));
-        }
-    }
-    if (buttons > 15) {
-        prettyAlert('Currently, Yoke allows a maximum of 15 buttons. Please edit your CSS.');
-    } else {
-        for (buttons; buttons < 15; buttons++) {
-            this._controls.push(new Dummy('dum', updateStateCallback));
-        }
-    }
-    // End of section to be deleted.
-    var kernelEvents = this._controls.map(function(control) { return control.kernelEvent; }).join(',');
+    var kernelEvents = this._controls.map(function(control) { return control.element.id; }).join(',');
     if (this._debugLabel != null) {
         this._debugLabel.element.innerHTML = kernelEvents;
     }
     if (!DEBUG_NO_CONSOLE_SPAM) { console.log(kernelEvents); }
+    window.Yoke.update_vals(kernelEvents);
     checkVibration();
 }
 Joypad.prototype.updateState = function() {
     var state = this._controls.map(function(control) { return control.state(); }).join(',');
-
-    // We are reducing float precision to avoid getting UDP messages cut in half.
-    // We are re-splitting the string since some control.state() above return strings
-    // (e.g. because [0.5, 0.5].toString() == '0.5,0.5')
-    state = state.split(',').map(function(x) { return x.substr(0, 6); }).join(',');
 
     // Within the Yoke webview, sends the joypad state.
     // Outside the Yoke webview, window.Yoke.update_vals() is redefined to have no effect.

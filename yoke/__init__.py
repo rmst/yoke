@@ -1,1 +1,1 @@
-from yoke.service import Device, Service, GAMEPAD_EVENTS, EVENTS
+from yoke.service import Device, Service, EVENTS
