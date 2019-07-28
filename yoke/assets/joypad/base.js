@@ -10,7 +10,6 @@ var DEBUG_NO_CONSOLE_SPAM = true;
 
 // CONSTANTS:
 var VIBRATION_MILLISECONDS_IN = 40;
-var VIBRATION_MILLISECONDS_OUT = 30;
 var VIBRATION_MILLISECONDS_OVER = 20;
 var VIBRATION_MILLISECONDS_SATURATION = [10, 10];
 var ACCELERATION_CONSTANT = 0.025;
@@ -243,7 +242,6 @@ Joystick.prototype.onTouchEnd = function() {
     }
     this.quadrant = -2;
     unqueueForVibration(this.element.id);
-    window.navigator.vibrate(VIBRATION_MILLISECONDS_OUT);
 };
 Joystick.prototype._updateCircle = function() {
     this._circle.style.transform = 'translate(-50%, -50%) translate(' +
@@ -338,7 +336,6 @@ Pedal.prototype.onTouchEnd = function() {
     this._state = 0;
     this.updateStateCallback();
     unqueueForVibration(this.element.id);
-    window.navigator.vibrate(VIBRATION_MILLISECONDS_OUT);
     this.element.classList.remove('pressed');
 };
 
@@ -387,7 +384,6 @@ AnalogButton.prototype.onTouchMoveForce = function(ev) {
 AnalogButton.prototype.onTouchEnd = function() {
     this._state = 0;
     this.updateStateCallback();
-    window.navigator.vibrate(VIBRATION_MILLISECONDS_OUT);
     this.element.classList.remove('pressed');
 };
 
@@ -445,7 +441,6 @@ Knob.prototype.onTouchStart = function(ev) {
 Knob.prototype.onTouchEnd = function() {
     this.updateStateCallback();
     this.initState = this._state;
-    window.navigator.vibrate(VIBRATION_MILLISECONDS_OUT);
     this._updateCircles();
 };
 Knob.prototype._updateCircles = function() {
@@ -474,7 +469,6 @@ Button.prototype.onTouchEnd = function() {
     this._state = 0;
     this.updateStateCallback();
     this.element.classList.remove('pressed');
-    window.navigator.vibrate(VIBRATION_MILLISECONDS_OUT);
 };
 Button.prototype.state = function() { return this._state; };
 
