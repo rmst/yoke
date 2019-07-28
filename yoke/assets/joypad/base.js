@@ -3,14 +3,15 @@
 // SETTINGS:
 var VIBRATE_ON_QUADRANT_BOUNDARY = true;
 var VIBRATE_ON_PAD_BOUNDARY = true;
+var VIBRATE_PROPORTIONALLY_TO_DISTANCE = true;
 // These 2 options are recommended for testing in non-kiosk/non-embedded browsers:
-var WAIT_FOR_FULLSCREEN = true;
+var WAIT_FOR_FULLSCREEN = false;
 var DEBUG_NO_CONSOLE_SPAM = true;
 
 // CONSTANTS:
 var VIBRATION_MILLISECONDS_IN = 40;
 var VIBRATION_MILLISECONDS_OUT = 30;
-var VIBRATION_MILLISECONDS_OVER = 40;
+var VIBRATION_MILLISECONDS_OVER = 20;
 var VIBRATION_MILLISECONDS_SATURATION = [10, 10];
 var ACCELERATION_CONSTANT = 0.025;
 
@@ -102,13 +103,11 @@ function categories(a, b) {
     return (sortScores[0] < sortScores[1]) ? -1 : 1;
 }
 
-function truncate(f, id, pattern) {
+function truncate(val, id, pattern) {
     var truncated = false;
-    f = f.map(function(val) {
-        if (val < 0.000001) { truncated = true; return 0.000001; }
-        else if (val > 0.999999) { truncated = true; return 0.999999; }
-        else { return val; }
-    });
+    if (val < 0.000001) { truncated = true; return 0.000001; }
+    else if (val > 0.999999) { truncated = true; return 0.999999; }
+    else { return val; }
     if (VIBRATE_ON_PAD_BOUNDARY && pattern) {
         truncated ? queueForVibration(id, pattern) : unqueueForVibration(id);
     }
@@ -119,14 +118,12 @@ function truncate(f, id, pattern) {
 var vibrating = {};
 
 function queueForVibration(id, pattern) {
-    if (!(id in vibrating)) {
-        vibrating[id] = {
-            time: performance.now(),
-            pulse: pattern[0],
-            pause: pattern[1],
-            kill: false
-        };
-    }
+    vibrating[id] = {
+        time: performance.now(),
+        pulse: pattern[0],
+        pause: pattern[1],
+        kill: false
+    };
 }
 
 function unqueueForVibration(id) {
@@ -185,7 +182,7 @@ Control.prototype.state = function() {
 
 function Joystick(id, updateStateCallback) {
     Control.call(this, 'joystick', id, updateStateCallback);
-    this._state = [0.5, 0.5];
+    this._state = [0, 0];
     this.quadrant = -2;
     this._locking = (id[0] == 's');
     this._circle = document.createElement('div');
@@ -203,31 +200,44 @@ Joystick.prototype.onAttached = function() {
 };
 Joystick.prototype.onTouch = function(ev) {
     var pos = ev.targetTouches[0];
-    this._state = truncate([
-        (pos.pageX - this._offset.x) / this._offset.width,
-        (pos.pageY - this._offset.y) / this._offset.height
-    ], this.element.id, VIBRATION_MILLISECONDS_SATURATION);
-    this.updateStateCallback();
-    var currentQuadrant = Math.atan2(this._state[1] - .5, this._state[0] - .5) / Math.PI + 1.125; // rad ÷ pi, shifted 22.5 deg. [0.25, 2.25]
-    currentQuadrant = Math.floor((currentQuadrant * 4) % 8); // [1, 9] → [1, 8)+[0, 1)
-    if (VIBRATE_ON_QUADRANT_BOUNDARY && this.quadrant != -2 && this.quadrant != currentQuadrant) {
-        window.navigator.vibrate(VIBRATION_MILLISECONDS_OVER);
+    this._state = [
+        (pos.pageX - this._offset.xCenter) / this._offset.semiwidth,
+        (pos.pageY - this._offset.yCenter) / this._offset.semiheight
+    ];
+    var distance = Math.max(Math.abs(this._state[0]), Math.abs(this._state[1]));
+    if (distance < 1) {
+        this.updateStateCallback();
+        unqueueForVibration(this.element.id);
+        var currentQuadrant = Math.atan2(this._state[1], this._state[0]) / Math.PI + 1.125; // rad ÷ pi, shifted 22.5 deg. [0.25, 2.25]
+        currentQuadrant = Math.floor((currentQuadrant * 4) % 8); // [1, 9] → [1, 8)+[0, 1)
+        if (VIBRATE_ON_QUADRANT_BOUNDARY && this.quadrant != -2 && this.quadrant != currentQuadrant) {
+            window.navigator.vibrate(VIBRATION_MILLISECONDS_OVER);
+        }
+        this.quadrant = currentQuadrant;
+    } else {
+        this._state[0] = Math.min(0.99999, Math.max(-0.99999, this._state[0]));
+        this._state[1] = Math.min(0.99999, Math.max(-0.99999, this._state[1]));
+        this.updateStateCallback();
+        if (VIBRATE_ON_PAD_BOUNDARY) {
+             if (!VIBRATE_PROPORTIONALLY_TO_DISTANCE) { distance = 1; }
+             queueForVibration(this.element.id, [
+                     distance * VIBRATION_MILLISECONDS_SATURATION[0],
+                     VIBRATION_MILLISECONDS_SATURATION[1]
+             ]);
+        }
+        this.quadrant = -2;
     }
-    this.quadrant = currentQuadrant;
     this._updateCircle();
 };
 Joystick.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
     var oldState = this._state;
     this.onTouch(ev);
-    if (Math.abs(oldState[0] - this._state[0]) < 0.15 &&
-        Math.abs(oldState[1] - this._state[1]) < 0.15) {
-        window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
-    }
+    window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
 };
 Joystick.prototype.onTouchEnd = function() {
     if (!this._locking) {
-        this._state = [0.5, 0.5];
+        this._state = [0, 0];
         this.updateStateCallback();
         this._updateCircle();
     }
@@ -237,11 +247,11 @@ Joystick.prototype.onTouchEnd = function() {
 };
 Joystick.prototype._updateCircle = function() {
     this._circle.style.transform = 'translate(-50%, -50%) translate(' +
-        (this._offset.x + this._offset.width * this._state[0]) + 'px, ' +
-        (this._offset.y + this._offset.height * this._state[1]) + 'px)';
+        (this._offset.xCenter + this._offset.semiwidth * this._state[0]) + 'px, ' +
+        (this._offset.yCenter + this._offset.semiheight * this._state[1]) + 'px)';
 };
 Joystick.prototype.state = function() {
-    return this._state.map(function(val) {return Math.floor(256 * val);});
+    return this._state.map(function(val) {return Math.floor(128 * (val + 1));});
 };
 
 function Motion(id, updateStateCallback) {
@@ -310,8 +320,10 @@ Pedal.prototype.onTouchMove = function(ev) {
     // This is the default handler, which uses the Y-coordinate to control the pedal.
     // This function is overwritten if the user confirms the screen can detect touch pressure:
     var pos = ev.targetTouches[0];
-    this._state = truncate([(this._offset.y - pos.pageY) / this._offset.height + 1],
-        this.element.id, VIBRATION_MILLISECONDS_SATURATION);
+    this._state = truncate((this._offset.y - pos.pageY) / this._offset.height + 1);
+    if (this._state == 0.999999 || this._state == 0.000001) {
+        queueForVibration(this.element.id, VIBRATION_MILLISECONDS_SATURATION);
+    }
     this.updateStateCallback();
 };
 Pedal.prototype.onTouchMoveForce = function(ev) {
@@ -319,7 +331,7 @@ Pedal.prototype.onTouchMoveForce = function(ev) {
     // Overwriting the handler once is much faster than checking
     // minForce and maxForce at every updateStateCallback:
     var pos = ev.targetTouches[0];
-    this._state = truncate([(pos.force - minForce) / (maxForce - minForce)]);
+    this._state = truncate((pos.force - minForce) / (maxForce - minForce));
     this.updateStateCallback();
 };
 Pedal.prototype.onTouchEnd = function() {
@@ -345,12 +357,12 @@ AnalogButton.prototype.onAttached = function() {
     if (this._offset.width > this._offset.height) {
         this.onTouchMoveParticular = function(ev) {
             var pos = ev.targetTouches[0];
-            return truncate([1 - Math.abs(this._offset.xCenter - pos.pageX) / this._offset.semiwidth]);
+            return truncate(1 - Math.abs(this._offset.xCenter - pos.pageX) / this._offset.semiwidth);
         };
     } else {
         this.onTouchMoveParticular = function(ev) {
             var pos = ev.targetTouches[0];
-            return truncate([1 - Math.abs(this._offset.yCenter - pos.pageY) / this._offset.semiheight]);
+            return truncate(1 - Math.abs(this._offset.yCenter - pos.pageY) / this._offset.semiheight);
         };
     }
 };
@@ -369,7 +381,7 @@ AnalogButton.prototype.onTouchMove = function(ev) {
 AnalogButton.prototype.onTouchMoveForce = function(ev) {
     // This is the replacement handler, which uses touch pressure.
     var pos = ev.targetTouches[0];
-    this._state = truncate([(pos.force - minForce) / (maxForce - minForce)]);
+    this._state = truncate((pos.force - minForce) / (maxForce - minForce));
     this.updateStateCallback();
 };
 AnalogButton.prototype.onTouchEnd = function() {
@@ -437,7 +449,7 @@ Knob.prototype.onTouchEnd = function() {
     this._updateCircles();
 };
 Knob.prototype._updateCircles = function() {
-    this._knobcircle.style.transform = 'rotate(' + ((this._state - 0.5) * 360) + 'deg)';
+    this._knobcircle.style.transform = 'rotate(' + ((this._state - 0.25) * 360) + 'deg)';
 };
 
 function Button(id, updateStateCallback) {
