@@ -383,6 +383,8 @@ function Knob(id, updateStateCallback) {
     Control.call(this, 'knob', id, updateStateCallback);
     this.shape = 'square';
     this._state = 0;
+    this.initState = 0; // state at onTouchStart
+    this.initAngle = 0; // angular coordinate at onTouchStart
     this._knobcircle = document.createElement('div');
     this._knobcircle.className = 'knobcircle';
     this.element.appendChild(this._knobcircle);
@@ -407,7 +409,11 @@ Knob.prototype.onAttached = function() {
 };
 Knob.prototype.onTouch = function(ev) {
     var pos = ev.targetTouches[0];
-    this._state = Math.atan2(pos.pageY - this._offset.yCenter, pos.pageX - this._offset.xCenter) / 2 / Math.PI + 0.5;
+    // The knob now increments the state proportionally to the turned angle.
+    // This requires substracting the current angular position from the position at onTouchStart
+    // A real knob turns the same way no matter where you touch it.
+    this._state = (this.initState + (Math.atan2(pos.pageY - this._offset.yCenter,
+        pos.pageX - this._offset.xCenter) - this.initAngle) / (2 * Math.PI)) % 1;
     this.updateStateCallback();
     var currentQuadrant = Math.floor(this._state * 16);
     if (VIBRATE_ON_QUADRANT_BOUNDARY && this.quadrant != currentQuadrant) {
@@ -418,11 +424,15 @@ Knob.prototype.onTouch = function(ev) {
 };
 Knob.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
+    var pos = ev.targetTouches[0];
+    this.initAngle = Math.atan2(pos.pageY - this._offset.yCenter,
+        pos.pageX - this._offset.xCenter) - 2 * Math.PI;
     this.onTouch(ev);
     window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
 };
 Knob.prototype.onTouchEnd = function() {
     this.updateStateCallback();
+    this.initState = this._state;
     window.navigator.vibrate(VIBRATION_MILLISECONDS_OUT);
     this._updateCircles();
 };
