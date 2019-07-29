@@ -52,39 +52,47 @@ function unique(value, index, self) { return self.indexOf(value) === index; }
 
 function mnemonics(id, callback) {
     // Chooses the correct control for the joypad from its mnemonic code.
-    switch (id[0]) {
-        case 's': case 'j':
-            // 's' is a locking joystick, 'j' - non-locking
-            return new Joystick(id, callback); break;
-        case 'm':
-            var legalLabels = 'xyzabg';
-            if (legalLabels.indexOf(id[1]) == -1) {
-                prettyAlert('Motion detection error: \
-                    Unrecognised coordinate <code>' + id[1] + '</code>.');
-                return null;
-            } else { return new Motion(id, callback); }
-            break;
-        case 'p':
-            var legalLabels = 'abt';
-            if (legalLabels.indexOf(id[1]) == -1) {
-                prettyAlert('<code>' + id + '</code> is not a valid pedal. \
-                    Please use <code>pa</code> or <code>pt</code> for accelerator \
-                    and <code>pb</code> for brakes.');
-                return null;
-            } else { return new Pedal(id, callback); }
-            break;
-        case 'k': return new Knob(id, callback); break;
-        case 'a': return new AnalogButton(id, callback); break;
-        case 'b': return new Button(id, callback); break;
-        case 'd':
-            if (id != 'dp') {
-                prettyAlert('D-pads are now produced with the code <code>dp</code>. \
-                    Please update your layout.');
-                return null;
-            } else { return new DPad(id, callback); break; }
-        default:
-            prettyAlert('Unrecognised control <code>' + id + '</code> at user.css.');
-            return null; break;
+    if (id.length < 2 || id.length > 3) {
+        prettyAlert('<code>' + id + '</code> is not a valid code. Control codes have 2 or 3 characters.');
+        return null;
+    } else {
+        switch (id[0]) {
+            case 's': case 'j':
+                // 's' is a locking joystick, 'j' - non-locking
+                return new Joystick(id, callback); break;
+            case 'm':
+                var legalLabels = 'xyzabg';
+                if (legalLabels.indexOf(id[1]) == -1) {
+                    prettyAlert('Motion detection error: \
+                        Unrecognised coordinate <code>' + id[1] + '</code>.');
+                    return null;
+                } else { 
+                    if (id.length != 2) { prettyAlert('Please use only one coordinate per motion sensor.'); }
+                    return new Motion(id, callback);
+                }
+                break;
+            case 'p':
+                var legalLabels = 'abt';
+                if (legalLabels.indexOf(id[1]) == -1) {
+                    prettyAlert('<code>' + id + '</code> is not a valid pedal. \
+                        Please use <code>pa</code> or <code>pt</code> for accelerator \
+                        and <code>pb</code> for brakes.');
+                    return null;
+                } else { return new Pedal(id, callback); }
+                break;
+            case 'k': return new Knob(id, callback); break;
+            case 'a': return new AnalogButton(id, callback); break;
+            case 'b': return new Button(id, callback); break;
+            case 'd':
+                if (id != 'dp') {
+                    prettyAlert('D-pads are now produced with the code <code>dp</code>. \
+                        Please update your layout.');
+                    return null;
+                } else { return new DPad(id, callback); break; }
+            default:
+                prettyAlert('Unrecognised control <code>' + id + '</code> at user.css.');
+                return null; break;
+        }
     }
 }
 
@@ -271,13 +279,10 @@ Joystick.prototype.state = function() {
 };
 
 function Motion(id, updateStateCallback) {
-    // Motion reads the letters in id to decide which coordinates should it send to the Yoke server.
-    // This way is easy to program and avoids conditionals, loops, and objects,
-    // but maybe it's not the most performant.
     // Motion calculates always every coordinate, then applies a mask on it.
-    if (id.length != 2) { prettyAlert('Please use only one coordinate per motion sensor.'); }
     var legallabels = 'xyzabg';
     this._mask = legallabels.indexOf(id[1]);
+    this._updateTrinket = Motion.prototype['updateTrinket' + this._mask];
     // Only the last defined sensor sends events.
     // It's a really hacky and ugly method, but all the motion information
     // is a property of the window anyways, not of any Motion instance.
@@ -289,6 +294,9 @@ function Motion(id, updateStateCallback) {
     }
     Control.call(this, 'motion', id, updateStateCallback);
     axes += 1;
+    this._trinket = document.createElement('div');
+    this._trinket.className = 'motiontrinket';
+    this.element.appendChild(this._trinket);
 }
 Motion.prototype = Object.create(Control.prototype);
 Motion.prototype._normalize = function(f) {
@@ -297,7 +305,12 @@ Motion.prototype._normalize = function(f) {
     if (f > 0.499999) { f = 0.499999; }
     return f + 0.5;
 };
-Motion.prototype.onAttached = function() {};
+Motion.prototype.onAttached = function() {
+    this._trinket.style.top = this._offset.y + 'px';
+    this._trinket.style.left = this._offset.x + 'px';
+    this._trinket.style.height = this._offset.height + 'px';
+    this._trinket.style.width = this._offset.width + 'px';
+};
 Motion.prototype.onDeviceMotion = function(ev) {
     motionState[0] = Motion.prototype._normalize(ev.accelerationIncludingGravity.x);
     motionState[1] = Motion.prototype._normalize(ev.accelerationIncludingGravity.y);
@@ -310,7 +323,20 @@ Motion.prototype.onDeviceOrientation = function(ev) {
     motionState[5] = ev.gamma / 180 + .5;
     motionSensor.updateStateCallback();
 };
+Motion.prototype.updateTrinket0 = function(v) {};
+Motion.prototype.updateTrinket1 = function(v) {};
+Motion.prototype.updateTrinket2 = function(v) {};
+Motion.prototype.updateTrinket3 = function(v) {
+    this._trinket.style.transform = 'rotateY(' + (v * -360) + 'deg)';
+}
+Motion.prototype.updateTrinket4 = function(v) {
+    this._trinket.style.transform = 'rotateZ(' + ((.5 - v) * 180) + 'deg)';
+}
+Motion.prototype.updateTrinket5 = function(v) {
+    this._trinket.style.transform = 'rotateX(' + ((.5 - v) * 180) + 'deg)';
+}
 Motion.prototype.state = function() {
+    this._updateTrinket(motionState[this._mask]);
     return Math.floor(256 * motionState[this._mask]);
 };
 
@@ -337,8 +363,10 @@ Pedal.prototype.onTouchMove = function(ev) {
     // This function is overwritten if the user confirms the screen can detect touch pressure:
     var pos = ev.targetTouches[0];
     this._state = truncate((this._offset.y - pos.pageY) / this._offset.height + 1);
-    if (this._state == 0.999999 || this._state == 0.000001) {
+    if (this._state == 0.999999) {
         queueForVibration(this.element.id, VIBRATION_MILLISECONDS_SATURATION);
+    } else {
+        unqueueForVibration(this.element.id);
     }
     this.updateStateCallback();
 };
@@ -348,6 +376,11 @@ Pedal.prototype.onTouchMoveForce = function(ev) {
     // minForce and maxForce at every updateStateCallback:
     var pos = ev.targetTouches[0];
     this._state = truncate((pos.force - minForce) / (maxForce - minForce));
+    if (this._state == 0.999999) {
+        queueForVibration(this.element.id, VIBRATION_MILLISECONDS_SATURATION);
+    } else {
+        unqueueForVibration(this.element.id);
+    }
     this.updateStateCallback();
 };
 Pedal.prototype.onTouchEnd = function() {
@@ -424,8 +457,8 @@ Knob.prototype.onAttached = function() {
     // Centering the knob within the boundary.
     this._knobcircle.style.top = this._offset.y + 'px';
     this._knobcircle.style.left = this._offset.x + 'px';
-    this._knobcircle.style.height = this._offset.width + 'px';
-    this._knobcircle.style.width = this._offset.height + 'px';
+    this._knobcircle.style.height = this._offset.height + 'px';
+    this._knobcircle.style.width = this._offset.width + 'px';
     this._updateCircles();
     this.quadrant = 0;
     this.element.addEventListener('touchmove', this.onTouch.bind(this), false);

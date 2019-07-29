@@ -156,10 +156,11 @@ div {
 #a4 { background-color: #2f2; }
 
 /* Motion controls */
-.motion {background-color: #ddd;}
+.motion { background-color: #ddd; }
+.motiontrinket { background-image: url('img/motiontrinket.svg') }
 
 /* Pedals */
-.pedal {background-color: #444;}
+.pedal { background-color: #333; }
 
 /* Knobs */
 .knob { }

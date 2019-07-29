@@ -8,13 +8,13 @@
      * Controls may cover any rectangular area.
      * Do not try drawing non-rectangular shapes. */
         ".   .   .   .   .   .   .   mb  mg  .   .   .   .   .   .   .   "
-        ".   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   "
-        ".   pb  pb  pb  .   b1  .   .   .   .   b2  .   pa  pa  pa  .   "
-        ".   pb  pb  pb  .   b1  .   bg  bs  .   b2  .   pa  pa  pa  .   "
-        ".   pb  pb  pb  .   .   .   .   .   .   .   .   pa  pa  pa  .   "
-        ".   pb  pb  pb  .   b3  .   .   .   .   b4  .   pa  pa  pa  .   "
-        ".   pb  pb  pb  .   b3  .   .   .   .   b4  .   pa  pa  pa  .   "
-        ".   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   "
+        ".   .   .   .   dp  dp  dp  .   .   .   b4  .   .   .   .   .   "
+        "pb  pb  pb  .   dp  dp  dp  .   .   b3  .   b2  .   pa  pa  pa  "
+        "pb  pb  pb  .   dp  dp  dp  .   .   .   b1  .   .   pa  pa  pa  "
+        "pb  pb  pb  .   .   .   .   .   .   .   .   .   .   pa  pa  pa  "
+        "pb  pb  pb  b5  .   .   .   bg  bg  .   .   .   b6  pa  pa  pa  "
+        "pb  pb  pb  b5  .   .   .   .   .   .   .   .   b6  pa  pa  pa  "
+        "pb  pb  pb  b5  .   .   .   bs  bs  .   .   .   b6  pa  pa  pa  "
         "dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg "
         ;
         /* Possible values:
