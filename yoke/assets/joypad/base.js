@@ -9,9 +9,19 @@ var WAIT_FOR_FULLSCREEN = false;
 var DEBUG_NO_CONSOLE_SPAM = true;
 
 // CONSTANTS:
+// When clicking a button (onTouchStart):
 var VIBRATION_MILLISECONDS_IN = 40;
+// When changing quadrants in a joystick:
 var VIBRATION_MILLISECONDS_OVER = 20;
+// When forcing a control over the maximum or the minimum:
 var VIBRATION_MILLISECONDS_SATURATION = [10, 10];
+// When clicking a D-Pad button (this._state change):
+var VIBRATION_MILLISECONDS_DPAD = 30;
+// Length of the hitbox of a D-pad leg, from border to center:
+var DPAD_BUTTON_LENGTH = 0.4;
+// Length of the hitbox of a D-pad leg, measured perpendicularly to the length:
+var DPAD_BUTTON_WIDTH = 0.5;
+// To normalize values from acceloremeters:
 var ACCELERATION_CONSTANT = 0.025;
 
 // HELPER FUNCTIONS:
@@ -23,9 +33,18 @@ if (typeof window.Yoke === 'undefined') {
 }
 
 function prettyAlert(message) {
-    var warningDiv = document.getElementById('warning');
-    warningDiv.innerHTML = message + '<p class=\'dismiss\'>Tap to dismiss.</p>';
-    warningDiv.style.display = 'inline';
+    if (message === undefined) {
+        if (warnings.length > 0) {
+            message = warnings.shift(1)
+            warningDiv.innerHTML = message + '<p class=\'dismiss\'>Tap to dismiss.</p>';
+            warningDiv.style.display = 'inline';
+        } else {
+            warningDiv.style.display = 'none';
+        }
+    } else {
+        warnings.push(message);
+        if (warningDiv.style.display == 'none') { prettyAlert(); }
+    }
 }
 
 // https://stackoverflow.com/questions/1960473/get-all-unique-values-in-a-javascript-array-remove-duplicates#14438954
@@ -484,16 +503,14 @@ DPad.prototype.onAttached = function() {
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
     this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
     // Precalculate the borders of the buttons:
-    var buttonAcross = 0.5;
-    var buttonThrough = 0.4;
-    this._offset.x1 = this._offset.xCenter - buttonAcross * this._offset.semiwidth;
-    this._offset.x2 = this._offset.xCenter + buttonAcross * this._offset.semiwidth;
-    this._offset.up_y = this._offset.y + buttonThrough * this._offset.height;
-    this._offset.down_y = this._offset.yMax - buttonThrough * this._offset.height;
-    this._offset.y1 = this._offset.yCenter - buttonAcross * this._offset.semiheight;
-    this._offset.y2 = this._offset.yCenter + buttonAcross * this._offset.semiheight;
-    this._offset.left_x = this._offset.x + buttonThrough * this._offset.width;
-    this._offset.right_x = this._offset.xMax - buttonThrough * this._offset.width;
+    this._offset.x1 = this._offset.xCenter - DPAD_BUTTON_WIDTH * this._offset.semiwidth;
+    this._offset.x2 = this._offset.xCenter + DPAD_BUTTON_WIDTH * this._offset.semiwidth;
+    this._offset.up_y = this._offset.y + DPAD_BUTTON_LENGTH * this._offset.height;
+    this._offset.down_y = this._offset.yMax - DPAD_BUTTON_LENGTH * this._offset.height;
+    this._offset.y1 = this._offset.yCenter - DPAD_BUTTON_WIDTH * this._offset.semiheight;
+    this._offset.y2 = this._offset.yCenter + DPAD_BUTTON_WIDTH * this._offset.semiheight;
+    this._offset.left_x = this._offset.x + DPAD_BUTTON_LENGTH * this._offset.width;
+    this._offset.right_x = this._offset.xMax - DPAD_BUTTON_LENGTH * this._offset.width;
 };
 DPad.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
@@ -520,7 +537,7 @@ DPad.prototype.onTouchMove = function(ev) {
     var currentState = this._state.reduce(function(acc, cur) {return (acc << 1) + cur;}, 0);
     if (currentState != this.oldState) {
         this.oldState = currentState; this.updateButtons();
-        window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
+        window.navigator.vibrate(VIBRATION_MILLISECONDS_DPAD);
     }
 };
 DPad.prototype.onTouchEnd = function() {
@@ -598,6 +615,7 @@ var motionState = [0, 0, 0, 0, 0, 0];
 var motionSensor = null;
 var deviceMotionEL = null;
 var deviceOrientationEL = null;
+var warnings = [];
 
 // These will record the minimum and maximum force the screen can register.
 // They'll hopefully be updated with the actual minimum and maximum:
@@ -650,9 +668,8 @@ function loadPad(filename) {
     if (rfs && WAIT_FOR_FULLSCREEN) { rfs.bind(el)(); }
     link.onload = function() {
         document.getElementById('joypad').style.display = 'grid';
-        var warningDiv = document.getElementById('warning');
         if (window.CSS && CSS.supports('display', 'grid')) {
-            warningDiv.addEventListener('click', function() { warningDiv.style.display = 'none'; }, false);
+            warningDiv.addEventListener('click', function() {prettyAlert();}, false);
             warningDiv.style.display = 'none';
             if (minForce > maxForce) { // no touch force detection capability
                 joypad = new Joypad();
@@ -680,6 +697,7 @@ function loadPad(filename) {
 }
 
 var forceBar = document.getElementById('force');
+var warningDiv = document.getElementById('warning');
 document.getElementById('menu').childNodes.forEach(function(child) {
     var id = child.id;
     if (id) {
