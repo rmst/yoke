@@ -1,0 +1,11 @@
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+    <symbol id="arrow">
+        <ellipse ry="40" rx="40" cy="50" cx="50" stroke-width="5" stroke="rgba(255, 255, 255, 0.5)" fill="rgba(0, 0, 0, 0)"/>
+        <text font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="'Noto Serif', serif" font-size="49" y="50" x="50" fill="rgba(255, 255, 255, 0.5)">↑</text>
+    </symbol>
+    <path id="body" fill="rgba(128, 128, 128, 1)" stroke-width="0" d="M 0,100 h 100 v -100 h 100 v 100 h 100 v 100 h -100 v 100 h -100 v -100 h -100 Z" />
+    <use href="#arrow" x="100" y="0"/>
+    <use href="#arrow" x="100" y="200" transform="rotate(180, 150, 250)" />
+    <use href="#arrow" x="0" y="100" transform="rotate(270, 50, 150)" />
+    <use href="#arrow" x="200" y="100" transform="rotate(90, 250, 150) "/>
+</svg>

@@ -58,12 +58,11 @@ function mnemonics(id, callback) {
         case 'a': return new AnalogButton(id, callback); break;
         case 'b': return new Button(id, callback); break;
         case 'd':
-            var legalLabels = 'udlr';
-            if (legalLabels.indexOf(id[1]) == -1) {
-                prettyAlert('D-pad error: \
-                    <code>' + id[1] + '</code> is not a cardinal direction.');
+            if (id != 'dp') {
+                prettyAlert('D-pads are now produced with the code <code>dp</code>. \
+                    Please update your layout.');
                 return null;
-            } else { return new Button(id, callback); break; }
+            } else { return new DPad(id, callback); break; }
         default:
             prettyAlert('Unrecognised control <code>' + id + '</code> at user.css.');
             return null; break;
@@ -471,6 +470,72 @@ Button.prototype.onTouchEnd = function() {
     this.element.classList.remove('pressed');
 };
 Button.prototype.state = function() { return this._state; };
+
+function DPad(id, updateStateCallback) {
+    Control.call(this, 'dpad', id, updateStateCallback);
+    this._state = [0, 0, 0, 0];
+    this.oldState = 0;
+    buttons += 4;
+}
+DPad.prototype = Object.create(Control.prototype);
+DPad.prototype.onAttached = function() {
+    this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
+    this.element.addEventListener('touchmove', this.onTouchMove.bind(this), false);
+    this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
+    this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
+    // Precalculate the borders of the buttons:
+    var buttonAcross = 0.5;
+    var buttonThrough = 0.4;
+    this._offset.x1 = this._offset.xCenter - buttonAcross * this._offset.semiwidth;
+    this._offset.x2 = this._offset.xCenter + buttonAcross * this._offset.semiwidth;
+    this._offset.up_y = this._offset.y + buttonThrough * this._offset.height;
+    this._offset.down_y = this._offset.yMax - buttonThrough * this._offset.height;
+    this._offset.y1 = this._offset.yCenter - buttonAcross * this._offset.semiheight;
+    this._offset.y2 = this._offset.yCenter + buttonAcross * this._offset.semiheight;
+    this._offset.left_x = this._offset.x + buttonThrough * this._offset.width;
+    this._offset.right_x = this._offset.xMax - buttonThrough * this._offset.width;
+};
+DPad.prototype.onTouchStart = function(ev) {
+    ev.preventDefault(); // Android Webview delays the vibration without this.
+    this.onTouchMove(ev);
+};
+DPad.prototype.onTouchMove = function(ev) {
+    var pos = ev.targetTouches[0];
+    this._state = [0, 0, 0, 0]; // up, left, down, right
+    if (pos.pageX > this._offset.x1 && pos.pageX < this._offset.x2) {
+        if (pos.pageY < this._offset.up_y && pos.pageY > this._offset.y) {
+            this._state[0] = 1;
+        } else if (pos.pageY > this._offset.down_y && pos.pageY < this._offset.yMax) {
+            this._state[2] = 1;
+        }
+    }
+    if (pos.pageY > this._offset.y1 && pos.pageY < this._offset.y2) {
+        if (pos.pageX < this._offset.left_x && pos.pageX > this._offset.x) {
+            this._state[1] = 1;
+        } else if (pos.pageX > this._offset.right_x && pos.pageX < this._offset.xMax) {
+            this._state[3] = 1;
+        }
+    }
+    this.updateStateCallback();
+    var currentState = this._state.reduce(function(acc, cur) {return (acc << 1) + cur;}, 0);
+    if (currentState != this.oldState) {
+        this.oldState = currentState; this.updateButtons();
+        window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
+    }
+};
+DPad.prototype.onTouchEnd = function() {
+    this._state = [0, 0, 0, 0];
+    this.oldState = 0;
+    this.updateStateCallback();
+    this.updateButtons();
+};
+DPad.prototype.state = function() { return this._state.toString(); };
+DPad.prototype.updateButtons = function() {
+    (this._state[0] == 1) ? this.element.classList.add('up') : this.element.classList.remove('up');
+    (this._state[1] == 1) ? this.element.classList.add('left') : this.element.classList.remove('left');
+    (this._state[2] == 1) ? this.element.classList.add('down') : this.element.classList.remove('down');
+    (this._state[3] == 1) ? this.element.classList.add('right') : this.element.classList.remove('right');
+}
 
 // JOYPAD:
 function Joypad() {

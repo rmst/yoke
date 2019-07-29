@@ -64,10 +64,7 @@ ALIAS_TO_EVENT = {
     'b24': 'BTN_THUMB',
     'b25': 'BTN_THUMB2',
     'b26': 'BTN_TRIGGER',
-    'du':  'BTN_DPAD_UP',
-    'dd':  'BTN_DPAD_DOWN',
-    'dl':  'BTN_DPAD_LEFT',
-    'dr':  'BTN_DPAD_RIGHT',
+    'dp':  'BTN_DPAD_UP,BTN_DPAD_LEFT,BTN_DPAD_DOWN,BTN_DPAD_RIGHT',
 }
 
 def get_ip_address():

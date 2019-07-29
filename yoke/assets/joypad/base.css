@@ -143,17 +143,17 @@ div {
 #bg { background-image: url('img/g.svg'); background-color: #444; }
 #bs { background-image: url('img/s.svg'); background-color: #444; }
 #bm { background-image: url('img/m.svg'); background-color: #444; }
-/* printf "du\ndl\ndd\ndr" | xargs -I xx echo "#xx { background-image: url('img/xx.svg'); }" */
-#du { background-image: url('img/du.svg'); }
-#dl { background-image: url('img/dl.svg'); }
-#dd { background-image: url('img/dd.svg'); }
-#dr { background-image: url('img/dr.svg'); }
+
+/* D-pad */
+#dp {
+    background-image: url('img/dp.svg');
+}
 
 /* Analog buttons */
-#a1 {background-color: #66f;}
-#a2 {background-color: #f33;}
-#a3 {background-color: #ff2;}
-#a4 {background-color: #2f2;}
+#a1 { background-color: #66f; }
+#a2 { background-color: #f33; }
+#a3 { background-color: #ff2; }
+#a4 { background-color: #2f2; }
 
 /* Motion controls */
 .motion {background-color: #ddd;}
