@@ -21,7 +21,7 @@ var VIBRATION_MILLISECONDS_DPAD = 30;
 var DPAD_BUTTON_LENGTH = 0.4;
 // Length of the hitbox of a D-pad leg, measured perpendicularly to the length:
 var DPAD_BUTTON_WIDTH = 0.5;
-// To normalize values from acceloremeters:
+// To normalize values from accelerometers:
 var ACCELERATION_CONSTANT = 0.025;
 
 // HELPER FUNCTIONS:
@@ -60,18 +60,17 @@ function mnemonics(id, callback) {
         switch (id[0]) {
             case 's': case 'j':
                 // 's' is a locking joystick, 'j' - non-locking
-                return new Joystick(id, callback); break;
+                return new Joystick(id, callback);
             case 'm':
                 legalLabels = 'xyzabg';
                 if (legalLabels.indexOf(id[1]) == -1) {
                     prettyAlert('Motion detection error: \
                         Unrecognised coordinate <code>' + id[1] + '</code>.');
                     return null;
-                } else { 
+                } else {
                     if (id.length != 2) { prettyAlert('Please use only one coordinate per motion sensor.'); }
                     return new Motion(id, callback);
                 }
-                break;
             case 'p':
                 legalLabels = 'abt';
                 if (legalLabels.indexOf(id[1]) == -1) {
@@ -80,20 +79,18 @@ function mnemonics(id, callback) {
                         and <code>pb</code> for brakes.');
                     return null;
                 } else { return new Pedal(id, callback); }
-                break;
-            case 'k': return new Knob(id, callback); break;
-            case 'a': return new AnalogButton(id, callback); break;
-            case 'b': return new Button(id, callback); break;
+            case 'k': return new Knob(id, callback);
+            case 'a': return new AnalogButton(id, callback);
+            case 'b': return new Button(id, callback);
             case 'd':
                 if (id != 'dp') {
                     prettyAlert('D-pads are now produced with the code <code>dp</code>. \
                         Please update your layout.');
                     return null;
                 } else { return new DPad(id, callback); }
-                break;
             default:
                 prettyAlert('Unrecognised control <code>' + id + '</code> at user.css.');
-                return null; break;
+                return null;
         }
     }
 }
@@ -179,19 +176,19 @@ function Control(type, id, updateStateCallback) {
 }
 Control.prototype.getBoundingClientRect = function() {
     this._offset = this.element.getBoundingClientRect();
-    this._offset.semiwidth = this._offset.width / 2;
-    this._offset.semiheight = this._offset.height / 2;
-    this._offset.xCenter = this._offset.x + this._offset.semiwidth;
-    this._offset.yCenter = this._offset.y + this._offset.semiheight;
+    this._offset.halfWidth = this._offset.width / 2;
+    this._offset.halfHeight = this._offset.height / 2;
+    this._offset.xCenter = this._offset.x + this._offset.halfWidth;
+    this._offset.yCenter = this._offset.y + this._offset.halfHeight;
     if (this.shape == 'square') {
         if (this._offset.width < this._offset.height) {
-            this._offset.y += this._offset.semiheight - this._offset.semiwidth;
+            this._offset.y += this._offset.halfHeight - this._offset.halfWidth;
             this._offset.height = this._offset.width;
-            this._offset.semiheight = this._offset.semiwidth;
+            this._offset.halfHeight = this._offset.halfWidth;
         } else {
-            this._offset.x += this._offset.semiwidth - this._offset.semiheight;
+            this._offset.x += this._offset.halfWidth - this._offset.halfHeight;
             this._offset.width = this._offset.height;
-            this._offset.semiwidth = this._offset.semiheight;
+            this._offset.halfWidth = this._offset.halfHeight;
         }
     }
     this._offset.xMax = this._offset.x + this._offset.width;
@@ -223,8 +220,8 @@ Joystick.prototype.onAttached = function() {
 Joystick.prototype.onTouch = function(ev) {
     var pos = ev.targetTouches[0];
     this._state = [
-        (pos.pageX - this._offset.xCenter) / this._offset.semiwidth,
-        (pos.pageY - this._offset.yCenter) / this._offset.semiheight
+        (pos.pageX - this._offset.xCenter) / this._offset.halfWidth,
+        (pos.pageY - this._offset.yCenter) / this._offset.halfHeight
     ];
     var distance = Math.max(Math.abs(this._state[0]), Math.abs(this._state[1]));
     if (distance < 1) {
@@ -267,8 +264,8 @@ Joystick.prototype.onTouchEnd = function() {
 };
 Joystick.prototype._updateCircle = function() {
     this._circle.style.transform = 'translate(-50%, -50%) translate(' +
-        (this._offset.xCenter + this._offset.semiwidth * this._state[0]) + 'px, ' +
-        (this._offset.yCenter + this._offset.semiheight * this._state[1]) + 'px)';
+        (this._offset.xCenter + this._offset.halfWidth * this._state[0]) + 'px, ' +
+        (this._offset.yCenter + this._offset.halfHeight * this._state[1]) + 'px)';
 };
 Joystick.prototype.state = function() {
     return this._state.map(function(val) {return Math.floor(128 * (val + 1));});
@@ -276,8 +273,8 @@ Joystick.prototype.state = function() {
 
 function Motion(id, updateStateCallback) {
     // Motion calculates always every coordinate, then applies a mask on it.
-    var legallabels = 'xyzabg';
-    this._mask = legallabels.indexOf(id[1]);
+    var legalLabels = 'xyzabg';
+    this._mask = legalLabels.indexOf(id[1]);
     this._updateTrinket = Motion.prototype['updateTrinket' + this._mask];
     // Only the last defined sensor sends events.
     // It's a really hacky and ugly method, but all the motion information
@@ -401,12 +398,12 @@ AnalogButton.prototype.onAttached = function() {
     if (this._offset.width > this._offset.height) {
         this.onTouchMoveParticular = function(ev) {
             var pos = ev.targetTouches[0];
-            return truncate(1 - Math.abs(this._offset.xCenter - pos.pageX) / this._offset.semiwidth);
+            return truncate(1 - Math.abs(this._offset.xCenter - pos.pageX) / this._offset.halfWidth);
         };
     } else {
         this.onTouchMoveParticular = function(ev) {
             var pos = ev.targetTouches[0];
-            return truncate(1 - Math.abs(this._offset.yCenter - pos.pageY) / this._offset.semiheight);
+            return truncate(1 - Math.abs(this._offset.yCenter - pos.pageY) / this._offset.halfHeight);
         };
     }
 };
@@ -440,21 +437,21 @@ function Knob(id, updateStateCallback) {
     this._state = 0;
     this.initState = 0; // state at onTouchStart
     this.initAngle = 0; // angular coordinate at onTouchStart
-    this._knobcircle = document.createElement('div');
-    this._knobcircle.className = 'knobcircle';
-    this.element.appendChild(this._knobcircle);
+    this._knobCircle = document.createElement('div');
+    this._knobCircle.className = 'knobcircle';
+    this.element.appendChild(this._knobCircle);
     this._circle = document.createElement('div');
     this._circle.className = 'circle';
-    this._knobcircle.appendChild(this._circle);
+    this._knobCircle.appendChild(this._circle);
     axes += 1;
 }
 Knob.prototype = Object.create(Control.prototype);
 Knob.prototype.onAttached = function() {
     // Centering the knob within the boundary.
-    this._knobcircle.style.top = this._offset.y + 'px';
-    this._knobcircle.style.left = this._offset.x + 'px';
-    this._knobcircle.style.height = this._offset.height + 'px';
-    this._knobcircle.style.width = this._offset.width + 'px';
+    this._knobCircle.style.top = this._offset.y + 'px';
+    this._knobCircle.style.left = this._offset.x + 'px';
+    this._knobCircle.style.height = this._offset.height + 'px';
+    this._knobCircle.style.width = this._offset.width + 'px';
     this._updateCircles();
     this.quadrant = 0;
     this.element.addEventListener('touchmove', this.onTouch.bind(this), false);
@@ -465,7 +462,7 @@ Knob.prototype.onAttached = function() {
 Knob.prototype.onTouch = function(ev) {
     var pos = ev.targetTouches[0];
     // The knob now increments the state proportionally to the turned angle.
-    // This requires substracting the current angular position from the position at onTouchStart
+    // This requires subtracting the current angular position from the position at onTouchStart
     // A real knob turns the same way no matter where you touch it.
     this._state = (this.initState + (Math.atan2(pos.pageY - this._offset.yCenter,
         pos.pageX - this._offset.xCenter) - this.initAngle) / (2 * Math.PI)) % 1;
@@ -532,12 +529,12 @@ DPad.prototype.onAttached = function() {
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
     this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
     // Precalculate the borders of the buttons:
-    this._offset.x1 = this._offset.xCenter - DPAD_BUTTON_WIDTH * this._offset.semiwidth;
-    this._offset.x2 = this._offset.xCenter + DPAD_BUTTON_WIDTH * this._offset.semiwidth;
+    this._offset.x1 = this._offset.xCenter - DPAD_BUTTON_WIDTH * this._offset.halfWidth;
+    this._offset.x2 = this._offset.xCenter + DPAD_BUTTON_WIDTH * this._offset.halfWidth;
     this._offset.up_y = this._offset.y + DPAD_BUTTON_LENGTH * this._offset.height;
     this._offset.down_y = this._offset.yMax - DPAD_BUTTON_LENGTH * this._offset.height;
-    this._offset.y1 = this._offset.yCenter - DPAD_BUTTON_WIDTH * this._offset.semiheight;
-    this._offset.y2 = this._offset.yCenter + DPAD_BUTTON_WIDTH * this._offset.semiheight;
+    this._offset.y1 = this._offset.yCenter - DPAD_BUTTON_WIDTH * this._offset.halfHeight;
+    this._offset.y2 = this._offset.yCenter + DPAD_BUTTON_WIDTH * this._offset.halfHeight;
     this._offset.left_x = this._offset.x + DPAD_BUTTON_LENGTH * this._offset.width;
     this._offset.right_x = this._offset.xMax - DPAD_BUTTON_LENGTH * this._offset.width;
 };

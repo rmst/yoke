@@ -145,9 +145,7 @@ div {
 #bm { background-image: url('img/bm.svg'); background-color: #444; }
 
 /* D-pad */
-#dp {
-    background-image: url('img/dp.svg');
-}
+#dp { background-image: url('img/dp.svg'); }
 
 /* Analog buttons */
 #a1 { background-image: url('img/a1.svg'); background-color: #66f; }
@@ -169,11 +167,11 @@ div {
 
 /* Motion controls */
 .motion { background-color: #ddd; }
-.motiontrinket { background-image: url('img/motiontrinket.svg') }
+.motiontrinket { background-image: url('img/motiontrinket.svg'); }
 
 /* Pedals */
 .pedal { background-color: #333; }
 
 /* Knobs */
 .knob { }
-.knobcircle {background-color: #888;}
+.knobcircle { background-color: #888; }
