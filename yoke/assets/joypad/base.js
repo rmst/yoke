@@ -35,7 +35,7 @@ if (typeof window.Yoke === 'undefined') {
 function prettyAlert(message) {
     if (message === undefined) {
         if (warnings.length > 0) {
-            message = warnings.shift(1)
+            message = warnings.shift(1);
             warningDiv.innerHTML = message + '<p class=\'dismiss\'>Tap to dismiss.</p>';
             warningDiv.style.display = 'inline';
         } else {
@@ -52,6 +52,7 @@ function unique(value, index, self) { return self.indexOf(value) === index; }
 
 function mnemonics(id, callback) {
     // Chooses the correct control for the joypad from its mnemonic code.
+    var legalLabels = '';
     if (id.length < 2 || id.length > 3) {
         prettyAlert('<code>' + id + '</code> is not a valid code. Control codes have 2 or 3 characters.');
         return null;
@@ -61,7 +62,7 @@ function mnemonics(id, callback) {
                 // 's' is a locking joystick, 'j' - non-locking
                 return new Joystick(id, callback); break;
             case 'm':
-                var legalLabels = 'xyzabg';
+                legalLabels = 'xyzabg';
                 if (legalLabels.indexOf(id[1]) == -1) {
                     prettyAlert('Motion detection error: \
                         Unrecognised coordinate <code>' + id[1] + '</code>.');
@@ -72,7 +73,7 @@ function mnemonics(id, callback) {
                 }
                 break;
             case 'p':
-                var legalLabels = 'abt';
+                legalLabels = 'abt';
                 if (legalLabels.indexOf(id[1]) == -1) {
                     prettyAlert('<code>' + id + '</code> is not a valid pedal. \
                         Please use <code>pa</code> or <code>pt</code> for accelerator \
@@ -88,7 +89,8 @@ function mnemonics(id, callback) {
                     prettyAlert('D-pads are now produced with the code <code>dp</code>. \
                         Please update your layout.');
                     return null;
-                } else { return new DPad(id, callback); break; }
+                } else { return new DPad(id, callback); }
+                break;
             default:
                 prettyAlert('Unrecognised control <code>' + id + '</code> at user.css.');
                 return null; break;
@@ -128,15 +130,10 @@ function categories(a, b) {
     return (sortScores[0] < sortScores[1]) ? -1 : 1;
 }
 
-function truncate(val, id, pattern) {
-    var truncated = false;
-    if (val < 0.000001) { truncated = true; return 0.000001; }
-    else if (val > 0.999999) { truncated = true; return 0.999999; }
+function truncate(val) {
+    if (val < 0.000001) { return 0.000001; }
+    else if (val > 0.999999) { return 0.999999; }
     else { return val; }
-    if (VIBRATE_ON_PAD_BOUNDARY && pattern) {
-        truncated ? queueForVibration(id, pattern) : unqueueForVibration(id);
-    }
-    return f;
 }
 
 // HAPTIC FEEDBACK MIXING:
@@ -244,11 +241,11 @@ Joystick.prototype.onTouch = function(ev) {
         this._state[1] = Math.min(0.99999, Math.max(-0.99999, this._state[1]));
         this.updateStateCallback();
         if (VIBRATE_ON_PAD_BOUNDARY) {
-             if (!VIBRATE_PROPORTIONALLY_TO_DISTANCE) { distance = 1; }
-             queueForVibration(this.element.id, [
-                     distance * VIBRATION_MILLISECONDS_SATURATION[0],
-                     VIBRATION_MILLISECONDS_SATURATION[1]
-             ]);
+            if (!VIBRATE_PROPORTIONALLY_TO_DISTANCE) { distance = 1; }
+            queueForVibration(this.element.id, [
+                distance * VIBRATION_MILLISECONDS_SATURATION[0],
+                VIBRATION_MILLISECONDS_SATURATION[1]
+            ]);
         }
         this.quadrant = -2;
     }
@@ -256,7 +253,6 @@ Joystick.prototype.onTouch = function(ev) {
 };
 Joystick.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
-    var oldState = this._state;
     this.onTouch(ev);
     window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
 };
@@ -323,18 +319,18 @@ Motion.prototype.onDeviceOrientation = function(ev) {
     motionState[5] = ev.gamma / 180 + .5;
     motionSensor.updateStateCallback();
 };
-Motion.prototype.updateTrinket0 = function(v) {};
-Motion.prototype.updateTrinket1 = function(v) {};
-Motion.prototype.updateTrinket2 = function(v) {};
+Motion.prototype.updateTrinket0 = function() {};
+Motion.prototype.updateTrinket1 = function() {};
+Motion.prototype.updateTrinket2 = function() {};
 Motion.prototype.updateTrinket3 = function(v) {
     this._trinket.style.transform = 'rotateY(' + (v * -360) + 'deg)';
-}
+};
 Motion.prototype.updateTrinket4 = function(v) {
     this._trinket.style.transform = 'rotateZ(' + ((.5 - v) * 180) + 'deg)';
-}
+};
 Motion.prototype.updateTrinket5 = function(v) {
     this._trinket.style.transform = 'rotateX(' + ((.5 - v) * 180) + 'deg)';
-}
+};
 Motion.prototype.state = function() {
     this._updateTrinket(motionState[this._mask]);
     return Math.floor(256 * motionState[this._mask]);
@@ -585,7 +581,7 @@ DPad.prototype.updateButtons = function() {
     (this._state[1] == 1) ? this.element.classList.add('left') : this.element.classList.remove('left');
     (this._state[2] == 1) ? this.element.classList.add('down') : this.element.classList.remove('down');
     (this._state[3] == 1) ? this.element.classList.add('right') : this.element.classList.remove('right');
-}
+};
 
 // JOYPAD:
 function Joypad() {
@@ -604,12 +600,12 @@ function Joypad() {
         if (id != 'dbg') {
             this._controls.push(mnemonics(id, updateStateCallback));
             if (this._controls[this._controls.length - 1] == null) {
-                this._controls.pop() // discard unrecognised controls
+                this._controls.pop(); // discard unrecognised controls
             }
             this.updateDebugLabel = function(state) {
                 // shadow dummy function with useful function
                 this._debugLabel.element.innerHTML = state;
-            }
+            };
         } else if (this._debugLabel == null) {
             this._debugLabel = new Control('debug', 'dbg');
             this.element.appendChild(this._debugLabel.element);
@@ -637,7 +633,7 @@ Joypad.prototype.updateState = function() {
     this.updateDebugLabel(state);
     if (!DEBUG_NO_CONSOLE_SPAM) { console.log(state); }
 };
-Joypad.prototype.updateDebugLabel = function() { } //dummy function
+Joypad.prototype.updateDebugLabel = function() { }; //dummy function
 
 // BASE CODE:
 // These variables are automatically updated by the code:
