@@ -122,45 +122,56 @@ div {
 /* Buttons */
 .button { background-color: #bbb; }
 .pressed { filter: brightness(70%); }
-/* seq 1 16 | xargs -I xx echo "#bxx { background-image: url('img/xx.svg'); }" */
+/* seq 1 16 | xargs -I xx echo "#bxx { background-image: url('img/bxx.svg'); }" */
 /* Some edits done by hand */
-#b1 { background-image: url('img/1.svg'); background-color: #00d; }
-#b2 { background-image: url('img/2.svg'); background-color: #e00; }
-#b3 { background-image: url('img/3.svg'); background-color: #dd0; }
-#b4 { background-image: url('img/4.svg'); background-color: #0d0; }
-#b5 { background-image: url('img/5.svg'); }
-#b6 { background-image: url('img/6.svg'); }
-#b7 { background-image: url('img/7.svg'); }
-#b8 { background-image: url('img/8.svg'); }
-#b9 { background-image: url('img/9.svg'); }
-#b10 { background-image: url('img/10.svg'); }
-#b11 { background-image: url('img/11.svg'); }
-#b12 { background-image: url('img/12.svg'); }
-#b13 { background-image: url('img/13.svg'); }
-#b14 { background-image: url('img/14.svg'); }
-#b15 { background-image: url('img/15.svg'); }
-#b16 { background-image: url('img/16.svg'); }
-#bg { background-image: url('img/g.svg'); background-color: #444; }
-#bs { background-image: url('img/s.svg'); background-color: #444; }
-#bm { background-image: url('img/m.svg'); background-color: #444; }
-/* printf "du\ndl\ndd\ndr" | xargs -I xx echo "#xx { background-image: url('img/xx.svg'); }" */
-#du { background-image: url('img/du.svg'); }
-#dl { background-image: url('img/dl.svg'); }
-#dd { background-image: url('img/dd.svg'); }
-#dr { background-image: url('img/dr.svg'); }
+#b1 { background-image: url('img/b1.svg'); background-color: #00d; }
+#b2 { background-image: url('img/b2.svg'); background-color: #e00; }
+#b3 { background-image: url('img/b3.svg'); background-color: #dd0; }
+#b4 { background-image: url('img/b4.svg'); background-color: #0d0; }
+#b5 { background-image: url('img/b5.svg'); }
+#b6 { background-image: url('img/b6.svg'); }
+#b7 { background-image: url('img/b7.svg'); }
+#b8 { background-image: url('img/b8.svg'); }
+#b9 { background-image: url('img/b9.svg'); }
+#b10 { background-image: url('img/b10.svg'); }
+#b11 { background-image: url('img/b11.svg'); }
+#b12 { background-image: url('img/b12.svg'); }
+#b13 { background-image: url('img/b13.svg'); }
+#b14 { background-image: url('img/b14.svg'); }
+#b15 { background-image: url('img/b15.svg'); }
+#b16 { background-image: url('img/b16.svg'); }
+#bg { background-image: url('img/bg.svg'); background-color: #444; }
+#bs { background-image: url('img/bs.svg'); background-color: #444; }
+#bm { background-image: url('img/bm.svg'); background-color: #444; }
+
+/* D-pad */
+#dp { background-image: url('img/dp.svg'); }
 
 /* Analog buttons */
-#a1 {background-color: #66f;}
-#a2 {background-color: #f33;}
-#a3 {background-color: #ff2;}
-#a4 {background-color: #2f2;}
+#a1 { background-image: url('img/a1.svg'); background-color: #66f; }
+#a2 { background-image: url('img/a2.svg'); background-color: #f33; }
+#a3 { background-image: url('img/a3.svg'); background-color: #ff2; }
+#a4 { background-image: url('img/a4.svg'); background-color: #2f2; }
+#a5 { background-image: url('img/a5.svg'); }
+#a6 { background-image: url('img/a6.svg'); }
+#a7 { background-image: url('img/a7.svg'); }
+#a8 { background-image: url('img/a8.svg'); }
+#a9 { background-image: url('img/a9.svg'); }
+#a10 { background-image: url('img/a10.svg'); }
+#a11 { background-image: url('img/a11.svg'); }
+#a12 { background-image: url('img/a12.svg'); }
+#a13 { background-image: url('img/a13.svg'); }
+#a14 { background-image: url('img/a14.svg'); }
+#a15 { background-image: url('img/a15.svg'); }
+#a16 { background-image: url('img/a16.svg'); }
 
 /* Motion controls */
-.motion {background-color: #ddd;}
+.motion { background-color: #ddd; }
+.motiontrinket { background-image: url('img/motiontrinket.svg'); }
 
 /* Pedals */
-.pedal {background-color: #444;}
+.pedal { background-color: #333; }
 
 /* Knobs */
 .knob { }
-.knobcircle {background-color: #888;}
+.knobcircle { background-color: #888; }

@@ -4,7 +4,9 @@
     grid-template-columns: repeat(16, 1fr);
     grid-template-rows: repeat(9, 1fr);
     grid-template-areas:
-    /* The map below must match the number of rows and columns specified above: */
+    /* The map below must match the number of rows and columns specified above.
+     * Controls may cover any rectangular area.
+     * Do not try drawing non-rectangular shapes. */
         ".   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   "
         ".   .   .   .   .   .   .   .   .   .   .   .   b4  b4  .   .   "
         ".   .   .   .   .   .   .   .   .   .   .   .   b4  b4  .   .   "
@@ -17,7 +19,7 @@
         ;
         /* Possible values:
          * j1, j2, j3... for joystick (returns to center when released);
-         * s1, s2, s3... for joystick (stays in place when released);
+         * s1, s2, s3... for sticky joystick (stays in place when released);
          * m_ for motion detector, where _ is one of these letters:
               * x for acceleration in the X-axis (left to right),
               * y for acceleration in the Y-axis (bottom to top),
@@ -33,11 +35,7 @@
               * m for the branded button (HOME or equivalent),
               * 1, 2, 3, 4, 5, 6, 7, 8, 9, 10... for the rest.
          * a_ for analog button/trigger, where _ is a number;
-         * d_ for D-pad, where _ is one of these letters:
-              * u, for the key UP,
-              * d, for the key DOWN,
-              * l, for the key LEFT,
-              * r, for the key RIGHT;
+         * dp for D-pad;
          * dbg for debug messages;
          * a period for empty space. */
 }
