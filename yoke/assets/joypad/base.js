@@ -465,7 +465,7 @@ Knob.prototype.onTouch = function(ev) {
     // This requires subtracting the current angular position from the position at onTouchStart
     // A real knob turns the same way no matter where you touch it.
     this._state = (this.initState + (Math.atan2(pos.pageY - this._offset.yCenter,
-        pos.pageX - this._offset.xCenter) - this.initAngle) / (2 * Math.PI)) % 1;
+        pos.pageX - this._offset.xCenter)) / (2 * Math.PI)) % 1;
     this.updateStateCallback();
     var currentQuadrant = Math.floor(this._state * 16);
     if (VIBRATE_ON_QUADRANT_BOUNDARY && this.quadrant != currentQuadrant) {
@@ -477,18 +477,16 @@ Knob.prototype.onTouch = function(ev) {
 Knob.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
     var pos = ev.targetTouches[0];
-    this.initAngle = Math.atan2(pos.pageY - this._offset.yCenter,
-        pos.pageX - this._offset.xCenter) - 2 * Math.PI;
-    this.onTouch(ev);
+    this.initState = this._state - (Math.atan2(pos.pageY - this._offset.yCenter,
+        pos.pageX - this._offset.xCenter) / (2 * Math.PI)) + 1;
     window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
 };
 Knob.prototype.onTouchEnd = function() {
     this.updateStateCallback();
-    this.initState = this._state;
     this._updateCircles();
 };
 Knob.prototype._updateCircles = function() {
-    this._knobcircle.style.transform = 'rotate(' + ((this._state - 0.25) * 360) + 'deg)';
+    this._knobCircle.style.transform = 'rotate(' + ((this._state - 0.25) * 360) + 'deg)';
 };
 
 function Button(id, updateStateCallback) {
@@ -543,20 +541,22 @@ DPad.prototype.onTouchStart = function(ev) {
     this.onTouchMove(ev);
 };
 DPad.prototype.onTouchMove = function(ev) {
-    var pos = ev.targetTouches[0];
     this._state = [0, 0, 0, 0]; // up, left, down, right
-    if (pos.pageX > this._offset.x1 && pos.pageX < this._offset.x2) {
-        if (pos.pageY < this._offset.up_y && pos.pageY > this._offset.y) {
-            this._state[0] = 1;
-        } else if (pos.pageY > this._offset.down_y && pos.pageY < this._offset.yMax) {
-            this._state[2] = 1;
+    for (var i = 0; i < ev.targetTouches.length; i++) {
+        var pos = ev.targetTouches[i];
+        if (pos.pageX > this._offset.x1 && pos.pageX < this._offset.x2) {
+            if (pos.pageY < this._offset.up_y && pos.pageY > this._offset.y) {
+                this._state[0] = 1;
+            } else if (pos.pageY > this._offset.down_y && pos.pageY < this._offset.yMax) {
+                this._state[2] = 1;
+            }
         }
-    }
-    if (pos.pageY > this._offset.y1 && pos.pageY < this._offset.y2) {
-        if (pos.pageX < this._offset.left_x && pos.pageX > this._offset.x) {
-            this._state[1] = 1;
-        } else if (pos.pageX > this._offset.right_x && pos.pageX < this._offset.xMax) {
-            this._state[3] = 1;
+        if (pos.pageY > this._offset.y1 && pos.pageY < this._offset.y2) {
+            if (pos.pageX < this._offset.left_x && pos.pageX > this._offset.x) {
+                this._state[1] = 1;
+            } else if (pos.pageX > this._offset.right_x && pos.pageX < this._offset.xMax) {
+                this._state[3] = 1;
+            }
         }
     }
     this.updateStateCallback();
@@ -599,13 +599,13 @@ function Joypad() {
             if (this._controls[this._controls.length - 1] == null) {
                 this._controls.pop(); // discard unrecognised controls
             }
-            this.updateDebugLabel = function(state) {
-                // shadow dummy function with useful function
-                this._debugLabel.element.innerHTML = state;
-            };
         } else if (this._debugLabel == null) {
             this._debugLabel = new Control('debug', 'dbg');
             this.element.appendChild(this._debugLabel.element);
+            this.updateDebugLabel = function(state) {
+                // shadow dummy function under a useful function
+                this._debugLabel.element.innerHTML = state;
+            };
         }
     }, this);
     this._controls.forEach(function(control) {
