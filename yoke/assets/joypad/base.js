@@ -207,7 +207,6 @@ function Joystick(id, updateStateCallback) {
     this._circle = document.createElement('div');
     this._circle.className = 'circle';
     this.element.appendChild(this._circle);
-    axes += 2;
 }
 Joystick.prototype = Object.create(Control.prototype);
 Joystick.prototype.onAttached = function() {
@@ -276,17 +275,7 @@ function Motion(id, updateStateCallback) {
     var legalLabels = 'xyzabg';
     this._mask = legalLabels.indexOf(id[1]);
     this._updateTrinket = Motion.prototype['updateTrinket' + this._mask];
-    // Only the last defined sensor sends events.
-    // It's a really hacky and ugly method, but all the motion information
-    // is a property of the window anyways, not of any Motion instance.
-    motionSensor = this;
-    if (this._mask <= 2 && !deviceMotionEL) {
-        deviceMotionEL = window.addEventListener('devicemotion', Motion.prototype.onDeviceMotion, true);
-    } else if (this._mask >= 3 && !deviceOrientationEL) {
-        deviceOrientationEL = window.addEventListener('deviceorientation', Motion.prototype.onDeviceOrientation, true);
-    }
     Control.call(this, 'motion', id, updateStateCallback);
-    axes += 1;
     this._trinket = document.createElement('div');
     this._trinket.className = 'motiontrinket';
     this.element.appendChild(this._trinket);
@@ -308,35 +297,39 @@ Motion.prototype.onDeviceMotion = function(ev) {
     motionState[0] = Motion.prototype._normalize(ev.accelerationIncludingGravity.x);
     motionState[1] = Motion.prototype._normalize(ev.accelerationIncludingGravity.y);
     motionState[2] = Motion.prototype._normalize(ev.accelerationIncludingGravity.z);
-    motionSensor.updateStateCallback();
+    joypad._controls.deviceMotion.forEach(function(control) {
+        control._updateTrinket();
+    });
+    joypad.updateState();
 };
 Motion.prototype.onDeviceOrientation = function(ev) {
     motionState[3] = ev.alpha / 360;
-    motionState[4] = ev.beta / 180 + .5;
+    motionState[4] = ev.beta / 360 + .5;
     motionState[5] = ev.gamma / 180 + .5;
-    motionSensor.updateStateCallback();
+    joypad._controls.deviceOrientation.forEach(function(control) {
+        control._updateTrinket();
+    });
+    joypad.updateState();
 };
 Motion.prototype.updateTrinket0 = function() {};
 Motion.prototype.updateTrinket1 = function() {};
 Motion.prototype.updateTrinket2 = function() {};
-Motion.prototype.updateTrinket3 = function(v) {
-    this._trinket.style.transform = 'rotateY(' + (v * -360) + 'deg)';
+Motion.prototype.updateTrinket3 = function() {
+    this._trinket.style.transform = 'rotateY(' + (motionState[this._mask] * -360) + 'deg)';
 };
-Motion.prototype.updateTrinket4 = function(v) {
-    this._trinket.style.transform = 'rotateZ(' + ((.5 - v) * 180) + 'deg)';
+Motion.prototype.updateTrinket4 = function() {
+    this._trinket.style.transform = 'rotateZ(' + ((.5 - motionState[this._mask]) * 360) + 'deg)';
 };
-Motion.prototype.updateTrinket5 = function(v) {
-    this._trinket.style.transform = 'rotateX(' + ((.5 - v) * 180) + 'deg)';
+Motion.prototype.updateTrinket5 = function() {
+    this._trinket.style.transform = 'rotateX(' + ((.5 - motionState[this._mask]) * 180) + 'deg)';
 };
 Motion.prototype.state = function() {
-    this._updateTrinket(motionState[this._mask]);
-    return Math.floor(256 * motionState[this._mask]);
+    return Math.floor(255.999999 * motionState[this._mask]);
 };
 
 function Pedal(id, updateStateCallback) {
-    Control.call(this, 'button', id, updateStateCallback);
+    Control.call(this, 'pedal', id, updateStateCallback);
     this._state = 0;
-    axes += 1;
 }
 Pedal.prototype = Object.create(Control.prototype);
 Pedal.prototype.onAttached = function() {
@@ -385,9 +378,8 @@ Pedal.prototype.onTouchEnd = function() {
 
 function AnalogButton(id, updateStateCallback) {
     this.onTouchMoveParticular = function() {};
-    Control.call(this, 'button', id, updateStateCallback);
+    Control.call(this, 'analogbutton', id, updateStateCallback);
     this._state = 0;
-    axes += 1;
 }
 AnalogButton.prototype = Object.create(Control.prototype);
 AnalogButton.prototype.onAttached = function() {
@@ -443,7 +435,6 @@ function Knob(id, updateStateCallback) {
     this._circle = document.createElement('div');
     this._circle.className = 'circle';
     this._knobCircle.appendChild(this._circle);
-    axes += 1;
 }
 Knob.prototype = Object.create(Control.prototype);
 Knob.prototype.onAttached = function() {
@@ -492,7 +483,6 @@ Knob.prototype._updateCircles = function() {
 function Button(id, updateStateCallback) {
     Control.call(this, 'button', id, updateStateCallback);
     this._state = 0;
-    buttons += 1;
 }
 Button.prototype = Object.create(Control.prototype);
 Button.prototype.onAttached = function() {
@@ -518,7 +508,6 @@ function DPad(id, updateStateCallback) {
     Control.call(this, 'dpad', id, updateStateCallback);
     this._state = [0, 0, 0, 0];
     this.oldState = 0;
-    buttons += 4;
 }
 DPad.prototype = Object.create(Control.prototype);
 DPad.prototype.onAttached = function() {
@@ -583,22 +572,36 @@ DPad.prototype.updateButtons = function() {
 function Joypad() {
     var updateStateCallback = this.updateState.bind(this);
 
-    this._controls = [];
+    this._controls = {
+        byNumID: [],
+        byMnemonicID: {},
+        deviceMotion: [],
+        deviceOrientation: []
+    };
 
     this.element = document.getElementById('joypad');
+    // Gather controls to attach:
     var gridAreas = getComputedStyle(this.element)
         .gridTemplateAreas
         .split('"').join('').split(' ')
         .filter(function(x) { return x != '' && x != '.'; });
     var controlIDs = gridAreas.sort(categories).filter(unique);
+    // Create controls:
     this._debugLabel = null;
     controlIDs.forEach(function(id) {
         if (id != 'dbg') {
-            this._controls.push(mnemonics(id, updateStateCallback));
-            if (this._controls[this._controls.length - 1] == null) {
-                this._controls.pop(); // discard unrecognised controls
+            var possibleControl = mnemonics(id, updateStateCallback);
+            if (possibleControl !== null) {
+                // Two references to the same control (not a copy):
+                this._controls.byNumID.push(possibleControl);
+                this._controls.byMnemonicID[id] = possibleControl;
+                if (id == 'mx' || id == 'my' || id == 'mz') {
+                    this._controls.deviceMotion.push(possibleControl);
+                } else if (id == 'ma' || id == 'mb' || id == 'mg') {
+                    this._controls.deviceOrientation.push(possibleControl);
+                }
             }
-        } else if (this._debugLabel == null) {
+        } else {
             this._debugLabel = new Control('debug', 'dbg');
             this.element.appendChild(this._debugLabel.element);
             this.updateDebugLabel = function(state) {
@@ -607,24 +610,36 @@ function Joypad() {
             };
         }
     }, this);
-    this._controls.forEach(function(control) {
+    // Attach controls:
+    this._controls.byNumID.forEach(function(control) {
         this.element.appendChild(control.element);
         control.getBoundingClientRect();
         control.onAttached();
     }, this);
-    if (axes == 0 && buttons == 0) {
+    // Check for controls:
+    if (this._controls.byNumID.length == 0) {
         prettyAlert('Your gamepad looks empty. Is <code>user.css</code> missing or broken?');
     }
-    var kernelEvents = this._controls.map(function(control) { return control.element.id; }).join(',');
+    // Attach general event listeners:
+    if (this._controls.deviceMotion.length > 0) {
+        deviceMotionEL = window.addEventListener('devicemotion', Motion.prototype.onDeviceMotion, true);
+    }
+    if (this._controls.deviceOrientation.length > 0) {
+        deviceOrientationEL = window.addEventListener('deviceorientation', Motion.prototype.onDeviceOrientation, true);
+    }
+    // Announce current controls:
+    var kernelEvents = this._controls.byNumID.map(function(control) { return control.element.id; }).join(',');
     if (this._debugLabel != null) {
         this._debugLabel.element.innerHTML = kernelEvents;
     }
     if (!DEBUG_NO_CONSOLE_SPAM) { console.log(kernelEvents); }
+    // Send current controls to Yoke:
     window.Yoke.update_vals(kernelEvents);
+    // Prepare function for continuous vibrations:
     checkVibration();
 }
 Joypad.prototype.updateState = function() {
-    var state = this._controls.map(function(control) { return control.state(); }).join(',');
+    var state = this._controls.byNumID.map(function(control) { return control.state(); }).join(',');
     window.Yoke.update_vals(state);
     this.updateDebugLabel(state);
     if (!DEBUG_NO_CONSOLE_SPAM) { console.log(state); }
@@ -634,8 +649,6 @@ Joypad.prototype.updateDebugLabel = function() { }; //dummy function
 // BASE CODE:
 // These variables are automatically updated by the code:
 var joypad = null;
-var buttons = 0; // number of buttons total
-var axes = 0; // number of analog axes total
 var motionState = [0, 0, 0, 0, 0, 0];
 var motionSensor = null;
 var deviceMotionEL = null;
@@ -676,7 +689,7 @@ function loadPad(filename) {
 
     window.addEventListener('resize', function() {
         if (joypad != null) {
-            joypad._controls.forEach(function(control) {
+            joypad._controls.byNumID.forEach(function(control) {
                 control.getBoundingClientRect();
                 control.onAttached();
             });
