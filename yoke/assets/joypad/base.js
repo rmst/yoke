@@ -542,8 +542,7 @@ DPad.prototype.onTouchStart = function(ev) {
 };
 DPad.prototype.onTouchMove = function(ev) {
     this._state = [0, 0, 0, 0]; // up, left, down, right
-    for (var i = 0; i < ev.targetTouches.length; i++) {
-        var pos = ev.targetTouches[i];
+    Array.from(ev.targetTouches, function(pos) {
         if (pos.pageX > this._offset.x1 && pos.pageX < this._offset.x2) {
             if (pos.pageY < this._offset.up_y && pos.pageY > this._offset.y) {
                 this._state[0] = 1;
@@ -558,7 +557,7 @@ DPad.prototype.onTouchMove = function(ev) {
                 this._state[3] = 1;
             }
         }
-    }
+    }, this);
     this.updateStateCallback();
     var currentState = this._state.reduce(function(acc, cur) {return (acc << 1) + cur;}, 0);
     if (currentState != this.oldState) {
@@ -678,6 +677,7 @@ function loadPad(filename) {
     window.addEventListener('resize', function() {
         if (joypad != null) {
             joypad._controls.forEach(function(control) {
+                control.getBoundingClientRect();
                 control.onAttached();
             });
         }
