@@ -17,10 +17,14 @@ var VIBRATION_MILLISECONDS_OVER = 20;
 var VIBRATION_MILLISECONDS_SATURATION = [10, 10];
 // When clicking a D-Pad button (this._state change):
 var VIBRATION_MILLISECONDS_DPAD = 30;
-// Length of the hitbox of a D-pad leg, from border to center:
+// Length, relative to the D-pad, of the hitbox of a D-pad leg, from border to center:
 var DPAD_BUTTON_LENGTH = 0.4;
-// Length of the hitbox of a D-pad leg, measured perpendicularly to the length:
+// Length, relative to the D-pad, of the hitbox of a D-pad leg, measured perpendicularly to the length:
 var DPAD_BUTTON_WIDTH = 0.5;
+// Pixels between apparent and real (oversized) hitbox of a button, to the left (and the right):
+var BUTTON_OVERSHOOT_WIDTH = 5;
+// Pixels between apparent and real (oversized) hitbox of a button, upwards (and downwards):
+var BUTTON_OVERSHOOT_HEIGHT = 5;
 // To normalize values from accelerometers:
 var ACCELERATION_CONSTANT = 0.025;
 
@@ -127,10 +131,46 @@ function categories(a, b) {
     return (sortScores[0] < sortScores[1]) ? -1 : 1;
 }
 
+function findNeighbourhood(gridArea, id) {
+    console.log(gridArea);
+    var regexp = new RegExp('\\b' + id + '\\b', 'g');
+    // if id is not in gridArea, abort early with a NULL
+    if (regexp.exec(gridArea) === null) { return null; }
+    // otherwise: record position of id in
+    // topLine, bottomLine, leftColumn and rightColumn
+    // (numbered from 0):
+    var topLine = gridArea.substring(0, regexp.lastIndex)
+        .split('\n').length - 1;
+    var cursor = regexp.lastIndex;
+    while (regexp.exec(gridArea)) { cursor = regexp.lastIndex; }
+    var bottomLine = gridArea.substring(0, cursor)
+        .split('\n').length - 1;
+    gridArea = gridArea.split('\n');
+    var leftColumn = gridArea[topLine]
+        .substring(0, regexp.exec(gridArea[topLine]).index)
+        .split(' ').length - 1;
+    cursor = regexp.lastIndex;
+    while (regexp.exec(gridArea[topLine])) { cursor = regexp.lastIndex; }
+    console.log(cursor);
+    console.log(gridArea[topLine].substring(0, cursor));
+    var rightColumn = gridArea[topLine].substring(0, cursor)
+        .split(' ').length - 1;
+    var maximumLine = gridArea.length - 1;
+    var maximumColumn = gridArea[topLine].split(' ').length - 1;
+    // now that id is pinpointed, read surrounding mnemonics:
+    leftColumn = Math.max(0, leftColumn - 1);
+    rightColumn = Math.min(rightColumn + 1, maximumColumn);
+    topLine = Math.max(0, topLine - 1);
+    bottomLine = Math.min(bottomLine + 1, maximumLine);
+    return gridArea.flatMap(function(val, i) {
+        return (i >= topLine && i <= bottomLine) ?
+            gridArea[i].split(' ').splice(leftColumn, rightColumn - leftColumn + 1) : [];
+    }).sort(categories).filter(unique);
+}
+
 function truncate(val) {
-    if (val < 0.000001) { return 0.000001; }
-    else if (val > 0.999999) { return 0.999999; }
-    else { return val; }
+    return (val < 0.000001) ? 0.000001 :
+        (val > 0.999999) ? 0.999999 : val;
 }
 
 // HAPTIC FEEDBACK MIXING:
@@ -190,6 +230,11 @@ Control.prototype.getBoundingClientRect = function() {
             this._offset.width = this._offset.height;
             this._offset.halfWidth = this._offset.halfHeight;
         }
+    } else if (this.shape == 'overshoot') {
+        this._offset.x -= BUTTON_OVERSHOOT_WIDTH;
+        this._offset.y -= BUTTON_OVERSHOOT_HEIGHT;
+        this._offset.width += 2 * BUTTON_OVERSHOOT_WIDTH;
+        this._offset.height += 2 * BUTTON_OVERSHOOT_HEIGHT;
     }
     this._offset.xMax = this._offset.x + this._offset.width;
     this._offset.yMax = this._offset.y + this._offset.height;
@@ -482,6 +527,7 @@ Knob.prototype._updateCircles = function() {
 
 function Button(id, updateStateCallback) {
     Control.call(this, 'button', id, updateStateCallback);
+    this.shape = 'overshoot';
     this._state = 0;
 }
 Button.prototype = Object.create(Control.prototype);
@@ -581,18 +627,23 @@ function Joypad() {
 
     this.element = document.getElementById('joypad');
     // Gather controls to attach:
-    var gridAreas = getComputedStyle(this.element)
+    this.gridAreas = getComputedStyle(this.element)
         .gridTemplateAreas
-        .split('"').join('').split(' ')
-        .filter(function(x) { return x != '' && x != '.'; });
-    var controlIDs = gridAreas.sort(categories).filter(unique);
+        .replace(/ *["'] *["'] */g, '\n') // normalizes line breaks
+        .replace(/ *["'] */g, '') // removes extra quotation marks and surrounding spaces
+        .replace(/ {2,}/g, ' ') // normalizes spaces
+        .trim();
+    var controlIDs = this.gridAreas
+        .split(/[ \n]/)
+        .filter(function(x) { return x != '.'; })
+        .sort(categories).filter(unique);
     // Create controls:
     this._debugLabel = null;
     controlIDs.forEach(function(id) {
         if (id != 'dbg') {
             var possibleControl = mnemonics(id, updateStateCallback);
             if (possibleControl !== null) {
-                // Two references to the same control (not a copy):
+                // Many references to the same control (not a copy):
                 this._controls.byNumID.push(possibleControl);
                 this._controls.byMnemonicID[id] = possibleControl;
                 if (id == 'mx' || id == 'my' || id == 'mz') {
@@ -622,10 +673,10 @@ function Joypad() {
     }
     // Attach general event listeners:
     if (this._controls.deviceMotion.length > 0) {
-        deviceMotionEL = window.addEventListener('devicemotion', Motion.prototype.onDeviceMotion, true);
+        window.addEventListener('devicemotion', Motion.prototype.onDeviceMotion, true);
     }
     if (this._controls.deviceOrientation.length > 0) {
-        deviceOrientationEL = window.addEventListener('deviceorientation', Motion.prototype.onDeviceOrientation, true);
+        window.addEventListener('deviceorientation', Motion.prototype.onDeviceOrientation, true);
     }
     // Announce current controls:
     var kernelEvents = this._controls.byNumID.map(function(control) { return control.element.id; }).join(',');
@@ -650,9 +701,6 @@ Joypad.prototype.updateDebugLabel = function() { }; //dummy function
 // These variables are automatically updated by the code:
 var joypad = null;
 var motionState = [0, 0, 0, 0, 0, 0];
-var motionSensor = null;
-var deviceMotionEL = null;
-var deviceOrientationEL = null;
 var warnings = [];
 
 // These will record the minimum and maximum force the screen can register.
