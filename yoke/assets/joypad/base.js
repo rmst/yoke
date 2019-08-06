@@ -449,7 +449,10 @@ AnalogButton.prototype.processTouchesForce = function() {
     this._state = 0.000001;
     for (var id in this._currentTouches) {
         var touch = this._currentTouches[id];
-        this._state = Math.max(this._state, touch.force);
+        if (touch.pageX > this._offset.x && touch.pageX < this._offset.xMax &&
+            touch.pageY > this._offset.y && touch.pageY < this._offset.yMax) {
+            this._state = Math.max(this._state, truncate((touch.force - minForce) / (maxForce - minForce)));
+        }
     }
     (this._state == 0.000001) ? this.element.classList.remove('pressed') : this.element.classList.add('pressed');
 }
