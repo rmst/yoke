@@ -22,9 +22,9 @@ var DPAD_BUTTON_LENGTH = 0.4;
 // Length, relative to the D-pad, of the hitbox of a D-pad leg, measured perpendicularly to the length:
 var DPAD_BUTTON_WIDTH = 0.5;
 // Pixels between apparent and real (oversized) hitbox of a button, to the left (and the right):
-var BUTTON_OVERSHOOT_WIDTH = 5;
+var BUTTON_OVERSHOOT_WIDTH = 7;
 // Pixels between apparent and real (oversized) hitbox of a button, upwards (and downwards):
-var BUTTON_OVERSHOOT_HEIGHT = 5;
+var BUTTON_OVERSHOOT_HEIGHT = 7;
 // To normalize values from accelerometers:
 var ACCELERATION_CONSTANT = 0.025;
 
@@ -132,7 +132,6 @@ function categories(a, b) {
 }
 
 function findNeighbourhood(gridArea, id) {
-    console.log(gridArea);
     var regexp = new RegExp('\\b' + id + '\\b', 'g');
     // if id is not in gridArea, abort early with a NULL
     if (regexp.exec(gridArea) === null) { return null; }
@@ -151,8 +150,6 @@ function findNeighbourhood(gridArea, id) {
         .split(' ').length - 1;
     cursor = regexp.lastIndex;
     while (regexp.exec(gridArea[topLine])) { cursor = regexp.lastIndex; }
-    console.log(cursor);
-    console.log(gridArea[topLine].substring(0, cursor));
     var rightColumn = gridArea[topLine].substring(0, cursor)
         .split(' ').length - 1;
     var maximumLine = gridArea.length - 1;
@@ -235,6 +232,8 @@ Control.prototype.getBoundingClientRect = function() {
         this._offset.y -= BUTTON_OVERSHOOT_HEIGHT;
         this._offset.width += 2 * BUTTON_OVERSHOOT_WIDTH;
         this._offset.height += 2 * BUTTON_OVERSHOOT_HEIGHT;
+        this._offset.halfWidth += BUTTON_OVERSHOOT_WIDTH;
+        this._offset.halfHeight += BUTTON_OVERSHOOT_HEIGHT;
     }
     this._offset.xMax = this._offset.x + this._offset.width;
     this._offset.yMax = this._offset.y + this._offset.height;
@@ -332,28 +331,19 @@ Motion.prototype._normalize = function(f) {
     if (f > 0.499999) { f = 0.499999; }
     return f + 0.5;
 };
-Motion.prototype.onAttached = function() {
-    this._trinket.style.top = this._offset.y + 'px';
-    this._trinket.style.left = this._offset.x + 'px';
-    this._trinket.style.height = this._offset.height + 'px';
-    this._trinket.style.width = this._offset.width + 'px';
-};
+Motion.prototype.onAttached = function() {};
 Motion.prototype.onDeviceMotion = function(ev) {
     motionState[0] = Motion.prototype._normalize(ev.accelerationIncludingGravity.x);
     motionState[1] = Motion.prototype._normalize(ev.accelerationIncludingGravity.y);
     motionState[2] = Motion.prototype._normalize(ev.accelerationIncludingGravity.z);
-    joypad._controls.deviceMotion.forEach(function(control) {
-        control._updateTrinket();
-    });
+    joypad._controls.deviceMotion.forEach(function(c) { c._updateTrinket(); });
     joypad.updateState();
 };
 Motion.prototype.onDeviceOrientation = function(ev) {
     motionState[3] = ev.alpha / 360;
     motionState[4] = ev.beta / 360 + .5;
     motionState[5] = ev.gamma / 180 + .5;
-    joypad._controls.deviceOrientation.forEach(function(control) {
-        control._updateTrinket();
-    });
+    joypad._controls.deviceOrientation.forEach(function(c) { c._updateTrinket(); });
     joypad.updateState();
 };
 Motion.prototype.updateTrinket0 = function() {};
@@ -425,6 +415,11 @@ function AnalogButton(id, updateStateCallback) {
     this.onTouchMoveParticular = function() {};
     Control.call(this, 'analogbutton', id, updateStateCallback);
     this._state = 0;
+    this._currentTouches = {};
+    this.shape = 'overshoot';
+    this._hitbox = document.createElement('div');
+    this._hitbox.className = 'buttonhitbox';
+    this.element.appendChild(this._hitbox);
 }
 AnalogButton.prototype = Object.create(Control.prototype);
 AnalogButton.prototype.onAttached = function() {
@@ -432,40 +427,58 @@ AnalogButton.prototype.onAttached = function() {
     this.element.addEventListener('touchmove', this.onTouchMove.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
     this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
-    if (this._offset.width > this._offset.height) {
-        this.onTouchMoveParticular = function(ev) {
-            var pos = ev.targetTouches[0];
-            return truncate(1 - Math.abs(this._offset.xCenter - pos.pageX) / this._offset.halfWidth);
-        };
-    } else {
-        this.onTouchMoveParticular = function(ev) {
-            var pos = ev.targetTouches[0];
-            return truncate(1 - Math.abs(this._offset.yCenter - pos.pageY) / this._offset.halfHeight);
-        };
-    }
+    var transformation = [
+        'translate(' + this._offset.x, 'px, ', this._offset.y, 'px) ',
+        'scaleX(', this._offset.width, ') ',
+        'scaleY(', this._offset.height, ')'
+    ]
+    this._hitbox.style.transform = transformation.join('');
 };
+AnalogButton.prototype.processTouches = function() {
+    this._state = 0.000001;
+    for (var id in this._currentTouches) {
+        var touch = this._currentTouches[id];
+        this._state = Math.max(this._state, truncate(Math.min(
+            1 - Math.abs((touch.pageY - this._offset.yCenter) / this._offset.halfHeight),
+            1 - Math.abs((touch.pageX - this._offset.xCenter) / this._offset.halfWidth)
+        )));
+    }
+    (this._state == 0.000001) ? this.element.classList.remove('pressed') : this.element.classList.add('pressed');
+}
+AnalogButton.prototype.processTouchesForce = function() {
+    this._state = 0.000001;
+    for (var id in this._currentTouches) {
+        var touch = this._currentTouches[id];
+        this._state = Math.max(this._state, touch.force);
+    }
+    (this._state == 0.000001) ? this.element.classList.remove('pressed') : this.element.classList.add('pressed');
+}
 AnalogButton.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
-    window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
     this.onTouchMove(ev);
-    this.element.classList.add('pressed');
+    window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
 };
 AnalogButton.prototype.onTouchMove = function(ev) {
-    // This is the default handler, which uses the distance to the center (horizontal in wide buttons, vertical in tall buttons).
-    // This function is overwritten if the user confirms the screen can detect touch pressure:
-    this._state = this.onTouchMoveParticular(ev);
+    this.neighbourhood.forEach(function(el) {
+        Array.from(ev.changedTouches, function(touch) {
+            this._currentTouches['t' + touch.identifier] = {
+                pageX: touch.pageX,
+                pageY: touch.pageY,
+                force: touch.force
+            };
+        }, el);
+        el.processTouches();
+    });
     this.updateStateCallback();
-};
-AnalogButton.prototype.onTouchMoveForce = function(ev) {
-    // This is the replacement handler, which uses touch pressure.
-    var pos = ev.targetTouches[0];
-    this._state = truncate((pos.force - minForce) / (maxForce - minForce));
+}
+AnalogButton.prototype.onTouchEnd = function(ev) {
+    this.neighbourhood.forEach(function(el) {
+        Array.from(ev.changedTouches, function(touch) {
+            delete el._currentTouches['t' + touch.identifier];
+        });
+        el.processTouches();
+    });
     this.updateStateCallback();
-};
-AnalogButton.prototype.onTouchEnd = function() {
-    this._state = 0;
-    this.updateStateCallback();
-    this.element.classList.remove('pressed');
 };
 
 function Knob(id, updateStateCallback) {
@@ -474,6 +487,7 @@ function Knob(id, updateStateCallback) {
     this._state = 0;
     this.initState = 0; // state at onTouchStart
     this.initAngle = 0; // angular coordinate at onTouchStart
+    this.initTransform = ''; // style.transform
     this._knobCircle = document.createElement('div');
     this._knobCircle.className = 'knobcircle';
     this.element.appendChild(this._knobCircle);
@@ -529,25 +543,38 @@ function Button(id, updateStateCallback) {
     Control.call(this, 'button', id, updateStateCallback);
     this.shape = 'overshoot';
     this._state = 0;
+    this._currentTouches = {};
+    this._hitbox = document.createElement('div');
+    this._hitbox.className = 'buttonhitbox';
+    this.element.appendChild(this._hitbox);
 }
 Button.prototype = Object.create(Control.prototype);
 Button.prototype.onAttached = function() {
-    this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
-    this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
-    this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
+    this._hitbox.addEventListener('touchstart', this.onTouchStart.bind(this), false);
+    this._hitbox.addEventListener('touchmove', this.onTouchMove.bind(this), false);
+    this._hitbox.addEventListener('touchend', this.onTouchEnd.bind(this), false);
+    this._hitbox.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
+    var transformation = [
+        'translate(' + this._offset.x, 'px, ', this._offset.y, 'px) ',
+        'scaleX(', this._offset.width, ') ',
+        'scaleY(', this._offset.height, ')'
+    ]
+    this._hitbox.style.transform = transformation.join('');
 };
-Button.prototype.onTouchStart = function(ev) {
-    ev.preventDefault(); // Android Webview delays the vibration without this.
-    this._state = 1;
-    this.updateStateCallback();
-    this.element.classList.add('pressed');
-    window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
-};
-Button.prototype.onTouchEnd = function() {
+Button.prototype.processTouches = function() {
     this._state = 0;
-    this.updateStateCallback();
-    this.element.classList.remove('pressed');
-};
+    for (var id in this._currentTouches) {
+        var touch = this._currentTouches[id];
+        if (touch.pageX > this._offset.x && touch.pageX < this._offset.xMax &&
+            touch.pageY > this._offset.y && touch.pageY < this._offset.yMax) {
+                this._state = 1;
+        }
+    }
+    (this._state == 1) ? this.element.classList.add('pressed') : this.element.classList.remove('pressed');
+}
+Button.prototype.onTouchStart = AnalogButton.prototype.onTouchStart;
+Button.prototype.onTouchMove = AnalogButton.prototype.onTouchMove;
+Button.prototype.onTouchEnd = AnalogButton.prototype.onTouchEnd;
 Button.prototype.state = function() { return this._state; };
 
 function DPad(id, updateStateCallback) {
@@ -662,24 +689,34 @@ function Joypad() {
         }
     }, this);
     // Attach controls:
-    this._controls.byNumID.forEach(function(control) {
-        this.element.appendChild(control.element);
-        control.getBoundingClientRect();
-        control.onAttached();
+    this._controls.byNumID.forEach(function(c) {
+        this.element.appendChild(c.element);
+        c.getBoundingClientRect();
+        c.onAttached();
     }, this);
     // Check for controls:
     if (this._controls.byNumID.length == 0) {
         prettyAlert('Your gamepad looks empty. Is <code>user.css</code> missing or broken?');
     }
-    // Attach general event listeners:
+    // Prepare general and shared event listeners:
     if (this._controls.deviceMotion.length > 0) {
         window.addEventListener('devicemotion', Motion.prototype.onDeviceMotion, true);
     }
     if (this._controls.deviceOrientation.length > 0) {
         window.addEventListener('deviceorientation', Motion.prototype.onDeviceOrientation, true);
     }
+    this._controls.byNumID.forEach(function(c) {
+        var id = c.element.id;
+        if (id[0] == 'b' || id[0] == 'a') {
+            c.neighbourhood = findNeighbourhood(this.gridAreas, c.element.id)
+                .filter(function(x) { return (x[0] == 'b' || x[0] == 'a') });
+            c.neighbourhood = c.neighbourhood.map(function(x) {
+                return this._controls.byMnemonicID[x];
+            }, this);
+        }
+    }, this);
     // Announce current controls:
-    var kernelEvents = this._controls.byNumID.map(function(control) { return control.element.id; }).join(',');
+    var kernelEvents = this._controls.byNumID.map(function(c) { return c.element.id; }).join(',');
     if (this._debugLabel != null) {
         this._debugLabel.element.innerHTML = kernelEvents;
     }
@@ -690,7 +727,7 @@ function Joypad() {
     checkVibration();
 }
 Joypad.prototype.updateState = function() {
-    var state = this._controls.byNumID.map(function(control) { return control.state(); }).join(',');
+    var state = this._controls.byNumID.map(function(c) { return c.state(); }).join(',');
     window.Yoke.update_vals(state);
     this.updateDebugLabel(state);
     if (!DEBUG_NO_CONSOLE_SPAM) { console.log(state); }
@@ -737,9 +774,9 @@ function loadPad(filename) {
 
     window.addEventListener('resize', function() {
         if (joypad != null) {
-            joypad._controls.byNumID.forEach(function(control) {
-                control.getBoundingClientRect();
-                control.onAttached();
+            joypad._controls.byNumID.forEach(function(c) {
+                c.getBoundingClientRect();
+                c.onAttached();
             });
         }
     });
@@ -769,7 +806,7 @@ function loadPad(filename) {
                 document.getElementById('calibrationOk').addEventListener('click', function() {
                     calibrationDiv.style.display = 'none';
                     Pedal.prototype.onTouchMove = Pedal.prototype.onTouchMoveForce;
-                    AnalogButton.prototype.onTouchMove = AnalogButton.prototype.onTouchMoveForce;
+                    AnalogButton.prototype.processTouches = AnalogButton.prototype.processTouchesForce;
                     joypad = new Joypad();
                 });
                 document.getElementById('calibrationNo').addEventListener('click', function() {

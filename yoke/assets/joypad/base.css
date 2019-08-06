@@ -23,7 +23,7 @@ body {
 #warning, #calibration {
     display: none;
     position: fixed;
-    z-index: 1;
+    z-index: 10;
     border-radius: 10px;
     padding: 3vh 3vw 3vh;
     filter: drop-shadow(0px 0px 5px black)
@@ -78,25 +78,6 @@ body {
     font-size: 80%;
 }
 
-.circle {
-    position: absolute;
-    transform: translate(-50%, -50%);
-    top: 0px;
-    left: 0px;
-}
-
-.knobcircle {
-    position: absolute;
-    border-radius: 100%;
-    transform: rotate(0);
-}
-
-.knobcircle > .circle {
-    position: absolute;
-    top: 50%;
-    left: 90%;
-}
-
 #dbg {
     vertical-align: middle;
     overflow: hidden;
@@ -104,24 +85,44 @@ body {
     color: #0f0;
     font-family: monospace;
     word-wrap: break-word;
+    z-index: 2;
 }
 
 div {
     background-size: 100% 100%;
 }
 
+.control { z-index: 2; }
+
 /* Joysticks */
-.joystick { background-image: url("img/joystick.svg"); background-color: #bbb; }
+.joystick {
+    background-image: url("img/joystick.svg");
+    background-color: #bbb;
+}
 .circle {
     background-color: black;
     width: 10px;
     height: 10px;
     border-radius: 100%;
+    z-index: 2;
+    position: absolute;
+    left: 0px;
+    top: 0px;
 }
 
 /* Buttons */
-.button { background-color: #bbb; }
+.analogbutton { background-color: #ccc; z-index: 1; }
+.button { background-color: #bbb; z-index: 1; }
 .pressed { filter: brightness(70%); }
+.buttonhitbox {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    height: 1px;
+    width: 1px;
+    transform-origin: top left;
+    opacity: 0;
+}
 /* seq 1 16 | xargs -I xx echo "#bxx { background-image: url('img/bxx.svg'); }" */
 /* Some edits done by hand */
 #b1 { background-image: url('img/b1.svg'); background-color: #00d; }
@@ -167,11 +168,24 @@ div {
 
 /* Motion controls */
 .motion { background-color: #ddd; }
-.motiontrinket { background-image: url('img/motiontrinket.svg'); }
+.motiontrinket { width: 100%; height: 100%; background-image: url('img/motiontrinket.svg'); }
 
 /* Pedals */
 .pedal { background-color: #333; }
 
 /* Knobs */
 .knob { }
-.knobcircle { background-color: #888; }
+.knobcircle {
+    position: absolute;
+    border-radius: 100%;
+    transform: rotate(0);
+    background-color: #888;
+}
+
+.knobcircle > .circle {
+    position: absolute;
+    top: 50%;
+    left: 90%;
+    transform: translate(-50%, -50%);
+}
+
