@@ -431,7 +431,7 @@ AnalogButton.prototype.onAttached = function() {
         'translate(' + this._offset.x, 'px, ', this._offset.y, 'px) ',
         'scaleX(', this._offset.width, ') ',
         'scaleY(', this._offset.height, ')'
-    ]
+    ];
     this._hitbox.style.transform = transformation.join('');
 };
 AnalogButton.prototype.processTouches = function() {
@@ -444,7 +444,7 @@ AnalogButton.prototype.processTouches = function() {
         )));
     }
     (this._state == 0.000001) ? this.element.classList.remove('pressed') : this.element.classList.add('pressed');
-}
+};
 AnalogButton.prototype.processTouchesForce = function() {
     this._state = 0.000001;
     for (var id in this._currentTouches) {
@@ -455,7 +455,7 @@ AnalogButton.prototype.processTouchesForce = function() {
         }
     }
     (this._state == 0.000001) ? this.element.classList.remove('pressed') : this.element.classList.add('pressed');
-}
+};
 AnalogButton.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
     this.onTouchMove(ev);
@@ -473,7 +473,7 @@ AnalogButton.prototype.onTouchMove = function(ev) {
         el.processTouches();
     });
     this.updateStateCallback();
-}
+};
 AnalogButton.prototype.onTouchEnd = function(ev) {
     this.neighbourhood.forEach(function(el) {
         Array.from(ev.changedTouches, function(touch) {
@@ -561,7 +561,7 @@ Button.prototype.onAttached = function() {
         'translate(' + this._offset.x, 'px, ', this._offset.y, 'px) ',
         'scaleX(', this._offset.width, ') ',
         'scaleY(', this._offset.height, ')'
-    ]
+    ];
     this._hitbox.style.transform = transformation.join('');
 };
 Button.prototype.processTouches = function() {
@@ -570,11 +570,11 @@ Button.prototype.processTouches = function() {
         var touch = this._currentTouches[id];
         if (touch.pageX > this._offset.x && touch.pageX < this._offset.xMax &&
             touch.pageY > this._offset.y && touch.pageY < this._offset.yMax) {
-                this._state = 1;
+            this._state = 1;
         }
     }
     (this._state == 1) ? this.element.classList.add('pressed') : this.element.classList.remove('pressed');
-}
+};
 Button.prototype.onTouchStart = AnalogButton.prototype.onTouchStart;
 Button.prototype.onTouchMove = AnalogButton.prototype.onTouchMove;
 Button.prototype.onTouchEnd = AnalogButton.prototype.onTouchEnd;
@@ -712,7 +712,7 @@ function Joypad() {
         var id = c.element.id;
         if (id[0] == 'b' || id[0] == 'a') {
             c.neighbourhood = findNeighbourhood(this.gridAreas, c.element.id)
-                .filter(function(x) { return (x[0] == 'b' || x[0] == 'a') });
+                .filter(function(x) { return (x[0] == 'b' || x[0] == 'a'); });
             c.neighbourhood = c.neighbourhood.map(function(x) {
                 return this._controls.byMnemonicID[x];
             }, this);
