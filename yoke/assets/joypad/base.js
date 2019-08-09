@@ -131,7 +131,7 @@ function categories(a, b) {
     return (sortScores[0] < sortScores[1]) ? -1 : 1;
 }
 
-function findNeighbourhood(gridArea, id) {
+function findNeighbors(gridArea, id) {
     var regexp = new RegExp('\\b' + id + '\\b', 'g');
     // if id is not in gridArea, abort early with a NULL
     if (regexp.exec(gridArea) === null) { return null; }
@@ -209,32 +209,28 @@ function Control(type, id, updateStateCallback) {
     this.gridArea = id;
     this.updateStateCallback = updateStateCallback;
     this._state = 0;
-    this.shape = 'rectangle';
 }
+Control.prototype.shape = 'rectangle';
 Control.prototype.getBoundingClientRect = function() {
     this._offset = this.element.getBoundingClientRect();
-    this._offset.halfWidth = this._offset.width / 2;
-    this._offset.halfHeight = this._offset.height / 2;
-    this._offset.xCenter = this._offset.x + this._offset.halfWidth;
-    this._offset.yCenter = this._offset.y + this._offset.halfHeight;
     if (this.shape == 'square') {
         if (this._offset.width < this._offset.height) {
-            this._offset.y += this._offset.halfHeight - this._offset.halfWidth;
+            this._offset.y += (this._offset.height - this._offset.width) / 2;
             this._offset.height = this._offset.width;
-            this._offset.halfHeight = this._offset.halfWidth;
         } else {
-            this._offset.x += this._offset.halfWidth - this._offset.halfHeight;
+            this._offset.x += (this._offset.width - this._offset.height) / 2;
             this._offset.width = this._offset.height;
-            this._offset.halfWidth = this._offset.halfHeight;
         }
     } else if (this.shape == 'overshoot') {
         this._offset.x -= BUTTON_OVERSHOOT_WIDTH;
         this._offset.y -= BUTTON_OVERSHOOT_HEIGHT;
         this._offset.width += 2 * BUTTON_OVERSHOOT_WIDTH;
         this._offset.height += 2 * BUTTON_OVERSHOOT_HEIGHT;
-        this._offset.halfWidth += BUTTON_OVERSHOOT_WIDTH;
-        this._offset.halfHeight += BUTTON_OVERSHOOT_HEIGHT;
     }
+    this._offset.halfWidth = this._offset.width / 2;
+    this._offset.halfHeight = this._offset.height / 2;
+    this._offset.xCenter = this._offset.x + this._offset.halfWidth;
+    this._offset.yCenter = this._offset.y + this._offset.halfHeight;
     this._offset.xMax = this._offset.x + this._offset.width;
     this._offset.yMax = this._offset.y + this._offset.height;
 };
@@ -416,12 +412,12 @@ function AnalogButton(id, updateStateCallback) {
     Control.call(this, 'analogbutton', id, updateStateCallback);
     this._state = 0;
     this._currentTouches = {};
-    this.shape = 'overshoot';
     this._hitbox = document.createElement('div');
     this._hitbox.className = 'buttonhitbox';
     this.element.appendChild(this._hitbox);
 }
 AnalogButton.prototype = Object.create(Control.prototype);
+AnalogButton.prototype.shape = 'overshoot';
 AnalogButton.prototype.onAttached = function() {
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchmove', this.onTouchMove.bind(this), false);
@@ -462,7 +458,7 @@ AnalogButton.prototype.onTouchStart = function(ev) {
     window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
 };
 AnalogButton.prototype.onTouchMove = function(ev) {
-    this.neighbourhood.forEach(function(el) {
+    this.neighbors.forEach(function(el) {
         Array.from(ev.changedTouches, function(touch) {
             this._currentTouches['t' + touch.identifier] = {
                 pageX: touch.pageX,
@@ -475,7 +471,7 @@ AnalogButton.prototype.onTouchMove = function(ev) {
     this.updateStateCallback();
 };
 AnalogButton.prototype.onTouchEnd = function(ev) {
-    this.neighbourhood.forEach(function(el) {
+    this.neighbors.forEach(function(el) {
         Array.from(ev.changedTouches, function(touch) {
             delete el._currentTouches['t' + touch.identifier];
         });
@@ -486,7 +482,6 @@ AnalogButton.prototype.onTouchEnd = function(ev) {
 
 function Knob(id, updateStateCallback) {
     Control.call(this, 'knob', id, updateStateCallback);
-    this.shape = 'square';
     this._state = 0;
     this.initState = 0; // state at onTouchStart
     this.initAngle = 0; // angular coordinate at onTouchStart
@@ -499,6 +494,7 @@ function Knob(id, updateStateCallback) {
     this._knobCircle.appendChild(this._circle);
 }
 Knob.prototype = Object.create(Control.prototype);
+Knob.prototype.shape = 'square';
 Knob.prototype.onAttached = function() {
     // Centering the knob within the boundary.
     this._knobCircle.style.top = this._offset.y + 'px';
@@ -544,7 +540,6 @@ Knob.prototype._updateCircles = function() {
 
 function Button(id, updateStateCallback) {
     Control.call(this, 'button', id, updateStateCallback);
-    this.shape = 'overshoot';
     this._state = 0;
     this._currentTouches = {};
     this._hitbox = document.createElement('div');
@@ -552,6 +547,7 @@ function Button(id, updateStateCallback) {
     this.element.appendChild(this._hitbox);
 }
 Button.prototype = Object.create(Control.prototype);
+Button.prototype.shape = 'overshoot';
 Button.prototype.onAttached = function() {
     this._hitbox.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this._hitbox.addEventListener('touchmove', this.onTouchMove.bind(this), false);
@@ -711,9 +707,9 @@ function Joypad() {
     this._controls.byNumID.forEach(function(c) {
         var id = c.element.id;
         if (id[0] == 'b' || id[0] == 'a') {
-            c.neighbourhood = findNeighbourhood(this.gridAreas, c.element.id)
+            c.neighbors = findNeighbors(this.gridAreas, c.element.id)
                 .filter(function(x) { return (x[0] == 'b' || x[0] == 'a'); });
-            c.neighbourhood = c.neighbourhood.map(function(x) {
+            c.neighbors = c.neighbors.map(function(x) {
                 return this._controls.byMnemonicID[x];
             }, this);
         }
