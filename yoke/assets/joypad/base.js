@@ -27,6 +27,11 @@ var BUTTON_OVERSHOOT_WIDTH = 7;
 var BUTTON_OVERSHOOT_HEIGHT = 7;
 // To normalize values from accelerometers:
 var ACCELERATION_CONSTANT = 0.025;
+// Multiplier for analog buttons in non-force-detecting mode.
+// (Simulated force is multiplied by this number, and truncated in case of saturation.)
+// The dead zone length/width, relative to the analog button hitbox length/width,
+// will be 1 - (1 / ANALOGBUTTON_DEADZONE_CONSTANT).
+var ANALOGBUTTON_DEADZONE_CONSTANT = 1.10;
 
 // HELPER FUNCTIONS:
 // Within the Yoke webview, Yoke.update_vals() sends the joypad state.
@@ -434,7 +439,7 @@ AnalogButton.prototype.processTouches = function() {
     this._state = 0.000001;
     for (var id in this._currentTouches) {
         var touch = this._currentTouches[id];
-        this._state = Math.max(this._state, truncate(Math.min(
+        this._state = Math.max(this._state, truncate(ANALOGBUTTON_DEADZONE_CONSTANT * Math.min(
             1 - Math.abs((touch.pageY - this._offset.yCenter) / this._offset.halfHeight),
             1 - Math.abs((touch.pageX - this._offset.xCenter) / this._offset.halfWidth)
         )));
@@ -482,9 +487,8 @@ AnalogButton.prototype.onTouchEnd = function(ev) {
 
 function Knob(id, updateStateCallback) {
     Control.call(this, 'knob', id, updateStateCallback);
-    this._state = 0;
-    this.initState = 0; // state at onTouchStart
-    this.initAngle = 0; // angular coordinate at onTouchStart
+    this._state = 0.5;
+    this.initState = 0.5; // state at onTouchStart
     this.initTransform = ''; // style.transform
     this._knobCircle = document.createElement('div');
     this._knobCircle.className = 'knobcircle';
@@ -535,7 +539,7 @@ Knob.prototype.onTouchEnd = function() {
     this._updateCircles();
 };
 Knob.prototype._updateCircles = function() {
-    this._knobCircle.style.transform = 'rotate(' + ((this._state - 0.25) * 360) + 'deg)';
+    this._knobCircle.style.transform = 'rotate(' + ((this._state + 0.25) * 360) + 'deg)';
 };
 
 function Button(id, updateStateCallback) {
