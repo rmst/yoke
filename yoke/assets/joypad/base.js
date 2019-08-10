@@ -416,6 +416,10 @@ function AnalogButton(id, updateStateCallback) {
     this.onTouchMoveParticular = function() {};
     Control.call(this, 'analogbutton', id, updateStateCallback);
     this._state = 0;
+    this.oldState = 0;
+    // Exact formula doesn't matter. opaqueID is just a heuristic to detect
+    // when are different buttons pressed:
+    this.opaqueID = 1 + Math.pow(0.01 * parseInt('0' + id.substring(1), 10), 2);
     this._currentTouches = {};
     this._hitbox = document.createElement('div');
     this._hitbox.className = 'buttonhitbox';
@@ -444,7 +448,13 @@ AnalogButton.prototype.processTouches = function() {
             1 - Math.abs((touch.pageX - this._offset.xCenter) / this._offset.halfWidth)
         )));
     }
-    (this._state == 0.000001) ? this.element.classList.remove('pressed') : this.element.classList.add('pressed');
+    if (this._state == 0.000001) {
+        this.element.classList.remove('pressed');
+        return 0;
+    } else {
+        this.element.classList.add('pressed');
+        return this.opaqueID;
+    }
 };
 AnalogButton.prototype.processTouchesForce = function() {
     this._state = 0.000001;
@@ -455,15 +465,21 @@ AnalogButton.prototype.processTouchesForce = function() {
             this._state = Math.max(this._state, truncate((touch.force - minForce) / (maxForce - minForce)));
         }
     }
-    (this._state == 0.000001) ? this.element.classList.remove('pressed') : this.element.classList.add('pressed');
+    if (this._state == 0.000001) {
+        this.element.classList.remove('pressed');
+        return 0;
+    } else {
+        this.element.classList.add('pressed');
+        return this.opaqueID;
+    }
 };
 AnalogButton.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
+    this.oldState = 0;
     this.onTouchMove(ev);
-    window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
 };
 AnalogButton.prototype.onTouchMove = function(ev) {
-    this.neighbors.forEach(function(el) {
+    var currentState = this.neighbors.map(function(el) {
         Array.from(ev.changedTouches, function(touch) {
             this._currentTouches['t' + touch.identifier] = {
                 pageX: touch.pageX,
@@ -471,17 +487,24 @@ AnalogButton.prototype.onTouchMove = function(ev) {
                 force: touch.force
             };
         }, el);
-        el.processTouches();
-    });
+        return el.processTouches();
+    }).reduce(function(acc, cur) {return acc + cur;}, 0);
     this.updateStateCallback();
+    if (currentState != this.oldState &&
+        Math.floor(currentState) >= Math.floor(this.oldState)) {
+        window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
+    }
+    console.log('TouchMove: ' + currentState + ' → ' + this.oldState);
+    this.oldState = currentState;
 };
 AnalogButton.prototype.onTouchEnd = function(ev) {
-    this.neighbors.forEach(function(el) {
+    this.oldState = this.neighbors.map(function(el) {
         Array.from(ev.changedTouches, function(touch) {
             delete el._currentTouches['t' + touch.identifier];
         });
-        el.processTouches();
-    });
+        return el.processTouches();
+    }).reduce(function(acc, cur) {return acc + cur;}, 0);
+    console.log('TouchEnd: ' + this.oldState);
     this.updateStateCallback();
 };
 
@@ -520,7 +543,7 @@ Knob.prototype.onTouch = function(ev) {
     this._state = (this.initState + (Math.atan2(pos.pageY - this._offset.yCenter,
         pos.pageX - this._offset.xCenter)) / (2 * Math.PI)) % 1;
     this.updateStateCallback();
-    var currentQuadrant = Math.floor(this._state * 16);
+    var currentQuadrant = Math.floor(this._state * 8);
     if (VIBRATE_ON_QUADRANT_BOUNDARY && this.quadrant != currentQuadrant) {
         window.navigator.vibrate(VIBRATION_MILLISECONDS_OVER);
     }
@@ -545,6 +568,10 @@ Knob.prototype._updateCircles = function() {
 function Button(id, updateStateCallback) {
     Control.call(this, 'button', id, updateStateCallback);
     this._state = 0;
+    this.oldState = 0;
+    // Exact formula doesn't matter. opaqueID is just a heuristic to detect
+    // when are different buttons pressed:
+    this.opaqueID = 1 + Math.pow(0.01 * parseInt('0' + id.substring(1), 10), 2);
     this._currentTouches = {};
     this._hitbox = document.createElement('div');
     this._hitbox.className = 'buttonhitbox';
@@ -557,12 +584,11 @@ Button.prototype.onAttached = function() {
     this._hitbox.addEventListener('touchmove', this.onTouchMove.bind(this), false);
     this._hitbox.addEventListener('touchend', this.onTouchEnd.bind(this), false);
     this._hitbox.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
-    var transformation = [
+    this._hitbox.style.transform = [
         'translate(' + this._offset.x, 'px, ', this._offset.y, 'px) ',
         'scaleX(', this._offset.width, ') ',
         'scaleY(', this._offset.height, ')'
-    ];
-    this._hitbox.style.transform = transformation.join('');
+    ].join('');
 };
 Button.prototype.processTouches = function() {
     this._state = 0;
@@ -574,6 +600,7 @@ Button.prototype.processTouches = function() {
         }
     }
     (this._state == 1) ? this.element.classList.add('pressed') : this.element.classList.remove('pressed');
+    return this._state * this.opaqueID;
 };
 Button.prototype.onTouchStart = AnalogButton.prototype.onTouchStart;
 Button.prototype.onTouchMove = AnalogButton.prototype.onTouchMove;
