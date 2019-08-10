@@ -494,7 +494,6 @@ AnalogButton.prototype.onTouchMove = function(ev) {
         Math.floor(currentState) >= Math.floor(this.oldState)) {
         window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
     }
-    console.log('TouchMove: ' + currentState + ' → ' + this.oldState);
     this.oldState = currentState;
 };
 AnalogButton.prototype.onTouchEnd = function(ev) {
@@ -504,7 +503,6 @@ AnalogButton.prototype.onTouchEnd = function(ev) {
         });
         return el.processTouches();
     }).reduce(function(acc, cur) {return acc + cur;}, 0);
-    console.log('TouchEnd: ' + this.oldState);
     this.updateStateCallback();
 };
 
