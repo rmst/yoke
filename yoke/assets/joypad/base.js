@@ -15,14 +15,23 @@ var VIBRATION_MILLISECONDS_IN = 40;
 var VIBRATION_MILLISECONDS_OVER = 20;
 // When forcing a control over the maximum or the minimum:
 var VIBRATION_MILLISECONDS_SATURATION = [10, 10];
-// When clicking a D-Pad button (this._state change):
-var VIBRATION_MILLISECONDS_DPAD = 30;
-// Length of the hitbox of a D-pad leg, from border to center:
+// When clicking a D-Pad button (this.state change):
+var VIBRATION_MILLISECONDS_DPAD = 35;
+// Length, relative to the D-pad, of the hitbox of a D-pad leg, from border to center:
 var DPAD_BUTTON_LENGTH = 0.4;
-// Length of the hitbox of a D-pad leg, measured perpendicularly to the length:
+// Length, relative to the D-pad, of the hitbox of a D-pad leg, measured perpendicularly to the length:
 var DPAD_BUTTON_WIDTH = 0.5;
+// Pixels between apparent and real (oversized) hitbox of a button, to the left (and the right):
+var BUTTON_OVERSHOOT_WIDTH = 7;
+// Pixels between apparent and real (oversized) hitbox of a button, upwards (and downwards):
+var BUTTON_OVERSHOOT_HEIGHT = 7;
 // To normalize values from accelerometers:
 var ACCELERATION_CONSTANT = 0.025;
+// Multiplier for analog buttons in non-force-detecting mode.
+// (Simulated force is multiplied by this number, and truncated in case of saturation.)
+// The dead zone length/width, relative to the analog button hitbox length/width,
+// will be 1 - (1 / ANALOG_BUTTON_DEADZONE_CONSTANT).
+var ANALOG_BUTTON_DEADZONE_CONSTANT = 1.10;
 
 // HELPER FUNCTIONS:
 // Within the Yoke webview, Yoke.update_vals() sends the joypad state.
@@ -127,10 +136,43 @@ function categories(a, b) {
     return (sortScores[0] < sortScores[1]) ? -1 : 1;
 }
 
+function findNeighbors(gridArea, id) {
+    var regexp = new RegExp('\\b' + id + '\\b', 'g');
+    // if id is not in gridArea, abort early with a NULL
+    if (regexp.exec(gridArea) === null) { return null; }
+    // otherwise: record position of id in
+    // topLine, bottomLine, leftColumn and rightColumn
+    // (numbered from 0):
+    var topLine = gridArea.substring(0, regexp.lastIndex)
+        .split('\n').length - 1;
+    var cursor = regexp.lastIndex;
+    while (regexp.exec(gridArea)) { cursor = regexp.lastIndex; }
+    var bottomLine = gridArea.substring(0, cursor)
+        .split('\n').length - 1;
+    gridArea = gridArea.split('\n');
+    var leftColumn = gridArea[topLine]
+        .substring(0, regexp.exec(gridArea[topLine]).index)
+        .split(' ').length - 1;
+    cursor = regexp.lastIndex;
+    while (regexp.exec(gridArea[topLine])) { cursor = regexp.lastIndex; }
+    var rightColumn = gridArea[topLine].substring(0, cursor)
+        .split(' ').length - 1;
+    var maximumLine = gridArea.length - 1;
+    var maximumColumn = gridArea[topLine].split(' ').length - 1;
+    // now that id is pinpointed, read surrounding mnemonics:
+    leftColumn = Math.max(0, leftColumn - 1);
+    rightColumn = Math.min(rightColumn + 1, maximumColumn);
+    topLine = Math.max(0, topLine - 1);
+    bottomLine = Math.min(bottomLine + 1, maximumLine);
+    return gridArea.flatMap(function(val, i) {
+        return (i >= topLine && i <= bottomLine) ?
+            gridArea[i].split(' ').splice(leftColumn, rightColumn - leftColumn + 1) : [];
+    }).sort(categories).filter(unique);
+}
+
 function truncate(val) {
-    if (val < 0.000001) { return 0.000001; }
-    else if (val > 0.999999) { return 0.999999; }
-    else { return val; }
+    return (val < 0.000001) ? 0.000001 :
+        (val > 0.999999) ? 0.999999 : val;
 }
 
 // HAPTIC FEEDBACK MIXING:
@@ -171,47 +213,49 @@ function Control(type, id, updateStateCallback) {
     this.element.style.gridArea = id;
     this.gridArea = id;
     this.updateStateCallback = updateStateCallback;
-    this._state = 0;
-    this.shape = 'rectangle';
+    this.state = 0;
 }
+Control.prototype.shape = 'rectangle';
 Control.prototype.getBoundingClientRect = function() {
-    this._offset = this.element.getBoundingClientRect();
-    this._offset.halfWidth = this._offset.width / 2;
-    this._offset.halfHeight = this._offset.height / 2;
-    this._offset.xCenter = this._offset.x + this._offset.halfWidth;
-    this._offset.yCenter = this._offset.y + this._offset.halfHeight;
+    this.offset = this.element.getBoundingClientRect();
     if (this.shape == 'square') {
-        if (this._offset.width < this._offset.height) {
-            this._offset.y += this._offset.halfHeight - this._offset.halfWidth;
-            this._offset.height = this._offset.width;
-            this._offset.halfHeight = this._offset.halfWidth;
+        if (this.offset.width < this.offset.height) {
+            this.offset.y += (this.offset.height - this.offset.width) / 2;
+            this.offset.height = this.offset.width;
         } else {
-            this._offset.x += this._offset.halfWidth - this._offset.halfHeight;
-            this._offset.width = this._offset.height;
-            this._offset.halfWidth = this._offset.halfHeight;
+            this.offset.x += (this.offset.width - this.offset.height) / 2;
+            this.offset.width = this.offset.height;
         }
+    } else if (this.shape == 'overshoot') {
+        this.offset.x -= BUTTON_OVERSHOOT_WIDTH;
+        this.offset.y -= BUTTON_OVERSHOOT_HEIGHT;
+        this.offset.width += 2 * BUTTON_OVERSHOOT_WIDTH;
+        this.offset.height += 2 * BUTTON_OVERSHOOT_HEIGHT;
     }
-    this._offset.xMax = this._offset.x + this._offset.width;
-    this._offset.yMax = this._offset.y + this._offset.height;
+    this.offset.halfWidth = this.offset.width / 2;
+    this.offset.halfHeight = this.offset.height / 2;
+    this.offset.xCenter = this.offset.x + this.offset.halfWidth;
+    this.offset.yCenter = this.offset.y + this.offset.halfHeight;
+    this.offset.xMax = this.offset.x + this.offset.width;
+    this.offset.yMax = this.offset.y + this.offset.height;
 };
 Control.prototype.onAttached = function() {};
-Control.prototype.state = function() {
-    return Math.floor(256 * this._state);
+Control.prototype.reportState = function() {
+    return Math.floor(256 * this.state);
 };
 
 function Joystick(id, updateStateCallback) {
     Control.call(this, 'joystick', id, updateStateCallback);
-    this._state = [0, 0];
+    this.state = [0, 0];
     this.quadrant = -2;
-    this._locking = (id[0] == 's');
-    this._circle = document.createElement('div');
-    this._circle.className = 'circle';
-    this.element.appendChild(this._circle);
-    axes += 2;
+    this.locking = (id[0] == 's');
+    this.circle = document.createElement('div');
+    this.circle.className = 'circle';
+    this.element.appendChild(this.circle);
 }
 Joystick.prototype = Object.create(Control.prototype);
 Joystick.prototype.onAttached = function() {
-    this._updateCircle();
+    this.updateCircle();
     this.element.addEventListener('touchmove', this.onTouch.bind(this), false);
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
@@ -219,23 +263,23 @@ Joystick.prototype.onAttached = function() {
 };
 Joystick.prototype.onTouch = function(ev) {
     var pos = ev.targetTouches[0];
-    this._state = [
-        (pos.pageX - this._offset.xCenter) / this._offset.halfWidth,
-        (pos.pageY - this._offset.yCenter) / this._offset.halfHeight
+    this.state = [
+        (pos.pageX - this.offset.xCenter) / this.offset.halfWidth,
+        (pos.pageY - this.offset.yCenter) / this.offset.halfHeight
     ];
-    var distance = Math.max(Math.abs(this._state[0]), Math.abs(this._state[1]));
+    var distance = Math.max(Math.abs(this.state[0]), Math.abs(this.state[1]));
     if (distance < 1) {
         this.updateStateCallback();
         unqueueForVibration(this.element.id);
-        var currentQuadrant = Math.atan2(this._state[1], this._state[0]) / Math.PI + 1.125; // rad ÷ pi, shifted 22.5 deg. [0.25, 2.25]
+        var currentQuadrant = Math.atan2(this.state[1], this.state[0]) / Math.PI + 1.125; // rad ÷ pi, shifted 22.5 deg. [0.25, 2.25]
         currentQuadrant = Math.floor((currentQuadrant * 4) % 8); // [1, 9] → [1, 8)+[0, 1)
         if (VIBRATE_ON_QUADRANT_BOUNDARY && this.quadrant != -2 && this.quadrant != currentQuadrant) {
             window.navigator.vibrate(VIBRATION_MILLISECONDS_OVER);
         }
         this.quadrant = currentQuadrant;
     } else {
-        this._state[0] = Math.min(0.99999, Math.max(-0.99999, this._state[0]));
-        this._state[1] = Math.min(0.99999, Math.max(-0.99999, this._state[1]));
+        this.state[0] = Math.min(0.99999, Math.max(-0.99999, this.state[0]));
+        this.state[1] = Math.min(0.99999, Math.max(-0.99999, this.state[1]));
         this.updateStateCallback();
         if (VIBRATE_ON_PAD_BOUNDARY) {
             if (!VIBRATE_PROPORTIONALLY_TO_DISTANCE) { distance = 1; }
@@ -246,7 +290,7 @@ Joystick.prototype.onTouch = function(ev) {
         }
         this.quadrant = -2;
     }
-    this._updateCircle();
+    this.updateCircle();
 };
 Joystick.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
@@ -254,89 +298,74 @@ Joystick.prototype.onTouchStart = function(ev) {
     window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
 };
 Joystick.prototype.onTouchEnd = function() {
-    if (!this._locking) {
-        this._state = [0, 0];
+    if (!this.locking) {
+        this.state = [0, 0];
         this.updateStateCallback();
-        this._updateCircle();
+        this.updateCircle();
     }
     this.quadrant = -2;
     unqueueForVibration(this.element.id);
 };
-Joystick.prototype._updateCircle = function() {
-    this._circle.style.transform = 'translate(-50%, -50%) translate(' +
-        (this._offset.xCenter + this._offset.halfWidth * this._state[0]) + 'px, ' +
-        (this._offset.yCenter + this._offset.halfHeight * this._state[1]) + 'px)';
+Joystick.prototype.updateCircle = function() {
+    this.circle.style.transform = 'translate(-50%, -50%) translate(' +
+        (this.offset.xCenter + this.offset.halfWidth * this.state[0]) + 'px, ' +
+        (this.offset.yCenter + this.offset.halfHeight * this.state[1]) + 'px)';
 };
-Joystick.prototype.state = function() {
-    return this._state.map(function(val) {return Math.floor(128 * (val + 1));});
+Joystick.prototype.reportState = function() {
+    return this.state.map(function(val) {return Math.floor(128 * (val + 1));});
 };
 
 function Motion(id, updateStateCallback) {
     // Motion calculates always every coordinate, then applies a mask on it.
     var legalLabels = 'xyzabg';
-    this._mask = legalLabels.indexOf(id[1]);
-    this._updateTrinket = Motion.prototype['updateTrinket' + this._mask];
-    // Only the last defined sensor sends events.
-    // It's a really hacky and ugly method, but all the motion information
-    // is a property of the window anyways, not of any Motion instance.
-    motionSensor = this;
-    if (this._mask <= 2 && !deviceMotionEL) {
-        deviceMotionEL = window.addEventListener('devicemotion', Motion.prototype.onDeviceMotion, true);
-    } else if (this._mask >= 3 && !deviceOrientationEL) {
-        deviceOrientationEL = window.addEventListener('deviceorientation', Motion.prototype.onDeviceOrientation, true);
-    }
+    this.mask = legalLabels.indexOf(id[1]);
+    this.updateTrinket = Motion.prototype['updateTrinket' + this.mask];
     Control.call(this, 'motion', id, updateStateCallback);
-    axes += 1;
-    this._trinket = document.createElement('div');
-    this._trinket.className = 'motiontrinket';
-    this.element.appendChild(this._trinket);
+    this.trinket = document.createElement('div');
+    this.trinket.className = 'motiontrinket';
+    this.element.appendChild(this.trinket);
 }
 Motion.prototype = Object.create(Control.prototype);
-Motion.prototype._normalize = function(f) {
+Motion.prototype.normalize = function(f) {
     f *= ACCELERATION_CONSTANT;
     if (f < -0.499999) { f = -0.499999; }
     if (f > 0.499999) { f = 0.499999; }
     return f + 0.5;
 };
-Motion.prototype.onAttached = function() {
-    this._trinket.style.top = this._offset.y + 'px';
-    this._trinket.style.left = this._offset.x + 'px';
-    this._trinket.style.height = this._offset.height + 'px';
-    this._trinket.style.width = this._offset.width + 'px';
-};
+Motion.prototype.onAttached = function() {};
 Motion.prototype.onDeviceMotion = function(ev) {
-    motionState[0] = Motion.prototype._normalize(ev.accelerationIncludingGravity.x);
-    motionState[1] = Motion.prototype._normalize(ev.accelerationIncludingGravity.y);
-    motionState[2] = Motion.prototype._normalize(ev.accelerationIncludingGravity.z);
-    motionSensor.updateStateCallback();
+    motionState[0] = Motion.prototype.normalize(ev.accelerationIncludingGravity.x);
+    motionState[1] = Motion.prototype.normalize(ev.accelerationIncludingGravity.y);
+    motionState[2] = Motion.prototype.normalize(ev.accelerationIncludingGravity.z);
+    joypad.controls.deviceMotion.forEach(function(c) { c.updateTrinket(); });
+    joypad.updateState();
 };
 Motion.prototype.onDeviceOrientation = function(ev) {
     motionState[3] = ev.alpha / 360;
-    motionState[4] = ev.beta / 180 + .5;
+    motionState[4] = ev.beta / 360 + .5;
     motionState[5] = ev.gamma / 180 + .5;
-    motionSensor.updateStateCallback();
+    joypad.controls.deviceOrientation.forEach(function(c) { c.updateTrinket(); });
+    joypad.updateState();
 };
 Motion.prototype.updateTrinket0 = function() {};
 Motion.prototype.updateTrinket1 = function() {};
 Motion.prototype.updateTrinket2 = function() {};
-Motion.prototype.updateTrinket3 = function(v) {
-    this._trinket.style.transform = 'rotateY(' + (v * -360) + 'deg)';
+Motion.prototype.updateTrinket3 = function() {
+    this.trinket.style.transform = 'rotateY(' + (motionState[this.mask] * -360) + 'deg)';
 };
-Motion.prototype.updateTrinket4 = function(v) {
-    this._trinket.style.transform = 'rotateZ(' + ((.5 - v) * 180) + 'deg)';
+Motion.prototype.updateTrinket4 = function() {
+    this.trinket.style.transform = 'rotateZ(' + ((.5 - motionState[this.mask]) * 360) + 'deg)';
 };
-Motion.prototype.updateTrinket5 = function(v) {
-    this._trinket.style.transform = 'rotateX(' + ((.5 - v) * 180) + 'deg)';
+Motion.prototype.updateTrinket5 = function() {
+    this.trinket.style.transform = 'rotateX(' + ((.5 - motionState[this.mask]) * 180) + 'deg)';
 };
-Motion.prototype.state = function() {
-    this._updateTrinket(motionState[this._mask]);
-    return Math.floor(256 * motionState[this._mask]);
+Motion.prototype.reportState = function() {
+    return Math.floor(255.999999 * motionState[this.mask]);
 };
 
 function Pedal(id, updateStateCallback) {
-    Control.call(this, 'button', id, updateStateCallback);
-    this._state = 0;
-    axes += 1;
+    Control.call(this, 'pedal', id, updateStateCallback);
+    this.state = 0;
 }
 Pedal.prototype = Object.create(Control.prototype);
 Pedal.prototype.onAttached = function() {
@@ -355,8 +384,8 @@ Pedal.prototype.onTouchMove = function(ev) {
     // This is the default handler, which uses the Y-coordinate to control the pedal.
     // This function is overwritten if the user confirms the screen can detect touch pressure:
     var pos = ev.targetTouches[0];
-    this._state = truncate((this._offset.y - pos.pageY) / this._offset.height + 1);
-    if (this._state == 0.999999) {
+    this.state = truncate((this.offset.y - pos.pageY) / this.offset.height + 1);
+    if (this.state == 0.999999) {
         queueForVibration(this.element.id, VIBRATION_MILLISECONDS_SATURATION);
     } else {
         unqueueForVibration(this.element.id);
@@ -368,8 +397,8 @@ Pedal.prototype.onTouchMoveForce = function(ev) {
     // Overwriting the handler once is much faster than checking
     // minForce and maxForce at every updateStateCallback:
     var pos = ev.targetTouches[0];
-    this._state = truncate((pos.force - minForce) / (maxForce - minForce));
-    if (this._state == 0.999999) {
+    this.state = truncate((pos.force - minForce) / (maxForce - minForce));
+    if (this.state == 0.999999) {
         queueForVibration(this.element.id, VIBRATION_MILLISECONDS_SATURATION);
     } else {
         unqueueForVibration(this.element.id);
@@ -377,7 +406,7 @@ Pedal.prototype.onTouchMoveForce = function(ev) {
     this.updateStateCallback();
 };
 Pedal.prototype.onTouchEnd = function() {
-    this._state = 0;
+    this.state = 0;
     this.updateStateCallback();
     unqueueForVibration(this.element.id);
     this.element.classList.remove('pressed');
@@ -385,74 +414,119 @@ Pedal.prototype.onTouchEnd = function() {
 
 function AnalogButton(id, updateStateCallback) {
     this.onTouchMoveParticular = function() {};
-    Control.call(this, 'button', id, updateStateCallback);
-    this._state = 0;
-    axes += 1;
+    Control.call(this, 'analogbutton', id, updateStateCallback);
+    this.state = 0;
+    this.oldState = 0;
+    // Exact formula doesn't matter. opaqueID is just a heuristic to detect
+    // when are different buttons pressed:
+    this.opaqueID = 1 + Math.pow(0.001 * parseInt('0' + id.substring(1), 10) + (id[0] == 'a' ? 0.1 : 0), 2);
+    this.currentTouches = {};
+    this.hitbox = document.createElement('div');
+    this.hitbox.className = 'buttonhitbox';
+    this.element.appendChild(this.hitbox);
 }
 AnalogButton.prototype = Object.create(Control.prototype);
+AnalogButton.prototype.shape = 'overshoot';
 AnalogButton.prototype.onAttached = function() {
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchmove', this.onTouchMove.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
     this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
-    if (this._offset.width > this._offset.height) {
-        this.onTouchMoveParticular = function(ev) {
-            var pos = ev.targetTouches[0];
-            return truncate(1 - Math.abs(this._offset.xCenter - pos.pageX) / this._offset.halfWidth);
-        };
+    var transformation = [
+        'translate(' + this.offset.x, 'px, ', this.offset.y, 'px) ',
+        'scaleX(', this.offset.width, ') ',
+        'scaleY(', this.offset.height, ')'
+    ];
+    this.hitbox.style.transform = transformation.join('');
+};
+AnalogButton.prototype.processTouches = function() {
+    this.state = 0.000001;
+    for (var id in this.currentTouches) {
+        var touch = this.currentTouches[id];
+        this.state = Math.max(this.state, truncate(ANALOG_BUTTON_DEADZONE_CONSTANT * Math.min(
+            1 - Math.abs((touch.pageY - this.offset.yCenter) / this.offset.halfHeight),
+            1 - Math.abs((touch.pageX - this.offset.xCenter) / this.offset.halfWidth)
+        )));
+    }
+    if (this.state == 0.000001) {
+        this.element.classList.remove('pressed');
+        return 0;
     } else {
-        this.onTouchMoveParticular = function(ev) {
-            var pos = ev.targetTouches[0];
-            return truncate(1 - Math.abs(this._offset.yCenter - pos.pageY) / this._offset.halfHeight);
-        };
+        this.element.classList.add('pressed');
+        return this.opaqueID;
+    }
+};
+AnalogButton.prototype.processTouchesForce = function() {
+    this.state = 0.000001;
+    for (var id in this.currentTouches) {
+        var touch = this.currentTouches[id];
+        if (touch.pageX > this.offset.x && touch.pageX < this.offset.xMax &&
+            touch.pageY > this.offset.y && touch.pageY < this.offset.yMax) {
+            this.state = Math.max(this.state, truncate((touch.force - minForce) / (maxForce - minForce)));
+        }
+    }
+    if (this.state == 0.000001) {
+        this.element.classList.remove('pressed');
+        return 0;
+    } else {
+        this.element.classList.add('pressed');
+        return this.opaqueID;
     }
 };
 AnalogButton.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
-    window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
+    this.oldState = 0;
     this.onTouchMove(ev);
-    this.element.classList.add('pressed');
 };
 AnalogButton.prototype.onTouchMove = function(ev) {
-    // This is the default handler, which uses the distance to the center (horizontal in wide buttons, vertical in tall buttons).
-    // This function is overwritten if the user confirms the screen can detect touch pressure:
-    this._state = this.onTouchMoveParticular(ev);
+    var currentState = this.neighbors.map(function(el) {
+        Array.from(ev.changedTouches, function(touch) {
+            this.currentTouches['t' + touch.identifier] = {
+                pageX: touch.pageX,
+                pageY: touch.pageY,
+                force: touch.force
+            };
+        }, el);
+        return el.processTouches();
+    }).reduce(function(acc, cur) {return acc + cur;}, 0);
     this.updateStateCallback();
+    if (currentState != this.oldState &&
+        Math.floor(currentState) >= Math.floor(this.oldState)) {
+        window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
+    }
+    this.oldState = currentState;
 };
-AnalogButton.prototype.onTouchMoveForce = function(ev) {
-    // This is the replacement handler, which uses touch pressure.
-    var pos = ev.targetTouches[0];
-    this._state = truncate((pos.force - minForce) / (maxForce - minForce));
+AnalogButton.prototype.onTouchEnd = function(ev) {
+    this.oldState = this.neighbors.map(function(el) {
+        Array.from(ev.changedTouches, function(touch) {
+            delete el.currentTouches['t' + touch.identifier];
+        });
+        return el.processTouches();
+    }).reduce(function(acc, cur) {return acc + cur;}, 0);
     this.updateStateCallback();
-};
-AnalogButton.prototype.onTouchEnd = function() {
-    this._state = 0;
-    this.updateStateCallback();
-    this.element.classList.remove('pressed');
 };
 
 function Knob(id, updateStateCallback) {
     Control.call(this, 'knob', id, updateStateCallback);
-    this.shape = 'square';
-    this._state = 0;
-    this.initState = 0; // state at onTouchStart
-    this.initAngle = 0; // angular coordinate at onTouchStart
-    this._knobCircle = document.createElement('div');
-    this._knobCircle.className = 'knobcircle';
-    this.element.appendChild(this._knobCircle);
-    this._circle = document.createElement('div');
-    this._circle.className = 'circle';
-    this._knobCircle.appendChild(this._circle);
-    axes += 1;
+    this.state = 0.5;
+    this.initState = 0.5; // state at onTouchStart
+    this.initTransform = ''; // style.transform
+    this.knobCircle = document.createElement('div');
+    this.knobCircle.className = 'knobcircle';
+    this.element.appendChild(this.knobCircle);
+    this.circle = document.createElement('div');
+    this.circle.className = 'circle';
+    this.knobCircle.appendChild(this.circle);
 }
 Knob.prototype = Object.create(Control.prototype);
+Knob.prototype.shape = 'square';
 Knob.prototype.onAttached = function() {
     // Centering the knob within the boundary.
-    this._knobCircle.style.top = this._offset.y + 'px';
-    this._knobCircle.style.left = this._offset.x + 'px';
-    this._knobCircle.style.height = this._offset.height + 'px';
-    this._knobCircle.style.width = this._offset.width + 'px';
-    this._updateCircles();
+    this.knobCircle.style.top = this.offset.y + 'px';
+    this.knobCircle.style.left = this.offset.x + 'px';
+    this.knobCircle.style.height = this.offset.height + 'px';
+    this.knobCircle.style.width = this.offset.width + 'px';
+    this.updateCircles();
     this.quadrant = 0;
     this.element.addEventListener('touchmove', this.onTouch.bind(this), false);
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
@@ -464,63 +538,77 @@ Knob.prototype.onTouch = function(ev) {
     // The knob now increments the state proportionally to the turned angle.
     // This requires subtracting the current angular position from the position at onTouchStart
     // A real knob turns the same way no matter where you touch it.
-    this._state = (this.initState + (Math.atan2(pos.pageY - this._offset.yCenter,
-        pos.pageX - this._offset.xCenter) - this.initAngle) / (2 * Math.PI)) % 1;
+    this.state = (this.initState + (Math.atan2(pos.pageY - this.offset.yCenter,
+        pos.pageX - this.offset.xCenter)) / (2 * Math.PI)) % 1;
     this.updateStateCallback();
-    var currentQuadrant = Math.floor(this._state * 16);
+    var currentQuadrant = Math.floor(this.state * 8);
     if (VIBRATE_ON_QUADRANT_BOUNDARY && this.quadrant != currentQuadrant) {
         window.navigator.vibrate(VIBRATION_MILLISECONDS_OVER);
     }
     this.quadrant = currentQuadrant;
-    this._updateCircles();
+    this.updateCircles();
 };
 Knob.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
     var pos = ev.targetTouches[0];
-    this.initAngle = Math.atan2(pos.pageY - this._offset.yCenter,
-        pos.pageX - this._offset.xCenter) - 2 * Math.PI;
-    this.onTouch(ev);
+    this.initState = this.state - (Math.atan2(pos.pageY - this.offset.yCenter,
+        pos.pageX - this.offset.xCenter) / (2 * Math.PI)) + 1;
     window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
 };
 Knob.prototype.onTouchEnd = function() {
     this.updateStateCallback();
-    this.initState = this._state;
-    this._updateCircles();
+    this.updateCircles();
 };
-Knob.prototype._updateCircles = function() {
-    this._knobcircle.style.transform = 'rotate(' + ((this._state - 0.25) * 360) + 'deg)';
+Knob.prototype.updateCircles = function() {
+    this.knobCircle.style.transform = 'rotate(' + ((this.state + 0.25) * 360) + 'deg)';
 };
 
 function Button(id, updateStateCallback) {
     Control.call(this, 'button', id, updateStateCallback);
-    this._state = 0;
-    buttons += 1;
+    this.state = 0;
+    this.oldState = 0;
+    // Exact formula doesn't matter. opaqueID is just a heuristic to detect
+    // when are different buttons pressed:
+    this.opaqueID = 1 + Math.pow(0.001 * parseInt('0' + id.substring(1), 10) + (id[0] == 'a' ? 0.1 : 0), 2);
+    this.currentTouches = {};
+    this.hitbox = document.createElement('div');
+    this.hitbox.className = 'buttonhitbox';
+    this.element.appendChild(this.hitbox);
 }
 Button.prototype = Object.create(Control.prototype);
+Button.prototype.shape = 'overshoot';
 Button.prototype.onAttached = function() {
-    this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
-    this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
-    this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
+    this.hitbox.addEventListener('touchstart', this.onTouchStart.bind(this), false);
+    this.hitbox.addEventListener('touchmove', this.onTouchMove.bind(this), false);
+    this.hitbox.addEventListener('touchend', this.onTouchEnd.bind(this), false);
+    this.hitbox.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
+    this.hitbox.style.transform = [
+        'translate(' + this.offset.x, 'px, ', this.offset.y, 'px) ',
+        'scaleX(', this.offset.width, ') ',
+        'scaleY(', this.offset.height, ')'
+    ].join('');
 };
-Button.prototype.onTouchStart = function(ev) {
-    ev.preventDefault(); // Android Webview delays the vibration without this.
-    this._state = 1;
-    this.updateStateCallback();
-    this.element.classList.add('pressed');
-    window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
+Button.prototype.processTouches = function() {
+    this.state = 0;
+    for (var id in this.currentTouches) {
+        var touch = this.currentTouches[id];
+        if (touch.pageX > this.offset.x && touch.pageX < this.offset.xMax &&
+            touch.pageY > this.offset.y && touch.pageY < this.offset.yMax) {
+            this.state = 1;
+        }
+    }
+    (this.state == 1) ? this.element.classList.add('pressed') : this.element.classList.remove('pressed');
+    return this.state * this.opaqueID;
 };
-Button.prototype.onTouchEnd = function() {
-    this._state = 0;
-    this.updateStateCallback();
-    this.element.classList.remove('pressed');
-};
-Button.prototype.state = function() { return this._state; };
+Button.prototype.onTouchStart = AnalogButton.prototype.onTouchStart;
+Button.prototype.onTouchMove = AnalogButton.prototype.onTouchMove;
+Button.prototype.onTouchEnd = AnalogButton.prototype.onTouchEnd;
+Button.prototype.reportState = function() { return this.state; };
 
 function DPad(id, updateStateCallback) {
     Control.call(this, 'dpad', id, updateStateCallback);
-    this._state = [0, 0, 0, 0];
-    this.oldState = 0;
-    buttons += 4;
+    this.state = [0, 0, 0, 0];
+    this.oldState = -1;
 }
 DPad.prototype = Object.create(Control.prototype);
 DPad.prototype.onAttached = function() {
@@ -529,118 +617,155 @@ DPad.prototype.onAttached = function() {
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
     this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
     // Precalculate the borders of the buttons:
-    this._offset.x1 = this._offset.xCenter - DPAD_BUTTON_WIDTH * this._offset.halfWidth;
-    this._offset.x2 = this._offset.xCenter + DPAD_BUTTON_WIDTH * this._offset.halfWidth;
-    this._offset.up_y = this._offset.y + DPAD_BUTTON_LENGTH * this._offset.height;
-    this._offset.down_y = this._offset.yMax - DPAD_BUTTON_LENGTH * this._offset.height;
-    this._offset.y1 = this._offset.yCenter - DPAD_BUTTON_WIDTH * this._offset.halfHeight;
-    this._offset.y2 = this._offset.yCenter + DPAD_BUTTON_WIDTH * this._offset.halfHeight;
-    this._offset.left_x = this._offset.x + DPAD_BUTTON_LENGTH * this._offset.width;
-    this._offset.right_x = this._offset.xMax - DPAD_BUTTON_LENGTH * this._offset.width;
+    this.offset.x1 = this.offset.xCenter - DPAD_BUTTON_WIDTH * this.offset.halfWidth;
+    this.offset.x2 = this.offset.xCenter + DPAD_BUTTON_WIDTH * this.offset.halfWidth;
+    this.offset.up_y = this.offset.y + DPAD_BUTTON_LENGTH * this.offset.height;
+    this.offset.down_y = this.offset.yMax - DPAD_BUTTON_LENGTH * this.offset.height;
+    this.offset.y1 = this.offset.yCenter - DPAD_BUTTON_WIDTH * this.offset.halfHeight;
+    this.offset.y2 = this.offset.yCenter + DPAD_BUTTON_WIDTH * this.offset.halfHeight;
+    this.offset.left_x = this.offset.x + DPAD_BUTTON_LENGTH * this.offset.width;
+    this.offset.right_x = this.offset.xMax - DPAD_BUTTON_LENGTH * this.offset.width;
 };
 DPad.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
     this.onTouchMove(ev);
 };
 DPad.prototype.onTouchMove = function(ev) {
-    var pos = ev.targetTouches[0];
-    this._state = [0, 0, 0, 0]; // up, left, down, right
-    if (pos.pageX > this._offset.x1 && pos.pageX < this._offset.x2) {
-        if (pos.pageY < this._offset.up_y && pos.pageY > this._offset.y) {
-            this._state[0] = 1;
-        } else if (pos.pageY > this._offset.down_y && pos.pageY < this._offset.yMax) {
-            this._state[2] = 1;
+    this.state = [0, 0, 0, 0]; // up, left, down, right
+    Array.from(ev.targetTouches, function(pos) {
+        if (pos.pageX > this.offset.x1 && pos.pageX < this.offset.x2) {
+            if (pos.pageY < this.offset.up_y && pos.pageY > this.offset.y) {
+                this.state[0] = 1;
+            } else if (pos.pageY > this.offset.down_y && pos.pageY < this.offset.yMax) {
+                this.state[2] = 1;
+            }
         }
-    }
-    if (pos.pageY > this._offset.y1 && pos.pageY < this._offset.y2) {
-        if (pos.pageX < this._offset.left_x && pos.pageX > this._offset.x) {
-            this._state[1] = 1;
-        } else if (pos.pageX > this._offset.right_x && pos.pageX < this._offset.xMax) {
-            this._state[3] = 1;
+        if (pos.pageY > this.offset.y1 && pos.pageY < this.offset.y2) {
+            if (pos.pageX < this.offset.left_x && pos.pageX > this.offset.x) {
+                this.state[1] = 1;
+            } else if (pos.pageX > this.offset.right_x && pos.pageX < this.offset.xMax) {
+                this.state[3] = 1;
+            }
         }
-    }
+    }, this);
     this.updateStateCallback();
-    var currentState = this._state.reduce(function(acc, cur) {return (acc << 1) + cur;}, 0);
+    var currentState = this.state.reduce(function(acc, cur) {return (acc << 1) + cur;}, 0);
     if (currentState != this.oldState) {
         this.oldState = currentState; this.updateButtons();
         window.navigator.vibrate(VIBRATION_MILLISECONDS_DPAD);
     }
 };
 DPad.prototype.onTouchEnd = function() {
-    this._state = [0, 0, 0, 0];
+    this.state = [0, 0, 0, 0];
     this.oldState = 0;
     this.updateStateCallback();
     this.updateButtons();
 };
-DPad.prototype.state = function() { return this._state.toString(); };
+DPad.prototype.reportState = function() { return this.state.toString(); };
 DPad.prototype.updateButtons = function() {
-    (this._state[0] == 1) ? this.element.classList.add('up') : this.element.classList.remove('up');
-    (this._state[1] == 1) ? this.element.classList.add('left') : this.element.classList.remove('left');
-    (this._state[2] == 1) ? this.element.classList.add('down') : this.element.classList.remove('down');
-    (this._state[3] == 1) ? this.element.classList.add('right') : this.element.classList.remove('right');
+    (this.state[0] == 1) ? this.element.classList.add('up') : this.element.classList.remove('up');
+    (this.state[1] == 1) ? this.element.classList.add('left') : this.element.classList.remove('left');
+    (this.state[2] == 1) ? this.element.classList.add('down') : this.element.classList.remove('down');
+    (this.state[3] == 1) ? this.element.classList.add('right') : this.element.classList.remove('right');
 };
 
 // JOYPAD:
 function Joypad() {
     var updateStateCallback = this.updateState.bind(this);
 
-    this._controls = [];
+    this.controls = {
+        byNumID: [],
+        byMnemonicID: {},
+        deviceMotion: [],
+        deviceOrientation: []
+    };
 
     this.element = document.getElementById('joypad');
-    var gridAreas = getComputedStyle(this.element)
+    // Gather controls to attach:
+    this.gridAreas = getComputedStyle(this.element)
         .gridTemplateAreas
-        .split('"').join('').split(' ')
-        .filter(function(x) { return x != '' && x != '.'; });
-    var controlIDs = gridAreas.sort(categories).filter(unique);
-    this._debugLabel = null;
+        .replace(/ *["'] *["'] */g, '\n') // normalizes line breaks
+        .replace(/ *["'] */g, '') // removes extra quotation marks and surrounding spaces
+        .replace(/ {2,}/g, ' ') // normalizes spaces
+        .trim();
+    var controlIDs = this.gridAreas
+        .split(/[ \n]/)
+        .filter(function(x) { return x != '.'; })
+        .sort(categories).filter(unique);
+    // Create controls:
+    this.debugLabel = null;
     controlIDs.forEach(function(id) {
         if (id != 'dbg') {
-            this._controls.push(mnemonics(id, updateStateCallback));
-            if (this._controls[this._controls.length - 1] == null) {
-                this._controls.pop(); // discard unrecognised controls
+            var possibleControl = mnemonics(id, updateStateCallback);
+            if (possibleControl !== null) {
+                // Many references to the same control (not a copy):
+                this.controls.byNumID.push(possibleControl);
+                this.controls.byMnemonicID[id] = possibleControl;
+                if (id == 'mx' || id == 'my' || id == 'mz') {
+                    this.controls.deviceMotion.push(possibleControl);
+                } else if (id == 'ma' || id == 'mb' || id == 'mg') {
+                    this.controls.deviceOrientation.push(possibleControl);
+                }
             }
+        } else {
+            this.debugLabel = new Control('debug', 'dbg');
+            this.element.appendChild(this.debugLabel.element);
             this.updateDebugLabel = function(state) {
-                // shadow dummy function with useful function
-                this._debugLabel.element.innerHTML = state;
+                // shadow dummy function under a useful function
+                this.debugLabel.element.innerHTML = state;
             };
-        } else if (this._debugLabel == null) {
-            this._debugLabel = new Control('debug', 'dbg');
-            this.element.appendChild(this._debugLabel.element);
         }
     }, this);
-    this._controls.forEach(function(control) {
-        this.element.appendChild(control.element);
-        control.getBoundingClientRect();
-        control.onAttached();
+    // Attach controls:
+    this.controls.byNumID.forEach(function(c) {
+        this.element.appendChild(c.element);
+        c.getBoundingClientRect();
+        c.onAttached();
     }, this);
-    if (axes == 0 && buttons == 0) {
+    // Check for controls:
+    if (this.controls.byNumID.length == 0) {
         prettyAlert('Your gamepad looks empty. Is <code>user.css</code> missing or broken?');
     }
-    var kernelEvents = this._controls.map(function(control) { return control.element.id; }).join(',');
-    if (this._debugLabel != null) {
-        this._debugLabel.element.innerHTML = kernelEvents;
+    // Prepare general and shared event listeners:
+    if (this.controls.deviceMotion.length > 0) {
+        window.addEventListener('devicemotion', Motion.prototype.onDeviceMotion, true);
+    }
+    if (this.controls.deviceOrientation.length > 0) {
+        window.addEventListener('deviceorientation', Motion.prototype.onDeviceOrientation, true);
+    }
+    this.controls.byNumID.forEach(function(c) {
+        var id = c.element.id;
+        if (id[0] == 'b' || id[0] == 'a') {
+            c.neighbors = findNeighbors(this.gridAreas, c.element.id)
+                .filter(function(x) { return (x[0] == 'b' || x[0] == 'a'); });
+            c.neighbors = c.neighbors.map(function(x) {
+                return this.controls.byMnemonicID[x];
+            }, this);
+        }
+    }, this);
+    // Announce current controls:
+    var kernelEvents = this.controls.byNumID.map(function(c) { return c.element.id; }).join(',');
+    if (this.debugLabel != null) {
+        this.debugLabel.element.innerHTML = kernelEvents;
     }
     if (!DEBUG_NO_CONSOLE_SPAM) { console.log(kernelEvents); }
+    // Send current controls to Yoke:
     window.Yoke.update_vals(kernelEvents);
+    // Prepare function for continuous vibrations:
     checkVibration();
 }
 Joypad.prototype.updateState = function() {
-    var state = this._controls.map(function(control) { return control.state(); }).join(',');
+    var state = this.controls.byNumID.map(function(c) { return c.reportState(); }).join(',');
     window.Yoke.update_vals(state);
     this.updateDebugLabel(state);
     if (!DEBUG_NO_CONSOLE_SPAM) { console.log(state); }
 };
-Joypad.prototype.updateDebugLabel = function() { }; //dummy function
+Joypad.prototype.updateDebugLabel = function() {}; //dummy function
 
 // BASE CODE:
 // These variables are automatically updated by the code:
 var joypad = null;
-var buttons = 0; // number of buttons total
-var axes = 0; // number of analog axes total
 var motionState = [0, 0, 0, 0, 0, 0];
-var motionSensor = null;
-var deviceMotionEL = null;
-var deviceOrientationEL = null;
 var warnings = [];
 
 // These will record the minimum and maximum force the screen can register.
@@ -677,8 +802,9 @@ function loadPad(filename) {
 
     window.addEventListener('resize', function() {
         if (joypad != null) {
-            joypad._controls.forEach(function(control) {
-                control.onAttached();
+            joypad.controls.byNumID.forEach(function(c) {
+                c.getBoundingClientRect();
+                c.onAttached();
             });
         }
     });
@@ -695,7 +821,7 @@ function loadPad(filename) {
     link.onload = function() {
         document.getElementById('joypad').style.display = 'grid';
         if (window.CSS && CSS.supports('display', 'grid')) {
-            warningDiv.addEventListener('click', function() {prettyAlert();}, false);
+            warningDiv.addEventListener('click', function() { prettyAlert(); }, false);
             warningDiv.style.display = 'none';
             if (minForce > maxForce) { // no touch force detection capability
                 joypad = new Joypad();
@@ -708,7 +834,7 @@ function loadPad(filename) {
                 document.getElementById('calibrationOk').addEventListener('click', function() {
                     calibrationDiv.style.display = 'none';
                     Pedal.prototype.onTouchMove = Pedal.prototype.onTouchMoveForce;
-                    AnalogButton.prototype.onTouchMove = AnalogButton.prototype.onTouchMoveForce;
+                    AnalogButton.prototype.processTouches = AnalogButton.prototype.processTouchesForce;
                     joypad = new Joypad();
                 });
                 document.getElementById('calibrationNo').addEventListener('click', function() {

@@ -11,10 +11,10 @@
         ".   pa  pa  .   k1  k1  .   .   .   .   .   dp  dp  dp  .   .   "
         ".   pa  pa  .   k1  k1  .   .   .   .   .   dp  dp  dp  .   .   "
         ".   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   "
-        ".   mz  mz  mz  .   .   .   .   .   .   .   .   .   .   .   .   "
-        ".   mz  mz  mz  .   b1  b1  .   bg  .   bs  .   a1  a1  .   .   "
-        ".   mz  mz  mz  .   b1  b1  .   bg  .   bs  .   a1  a1  .   .   "
-        ".   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   "
+        ".   mz  mz  b1  b1  b1  b1  b1  .   a1  a1  a1  .   .   .   .   "
+        ".   mz  mz  b1  b1  b1  b1  b1  .   a1  a1  a1  a2  a2  .   .   "
+        ".   mz  mz  b1  b1  b1  b1  b1  .   a1  a1  a1  a2  a2  .   .   "
+        ".   .   .   b1  b1  b1  b1  b1  .   .   .   a3  a4  a4  a4  a4  "
         "dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg "
         ;
         /* Possible values:
