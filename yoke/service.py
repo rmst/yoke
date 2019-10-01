@@ -4,6 +4,7 @@ import socket
 from time import sleep, time
 from platform import system
 import atexit
+import sys
 
 from yoke import events as EVENTS
 
@@ -78,6 +79,7 @@ from glob import glob
 
 
 ABS_EVENTS = [getattr(EVENTS, n) for n in dir(EVENTS) if n.startswith('ABS_')]
+preliminary_error = None
 
 class Device:
     def __init__(self, id=1, name='Yoke', events=(), bytestring=b'!impossible?aliases#string$'):
@@ -100,7 +102,7 @@ class Device:
 
     def emit(self, d, v):
         if d not in self.events:
-            print('Event {d} has not been registered... yet?')
+            print('Event {d} has not been registered… yet?')
         self.device.emit(d, int(v), False)
 
     def flush(self):
@@ -181,6 +183,7 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from threading import Thread
 import socketserver
 import os, urllib, posixpath
+import json
 
 # TODO: These three lines allow using the syntax with socketserver with
 # old versions of Python like in Debian.
@@ -216,8 +219,38 @@ class HTTPRequestHandler(SimpleHTTPRequestHandler):
             path += '/'
         return path
 
+def walk_failed(e):
+    raise
+
+def check_webserver(path):
+    print('Checking files on webserver… ', end='')
+    manifestContents = {
+        'folders': [], 'files': [],
+        'size': 0,
+        'mtime': 0,
+    }
+    for root, dirs, files in os.walk(path, onerror=walk_failed):
+        if root != path:
+            manifestContents['folders'].append(os.path.relpath(root, start=path))
+        for entry in files:
+            if entry != 'manifest':
+                entrypath = os.path.join(root, entry)
+                entrystat = os.stat(entrypath)
+                manifestContents['files'].append(os.path.relpath(entrypath, start=path))
+                manifestContents['size'] += entrystat.st_size
+                manifestContents['mtime'] = max(manifestContents['mtime'], entrystat.st_mtime)
+    print('OK.')
+    try:
+        print('Writing manifest… ', end='')
+        with open(os.path.join(path, 'manifest'), 'w') as manifest:
+            json.dump(manifestContents, manifest)
+            print('OK.')
+    except IOError:
+        print('failed.\nYoke could not write a `manifest` file to the webserver.\n'
+            'You may play without this file, but layouts downloaded from this server may be broken.')
+
 def run_webserver(port, path):
-    print('starting webserver on ', port, path)
+    print('Starting webserver on ', port, path)
     class RH(HTTPRequestHandler):
         basepath = path
     with socketserver.TCPServer(('', port), RH) as httpd:
@@ -268,6 +301,7 @@ class Service:
         adr, port = self.sock.getsockname()
         self.port = port
 
+        check_webserver(self.client_path)
         Thread(target=run_webserver, args=(self.port, self.client_path), daemon=True).start()
 
         # create zeroconf service
@@ -277,8 +311,9 @@ class Service:
         self.info = ServiceInfo(stype, fullname, socket.inet_aton(adr), port, 0, 0, {}, fullname)
         zeroconf.register_service(self.info, ttl=10)
         while True:
-            print('To connect select "{}" on your device,'.format(netname))
+            print('\nTo connect select "{}" on your device,'.format(netname))
             print('or connect manually to "{}:{}"'.format(adr, port))
+            print('Press Ctrl+C to exit.')
             trecv = time()
             irecv = 0
             connection = None
@@ -308,7 +343,7 @@ class Service:
                                     self.dev = Device(self.devid, self.name, events, m)
                                     print('New control layout chosen.')
                                 except AttributeError:
-                                    print('ERROR. Invalid layout discarded.')
+                                    print('Error. Invalid layout discarded.')
                         else:
                             v = self.preprocess(m, len(self.dev.events))
                             for e in range(0, len(v)):
@@ -332,7 +367,7 @@ class Service:
                 irecv += 1
 
     def close_atexit(self):
-        print('Yoke: Unregistering zeroconf service...')
+        print('Yoke: Unregistering zeroconf service…')
         self.close()
 
     def close(self):

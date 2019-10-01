@@ -13,10 +13,9 @@ args = parser.parse_args()
 service = yoke.Service(args.name, args.id, args.iface, args.port)
 
 try:
-    print('Starting service... Press Ctrl+C to exit.')
     service.run()
 except KeyboardInterrupt:
     pass
 finally:
-    print("Shutting down...")
+    print("Shutting down…")
     service.close()
