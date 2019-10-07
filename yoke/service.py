@@ -168,7 +168,7 @@ if system() is 'Windows':
                 (self.buttons >> 64) & 0xffffffff,
                 (self.buttons >> 96) & 0xffffffff # 3 LONGs for buttons
             ))
-            
+
             # This allows a very simple emit() definition:
             self.buttons = 0
         def close(self):
@@ -186,8 +186,9 @@ import os, urllib, posixpath
 import json
 
 # TODO: These three lines allow using the syntax with socketserver with
-# old versions of Python like in Debian.
+# old versions of Python like in the now obsolete Debian 9 (Stretch).
 # Please delete once socketserver.py is updated in every major Linux distro.
+
 if not "__enter__" in dir(socketserver.BaseServer):
     socketserver.BaseServer.__enter__ = lambda self: self
     socketserver.BaseServer.__exit__ = lambda self, *args: self.server_close()
@@ -266,12 +267,13 @@ class Service:
     devid = None
     dt = 0.02
 
-    def __init__(self, devname='Yoke', devid='1', iface='auto', port=0, client_path=DEFAULT_CLIENT_PATH):
+    def __init__(self, devname='Yoke', devid='1', iface='auto', port=0, bufsize=64, client_path=DEFAULT_CLIENT_PATH):
         self.dev = Device(devid, devname)
         self.name = devname
         self.devid = devid
         self.iface = iface
         self.port = port
+        self.bufsize = bufsize
         self.client_path = client_path
 
     def preprocess(self, message, expectedlength):
@@ -295,7 +297,7 @@ class Service:
 
         # open udp socket on random available port
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 64)  # small buffer for low latency
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self.bufsize)  # small buffer for low latency
         self.sock.bind((self.iface, self.port))
         self.sock.settimeout(0)
         adr, port = self.sock.getsockname()
@@ -320,7 +322,7 @@ class Service:
 
             while True:
                 try:
-                    m, address = self.sock.recvfrom(64)
+                    m, address = self.sock.recvfrom(self.bufsize)
 
                     if connection is None:
                         print('Connected to ', address)
