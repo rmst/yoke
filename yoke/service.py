@@ -234,7 +234,7 @@ def check_webserver(path):
         if root != path:
             manifestContents['folders'].append(os.path.relpath(root, start=path))
         for entry in files:
-            if entry != 'manifest':
+            if entry != 'manifest.json':
                 entrypath = os.path.join(root, entry)
                 entrystat = os.stat(entrypath)
                 manifestContents['files'].append(os.path.relpath(entrypath, start=path))
@@ -243,11 +243,11 @@ def check_webserver(path):
     print('OK.')
     try:
         print('Writing manifest… ', end='')
-        with open(os.path.join(path, 'manifest'), 'w') as manifest:
+        with open(os.path.join(path, 'manifest.json'), 'w') as manifest:
             json.dump(manifestContents, manifest)
             print('OK.')
     except IOError:
-        print('failed.\nYoke could not write a `manifest` file to the webserver.\n'
+        print('failed.\nYoke could not write a `manifest.json` file to the webserver.\n'
             'You may play without this file, but layouts downloaded from this server may be broken.')
 
 def run_webserver(port, path):
