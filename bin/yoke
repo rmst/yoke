@@ -8,15 +8,15 @@ parser.add_argument('--name', type=str, default='Yoke', help='virtual device nam
 parser.add_argument('--id', type=int, default=1, help='virtual device id (an integer larger than 0 in case there are multiple virtual devices)')
 parser.add_argument('--iface', type=str, default='auto', help='IP of network interface (card) to listen on')
 parser.add_argument('--port', type=int, default=0, help='port to listen on')
+parser.add_argument('--buffer', type=int, default=64, help='socket buffer length, in bytes (larger buffers add more lag, but allow for more complex gamepads)')
 args = parser.parse_args()
 
-service = yoke.Service(args.name, args.id, args.iface, args.port)
+service = yoke.Service(args.name, args.id, args.iface, args.port, args.buffer)
 
 try:
-    print('Starting service... Press Ctrl+C to exit.')
     service.run()
 except KeyboardInterrupt:
     pass
 finally:
-    print("Shutting down...")
+    print("Shutting down…")
     service.close()

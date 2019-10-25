@@ -4,6 +4,7 @@ import socket
 from time import sleep, time
 from platform import system
 import atexit
+import sys
 
 from yoke import events as EVENTS
 
@@ -78,6 +79,7 @@ from glob import glob
 
 
 ABS_EVENTS = [getattr(EVENTS, n) for n in dir(EVENTS) if n.startswith('ABS_')]
+preliminary_error = None
 
 class Device:
     def __init__(self, id=1, name='Yoke', events=(), bytestring=b'!impossible?aliases#string$'):
@@ -100,7 +102,7 @@ class Device:
 
     def emit(self, d, v):
         if d not in self.events:
-            print('Event {d} has not been registered... yet?')
+            print('Event {d} has not been registered… yet?')
         self.device.emit(d, int(v), False)
 
     def flush(self):
@@ -166,7 +168,7 @@ if system() is 'Windows':
                 (self.buttons >> 64) & 0xffffffff,
                 (self.buttons >> 96) & 0xffffffff # 3 LONGs for buttons
             ))
-            
+
             # This allows a very simple emit() definition:
             self.buttons = 0
         def close(self):
@@ -181,10 +183,12 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from threading import Thread
 import socketserver
 import os, urllib, posixpath
+import json
 
 # TODO: These three lines allow using the syntax with socketserver with
-# old versions of Python like in Debian.
+# old versions of Python like in the now obsolete Debian 9 (Stretch).
 # Please delete once socketserver.py is updated in every major Linux distro.
+
 if not "__enter__" in dir(socketserver.BaseServer):
     socketserver.BaseServer.__enter__ = lambda self: self
     socketserver.BaseServer.__exit__ = lambda self, *args: self.server_close()
@@ -216,8 +220,38 @@ class HTTPRequestHandler(SimpleHTTPRequestHandler):
             path += '/'
         return path
 
+def walk_failed(e):
+    raise
+
+def check_webserver(path):
+    print('Checking files on webserver… ', end='')
+    manifestContents = {
+        'folders': [], 'files': [],
+        'size': 0,
+        'mtime': 0,
+    }
+    for root, dirs, files in os.walk(path, onerror=walk_failed):
+        if root != path:
+            manifestContents['folders'].append(os.path.relpath(root, start=path))
+        for entry in files:
+            if entry != 'manifest.json':
+                entrypath = os.path.join(root, entry)
+                entrystat = os.stat(entrypath)
+                manifestContents['files'].append(os.path.relpath(entrypath, start=path))
+                manifestContents['size'] += entrystat.st_size
+                manifestContents['mtime'] = max(manifestContents['mtime'], entrystat.st_mtime)
+    print('OK.')
+    try:
+        print('Writing manifest… ', end='')
+        with open(os.path.join(path, 'manifest.json'), 'w') as manifest:
+            json.dump(manifestContents, manifest)
+            print('OK.')
+    except IOError:
+        print('failed.\nYoke could not write a `manifest.json` file to the webserver.\n'
+            'You may play without this file, but layouts downloaded from this server may be broken.')
+
 def run_webserver(port, path):
-    print('starting webserver on ', port, path)
+    print('Starting webserver on ', port, path)
     class RH(HTTPRequestHandler):
         basepath = path
     with socketserver.TCPServer(('', port), RH) as httpd:
@@ -233,12 +267,13 @@ class Service:
     devid = None
     dt = 0.02
 
-    def __init__(self, devname='Yoke', devid='1', iface='auto', port=0, client_path=DEFAULT_CLIENT_PATH):
+    def __init__(self, devname='Yoke', devid='1', iface='auto', port=0, bufsize=64, client_path=DEFAULT_CLIENT_PATH):
         self.dev = Device(devid, devname)
         self.name = devname
         self.devid = devid
         self.iface = iface
         self.port = port
+        self.bufsize = bufsize
         self.client_path = client_path
 
     def preprocess(self, message, expectedlength):
@@ -262,12 +297,13 @@ class Service:
 
         # open udp socket on random available port
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 64)  # small buffer for low latency
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self.bufsize)  # small buffer for low latency
         self.sock.bind((self.iface, self.port))
         self.sock.settimeout(0)
         adr, port = self.sock.getsockname()
         self.port = port
 
+        check_webserver(self.client_path)
         Thread(target=run_webserver, args=(self.port, self.client_path), daemon=True).start()
 
         # create zeroconf service
@@ -277,15 +313,16 @@ class Service:
         self.info = ServiceInfo(stype, fullname, socket.inet_aton(adr), port, 0, 0, {}, fullname)
         zeroconf.register_service(self.info, ttl=10)
         while True:
-            print('To connect select "{}" on your device,'.format(netname))
+            print('\nTo connect select "{}" on your device,'.format(netname))
             print('or connect manually to "{}:{}"'.format(adr, port))
+            print('Press Ctrl+C to exit.')
             trecv = time()
             irecv = 0
             connection = None
 
             while True:
                 try:
-                    m, address = self.sock.recvfrom(64)
+                    m, address = self.sock.recvfrom(self.bufsize)
 
                     if connection is None:
                         print('Connected to ', address)
@@ -308,7 +345,7 @@ class Service:
                                     self.dev = Device(self.devid, self.name, events, m)
                                     print('New control layout chosen.')
                                 except AttributeError:
-                                    print('ERROR. Invalid layout discarded.')
+                                    print('Error. Invalid layout discarded.')
                         else:
                             v = self.preprocess(m, len(self.dev.events))
                             for e in range(0, len(v)):
@@ -332,7 +369,7 @@ class Service:
                 irecv += 1
 
     def close_atexit(self):
-        print('Yoke: Unregistering zeroconf service...')
+        print('Yoke: Unregistering zeroconf service…')
         self.close()
 
     def close(self):

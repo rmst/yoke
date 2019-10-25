@@ -23,7 +23,7 @@ elif platform.system() == 'Android':
         'For Android, you can download the APK at '
         'https://f-droid.org/en/packages/com.simonramstedt.yoke/')
 elif platform.system() != 'Linux':
-    raise SystemError('Yoke is not yet compatible with ' + platform.system() + '. '
+    raise SystemError('Yoke is not compatible with ' + platform.system() + ' yet. '
         'Please contact the author if you know any virtual joystick driver for your system.')
 
 # https://stackoverflow.com/questions/20288711/
@@ -41,7 +41,7 @@ class PostInstallCommand(install):
                 'If you need to install this driver, you can do so anytime by visiting ' + vJoy_url)
             answer = ctypes.windll.user32.MessageBoxW(0,
                 'Yoke was installed succesfully, but can only work if the correct vJoy driver is installed. '
-                'The driver for Windows ' + platform.release() + ', version ' + platform.version() + ' at:\n\n' + vJoy_url + '\n\n'
+                'The driver for Windows ' + platform.release() + ', version ' + platform.version() + ' can be found at:\n\n' + vJoy_url + '\n\n'
                 'Click OK if you want to download the installer now, or Cancel otherwise.',
                 'vJoy driver required', 33) # question prompt (33), OK (answer == 1) and Cancel (answer == 2) buttons
             if answer == 1:
