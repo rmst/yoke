@@ -2,7 +2,7 @@
 
 > Yoke is a hackable Android gamepad for Linux (and Windows)
 
-![Yoke WebView](media/yoke_webview.webm)
+![Yoke WebView](media/yoke_webview.gif)
 
 Download the Android app from [GitHub](app/devel/app-debug.apk). This version is not available in F-Droid or Google Play yet, please be patient.
 
