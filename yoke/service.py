@@ -96,9 +96,16 @@ class Device:
         events = [e + (0, 255, 0, 0) if e in ABS_EVENTS else e for e in events]
 
         BUS_VIRTUAL = 0x06
-        import uinput
-
-        self.device = uinput.Device(events, name, BUS_VIRTUAL)
+        try:
+            import uinput
+            self.device = uinput.Device(events, name, BUS_VIRTUAL)
+        except Exception as e:
+            print("Failed to initialize device via uinput.")
+            print("Hint: try loading kernel driver with `sudo modprobe uinput`.")
+            print("Hint: make sure you've run `yoke-enable-uinput` to configure permissions.")
+            print("")
+            print("More info: {}".format(e.args))
+            raise
 
     def emit(self, d, v):
         if d not in self.events:

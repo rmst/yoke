@@ -2,6 +2,9 @@
 import yoke
 from yoke import EVENTS
 import argparse
+import sys
+
+sys.tracebacklimit = 3
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--name', type=str, default='Yoke', help='virtual device name')
