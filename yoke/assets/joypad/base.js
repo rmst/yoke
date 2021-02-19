@@ -59,51 +59,6 @@ function prettyAlert(message) {
 // https://stackoverflow.com/questions/1960473/get-all-unique-values-in-a-javascript-array-remove-duplicates#14438954
 function unique(value, index, self) { return self.indexOf(value) === index; }
 
-function mnemonics(id, callback) {
-    // Chooses the correct control for the joypad from its mnemonic code.
-    var legalLabels = '';
-    if (id.length < 2 || id.length > 3) {
-        prettyAlert('<code>' + id + '</code> is not a valid code. Control codes have 2 or 3 characters.');
-        return null;
-    } else {
-        switch (id[0]) {
-            case 's': case 'j':
-                // 's' is a locking joystick, 'j' - non-locking
-                return new Joystick(id, callback);
-            case 'm':
-                legalLabels = 'xyzabg';
-                if (legalLabels.indexOf(id[1]) == -1) {
-                    prettyAlert('Motion detection error: \
-                        Unrecognised coordinate <code>' + id[1] + '</code>.');
-                    return null;
-                } else {
-                    if (id.length != 2) { prettyAlert('Please use only one coordinate per motion sensor.'); }
-                    return new Motion(id, callback);
-                }
-            case 'p':
-                legalLabels = 'abt';
-                if (legalLabels.indexOf(id[1]) == -1) {
-                    prettyAlert('<code>' + id + '</code> is not a valid pedal. \
-                        Please use <code>pa</code> or <code>pt</code> for accelerator \
-                        and <code>pb</code> for brakes.');
-                    return null;
-                } else { return new Pedal(id, callback); }
-            case 'k': return new Knob(id, callback);
-            case 'a': return new AnalogButton(id, callback);
-            case 'b': return new Button(id, callback);
-            case 'd':
-                if (id != 'dp') {
-                    prettyAlert('D-pads are now produced with the code <code>dp</code>. \
-                        Please update your layout.');
-                    return null;
-                } else { return new DPad(id, callback); }
-            default:
-                prettyAlert('Unrecognised control <code>' + id + '</code> at user.css.');
-                return null;
-        }
-    }
-}
-
 function categories(a, b) {
     // Custom algorithm to sort control mnemonics.
     var ids = [a, b];
@@ -677,7 +632,9 @@ function Joypad() {
         byNumID: [],
         byMnemonicID: {},
         deviceMotion: [],
-        deviceOrientation: []
+        deviceOrientation: [],
+        axes: 0,
+        buttons: 0
     };
 
     this.element = document.getElementById('joypad');
@@ -696,7 +653,7 @@ function Joypad() {
     this.debugLabel = null;
     controlIDs.forEach(function(id) {
         if (id != 'dbg') {
-            var possibleControl = mnemonics(id, updateStateCallback);
+            var possibleControl = this.mnemonics(id, updateStateCallback);
             if (possibleControl !== null) {
                 // Many references to the same control (not a copy):
                 this.controls.byNumID.push(possibleControl);
@@ -761,6 +718,65 @@ Joypad.prototype.updateState = function() {
     if (!DEBUG_NO_CONSOLE_SPAM) { console.log(state); }
 };
 Joypad.prototype.updateDebugLabel = function() {}; //dummy function
+Joypad.prototype.mnemonics = function(id, callback) {
+    // Chooses the correct control for the joypad from its mnemonic code.
+    var legalLabels = '';
+    if (id.length < 2 || id.length > 3) {
+        prettyAlert('<code>' + id + '</code> is not a valid code. Control codes have 2 or 3 characters.');
+        return null;
+    } else {
+        switch (id[0]) {
+            case 's': case 'j':
+                // 's' is a locking joystick, 'j' - non-locking
+                this.controls.axes += 2;
+                return new Joystick(id, callback);
+            case 'm':
+                legalLabels = 'xyzabg';
+                if (legalLabels.indexOf(id[1]) == -1) {
+                    prettyAlert('Motion detection error: \
+                        Unrecognised coordinate <code>' + id[1] + '</code>.');
+                    return null;
+                } else {
+                    if (id.length != 2) { prettyAlert('Please use only one coordinate per motion sensor.'); }
+            this.controls.axes += 1;
+                    return new Motion(id, callback);
+                }
+            case 'p':
+                legalLabels = 'abt';
+                if (legalLabels.indexOf(id[1]) == -1) {
+                    prettyAlert('<code>' + id + '</code> is not a valid pedal. \
+                        Please use <code>pa</code> or <code>pt</code> for accelerator \
+                        and <code>pb</code> for brakes.');
+                    return null;
+                } else {
+                this.controls.axes += 1;
+                return new Pedal(id, callback);
+            }
+            case 'k':
+                this.controls.axes += 1;
+                return new Knob(id, callback);
+            case 'a':
+                this.controls.axes += 1;
+                return new AnalogButton(id, callback);
+            case 'b':
+                this.controls.buttons += 1;
+                return new Button(id, callback);
+            case 'd':
+                if (id != 'dp') {
+                    prettyAlert('D-pads are now produced with the code <code>dp</code>. \
+                        Please update your layout.');
+                    return null;
+                } else {
+                    this.controls.buttons += 4;
+                    return new DPad(id, callback);
+                }
+            default:
+                prettyAlert('Unrecognised control <code>' + id + '</code> at user.css.');
+                return null;
+        }
+    }
+}
+
 
 // BASE CODE:
 // These variables are automatically updated by the code:
