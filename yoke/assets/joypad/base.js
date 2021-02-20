@@ -198,6 +198,11 @@ Control.prototype.onAttached = function() {};
 Control.prototype.reportState = function() {
     return Math.floor(256 * this.state);
 };
+Control.prototype.setBufferView = function(cursor, buffer) {
+    this.stateBuffer = new DataView(buffer, cursor, 2);
+    this.stateBuffer.setInt16(0, 0xaa00 + cursor, false)
+    return cursor + 2;
+}
 
 function Joystick(id, updateStateCallback) {
     Control.call(this, 'joystick', id, updateStateCallback);
@@ -269,6 +274,12 @@ Joystick.prototype.updateCircle = function() {
 Joystick.prototype.reportState = function() {
     return this.state.map(function(val) {return Math.floor(128 * (val + 1));});
 };
+Joystick.prototype.setBufferView = function(cursor, buffer) {
+    this.stateBuffer = new DataView(buffer, cursor, 4);
+    this.stateBuffer.setInt16(0, 0xfbad, false)
+    this.stateBuffer.setInt16(2, cursor, false)
+    return cursor + 4;
+}
 
 function Motion(id, updateStateCallback) {
     // Motion calculates always every coordinate, then applies a mask on it.
@@ -559,6 +570,11 @@ Button.prototype.onTouchStart = AnalogButton.prototype.onTouchStart;
 Button.prototype.onTouchMove = AnalogButton.prototype.onTouchMove;
 Button.prototype.onTouchEnd = AnalogButton.prototype.onTouchEnd;
 Button.prototype.reportState = function() { return this.state; };
+Button.prototype.setBufferView = function(cursor, buffer) {
+    this.stateBuffer = new DataView(buffer, cursor, 1);
+    this.stateBuffer.setInt8(0, cursor, false)
+    return cursor + 1;
+}
 
 function DPad(id, updateStateCallback) {
     Control.call(this, 'dpad', id, updateStateCallback);
@@ -623,6 +639,14 @@ DPad.prototype.updateButtons = function() {
     (this.state[2] == 1) ? this.element.classList.add('down') : this.element.classList.remove('down');
     (this.state[3] == 1) ? this.element.classList.add('right') : this.element.classList.remove('right');
 };
+DPad.prototype.setBufferView = function(cursor, buffer) {
+    this.stateBuffer = new DataView(buffer, cursor, 4);
+    this.stateBuffer.setInt8(0, 0x00 + cursor, false)
+    this.stateBuffer.setInt8(1, 0x10 + cursor, false)
+    this.stateBuffer.setInt8(2, 0x20 + cursor, false)
+    this.stateBuffer.setInt8(3, 0x30 + cursor, false)
+    return cursor + 4;
+}
 
 // JOYPAD:
 function Joypad() {
@@ -667,15 +691,25 @@ function Joypad() {
         } else {
             this.debugLabel = new Control('debug', 'dbg');
             this.element.appendChild(this.debugLabel.element);
-            this.updateDebugLabel = function(state) {
+            this.updateDebugLabel = function() {
                 // shadow dummy function under a useful function
-                this.debugLabel.element.innerHTML = state;
+                this.debugLabel.element.innerHTML = this.stateBytes.reduce(
+                    function(acc, cur) {
+                        return acc + cur.toString(16).padStart(2, '0') + ':';
+                    }, ':'
+                )
             };
         }
     }, this);
+    // Prepare template for sending joypad state:
+    this.stateBuffer = new ArrayBuffer(1 + 2 * this.controls.axes + this.controls.buttons);
+    this.stateBytes = new Uint8Array(this.stateBuffer);
+    new DataView(this.stateBuffer).setUint8(0, 0); //header
     // Attach controls:
+    var cursor = 1;
     this.controls.byNumID.forEach(function(c) {
         this.element.appendChild(c.element);
+        cursor = c.setBufferView(cursor, this.stateBuffer);
         c.getBoundingClientRect();
         c.onAttached();
     }, this);
@@ -715,7 +749,14 @@ Joypad.prototype.updateState = function() {
     var state = this.controls.byNumID.map(function(c) { return c.reportState(); }).join(',');
     window.Yoke.update_vals(state);
     this.updateDebugLabel(state);
-    if (!DEBUG_NO_CONSOLE_SPAM) { console.log(state); }
+    if (!DEBUG_NO_CONSOLE_SPAM) {
+        // shadow dummy function under a useful function
+        console.log(this.stateBytes.reduce(
+            function(acc, cur) {
+                return acc + cur.toString(16).padStart(2, '0');
+            }, ''
+        ))
+    }
 };
 Joypad.prototype.updateDebugLabel = function() {}; //dummy function
 Joypad.prototype.mnemonics = function(id, callback) {
