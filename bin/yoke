@@ -20,6 +20,11 @@ try:
     service.run()
 except KeyboardInterrupt:
     pass
+except OSError as err:
+    if err.errno == 98:
+        print('Port already in use.')
+        print('Hint: you can run yoke again with no arguments to try a random port,')
+        print('or select a port with option --port')
 finally:
     print("Shutting down…")
     service.close()

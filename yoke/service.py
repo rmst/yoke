@@ -12,7 +12,7 @@ import struct
 ALIAS_TO_EVENT = {
     'j1':  'ABS_X,ABS_Y',
     'j2':  'ABS_RX,ABS_RY',
-    'j3':  'ABS_MISC,ABS_MAX',
+    'j3':  'ABS_TOOL_WIDTH,ABS_MAX',
     's1':  'ABS_X,ABS_Y',
     's2':  'ABS_RX,ABS_RY',
     's3':  'ABS_TOOL_WIDTH,ABS_MAX',
@@ -278,6 +278,7 @@ class Service:
     name = None
     devid = None
     dt = 0.020
+    tdelta_max = 2
 
     def __init__(self, devname='Yoke', devid='1', iface='auto', port=0, bufsize=64, client_path=DEFAULT_CLIENT_PATH):
         self.dev = Device(devid, devname)
@@ -287,6 +288,7 @@ class Service:
         self.port = port
         self.bufsize = bufsize
         self.client_path = client_path
+        self.status_length = bufsize
 
     def preprocess(self, message):
         v = self.dev.inStruct.unpack(message)
@@ -322,6 +324,7 @@ class Service:
             server=fullname
         )
         zeroconf.register_service(self.info, ttl=10)
+
         while True:
             print('\nTo connect select "{}" on your device,'.format(netname))
             print('or connect manually to "{}:{}"'.format(adr, port))
@@ -332,7 +335,7 @@ class Service:
 
             while True:
                 try:
-                    m, address = self.sock.recvfrom(self.bufsize)
+                    m, address = self.sock.recvfrom(self.status_length)
 
                     if connection is None:
                         print('Connected to ', address)
@@ -350,7 +353,11 @@ class Service:
                         # Else, it is information for a layout.
                         # If this is different than the current one, replace device.
                         else:
-                            if m != self.dev.bytestring:
+                            if len(m) >= self.status_length:
+                                # Oops, the message didn't fit in.
+                                # Do nothing yet, but restore expected length to its original value:
+                                self.status_length = self.bufsize
+                            elif m != self.dev.bytestring:
                                 v = m.decode(encoding='UTF-8')
                                 for key, value in ALIAS_TO_EVENT.items():
                                     v = v.replace(key, value)
@@ -359,6 +366,7 @@ class Service:
                                     events = [getattr(EVENTS, n) for n in v]
                                     self.dev.close()
                                     self.dev = Device(self.devid, self.name, events, m)
+                                    self.status_length = self.dev.inStruct.size
                                     print('New control layout chosen.')
                                 except AttributeError:
                                     print('Error. Invalid layout discarded.')
@@ -371,9 +379,10 @@ class Service:
 
                 tdelta = time() - trecv
 
-                if connection is not None and tdelta > 2:
-                    print('Timeout (2 seconds), disconnected.')
+                if connection is not None and tdelta > self.tdelta_max:
+                    print('Timeout ({} seconds), disconnected.'.format(self.tdelta_max))
                     print('  (listened {} times per second)'.format(int(irecv/tdelta)))
+                    self.status_length = self.bufsize
                     break
 
                 sleep(self.dt)
