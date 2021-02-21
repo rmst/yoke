@@ -11,7 +11,7 @@ class VjoyDevice:
         self.id = id
         self.axes = [0,] * 15
         self.buttons = 0
-        self.struct = struct.Struct('@B 18L L 4I 3L')
+        self.outStruct = struct.Struct('@B 18L L 4I 3L')
         if platform.release() in ('10', 'post10') and [int(v) for v in platform.version().split('.')[0:3]] > [10, 0, 1803]:
             lib_name = "vJoyInterface-" + platform.architecture()[0] + "-modern.dll"
         else:
@@ -51,7 +51,7 @@ class VjoyDevice:
             # 1 LONGs for buttons
             # 4 DWORDs for hats
             # 3 LONGs for buttons
-            self.lib.UpdateVJD(self.id, self.struct.pack(
+            self.lib.UpdateVJD(self.id, self.outStruct.pack(
                 self.id, # 1 BYTE for device ID
                 0, 0, 0, # 3 unused LONGs
                 *axes, # 8 LONGs for axes and 7 unused LONGs

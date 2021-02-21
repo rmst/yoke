@@ -7,6 +7,7 @@ import atexit
 import sys
 
 from yoke import events as EVENTS
+import struct
 
 ALIAS_TO_EVENT = {
     'j1':  'ABS_X,ABS_Y',
@@ -90,10 +91,11 @@ class Device:
                 if name == fname:
                     raise AttributeError('Device name "{}" already taken. Set another name with --name NAME'.format(name))
 
-        # set range (0, 255) for abs events
+        # set range (0, 0x7fff) for abs events
         self.events = events
         self.bytestring = bytestring
-        events = [e + (0, 255, 0, 0) if e in ABS_EVENTS else e for e in events]
+        self.inStruct = struct.Struct('>x' + ''.join(['H' if e in ABS_EVENTS else '?' for e in events]))
+        events = [e + (0, 0x7fff, 0, 0) if e in ABS_EVENTS else e for e in events]
 
         BUS_VIRTUAL = 0x06
         try:
@@ -132,7 +134,8 @@ if system() is 'Windows':
             self.device = VjoyDevice(id)
             self.lib = self.device.lib
             self.id = self.device.id
-            self.struct = self.device.struct
+            self.inStruct = '>x'
+            self.outStruct = self.device.struct
             self.events = []
             self.bytestring = bytestring
             #a vJoy controller has up to 8 axis with fixed names, and 128 buttons with no names.
@@ -142,16 +145,18 @@ if system() is 'Windows':
             for event in events:
                 if event[0] == 0x01: # button/key
                     self.events.append((event[0], buttons)); buttons += 1
+                    self.inStruct += '?'
                 elif event[0] == 0x03: # analog axis
                     self.events.append((event[0], axes)); axes += 1
+                    self.inStruct += 'H'
+            self.inStruct = struct.Struct(self.inStruct)
             self.axes = [0,] * 15
             self.buttons = 0
         def emit(self, d, v):
             if d is not None:
                 if d[0] == 0x03: #analog axis
-                    # To map from [0, 255] to [0x1, 0x8000], take the bitstring abcdefgh,
-                    # parse the bitstring abcdefghabcdefg, and then sum 1.
-                    self.axes[d[1]] = ((v << 7) | (v >> 1)) + 1
+                    # To map from [0x0, 0x7fff] to [0x1, 0x8000], just sum 1.
+                    self.axes[d[1]] = v + 1
                 else:
                     self.buttons |= (v << d[1])
         def flush(self):
@@ -165,7 +170,7 @@ if system() is 'Windows':
             # 1 LONGs for buttons
             # 4 DWORDs for hats
             # 3 LONGs for buttons
-            self.lib.UpdateVJD(self.id, self.struct.pack(
+            self.lib.UpdateVJD(self.id, self.outStruct.pack(
                 self.id, # 1 BYTE for device ID
                 0, 0, 0, # 3 unused LONGs
                 *self.axes, # 8 LONGs for axes and 7 unused LONGs
@@ -272,7 +277,7 @@ class Service:
     info = None
     name = None
     devid = None
-    dt = 0.02
+    dt = 0.020
 
     def __init__(self, devname='Yoke', devid='1', iface='auto', port=0, bufsize=64, client_path=DEFAULT_CLIENT_PATH):
         self.dev = Device(devid, devname)
@@ -283,17 +288,8 @@ class Service:
         self.bufsize = bufsize
         self.client_path = client_path
 
-    def preprocess(self, message, expectedlength):
-        v = message.split(b',')
-        v = tuple([int(m) for m in v])
-        if len(v) < expectedlength:
-            # Before reducing float precision, sometimes UDP messages were getting cut in half.
-            # Keeping the code just in case.
-            print('malformed message!')
-            print(v)
-            v += (0,) * (expectedlength - len(v))
-        elif len(v) > expectedlength:
-            v = v[0:expectedlength]
+    def preprocess(self, message):
+        v = self.dev.inStruct.unpack(message)
         return v
 
     def run(self):
@@ -345,9 +341,15 @@ class Service:
                     if connection == address:
                         trecv = time()
                         irecv = 0
-                        # If the message begins with a lowercase letter, it is a layout.
-                        # If it's different than the current one, replace device.
-                        if (m[0] >= 97 and m[0] <= 122):
+                        # If the message starts with a null byte, it is a status report from the game controller.
+                        if (m[0] == 0):
+                            v = self.preprocess(m)
+                            for e in range(0, len(v)):
+                                self.dev.emit(self.dev.events[e], v[e])
+                            self.dev.flush()
+                        # Else, it is information for a layout.
+                        # If this is different than the current one, replace device.
+                        else:
                             if m != self.dev.bytestring:
                                 v = m.decode(encoding='UTF-8')
                                 for key, value in ALIAS_TO_EVENT.items():
@@ -360,11 +362,6 @@ class Service:
                                     print('New control layout chosen.')
                                 except AttributeError:
                                     print('Error. Invalid layout discarded.')
-                        else:
-                            v = self.preprocess(m, len(self.dev.events))
-                            for e in range(0, len(v)):
-                                self.dev.emit(self.dev.events[e], v[e])
-                            self.dev.flush()
 
                     else:
                         pass  # ignore packets from other addresses

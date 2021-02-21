@@ -126,9 +126,11 @@ function findNeighbors(gridArea, id) {
 }
 
 function truncate(val) {
-    return (val < 0.000001) ? 0.000001 :
-        (val > 0.999999) ? 0.999999 : val;
+    return (val < 0) ? 0 :
+        (val > 0x7fff) ? 0x7fff : Math.floor(val);
 }
+
+var serializer = new TextDecoder("iso-8859-1")
 
 // HAPTIC FEEDBACK MIXING:
 var vibrating = {};
@@ -168,7 +170,6 @@ function Control(type, id, updateStateCallback) {
     this.element.style.gridArea = id;
     this.gridArea = id;
     this.updateStateCallback = updateStateCallback;
-    this.state = 0;
 }
 Control.prototype.shape = 'rectangle';
 Control.prototype.getBoundingClientRect = function() {
@@ -195,12 +196,9 @@ Control.prototype.getBoundingClientRect = function() {
     this.offset.yMax = this.offset.y + this.offset.height;
 };
 Control.prototype.onAttached = function() {};
-Control.prototype.reportState = function() {
-    return Math.floor(256 * this.state);
-};
 Control.prototype.setBufferView = function(cursor, buffer) {
     this.stateBuffer = new DataView(buffer, cursor, 2);
-    this.stateBuffer.setInt16(0, 0xaa00 + cursor, false)
+    this.stateBuffer.setUint16(0, 0x0000 + cursor, false);
     return cursor + 2;
 }
 
@@ -223,10 +221,10 @@ Joystick.prototype.onAttached = function() {
 };
 Joystick.prototype.onTouch = function(ev) {
     var pos = ev.targetTouches[0];
-    this.state = [
-        (pos.pageX - this.offset.xCenter) / this.offset.halfWidth,
-        (pos.pageY - this.offset.yCenter) / this.offset.halfHeight
-    ];
+    this.state[0] = (pos.pageX - this.offset.xCenter) / this.offset.halfWidth;
+    this.state[1] = (pos.pageY - this.offset.yCenter) / this.offset.halfHeight;
+    this.stateBuffer.setUint16(0, truncate(this.state[0] * 0x4000 + 0x4000), false);
+    this.stateBuffer.setUint16(2, truncate(this.state[1] * 0x4000 + 0x4000), false);
     var distance = Math.max(Math.abs(this.state[0]), Math.abs(this.state[1]));
     if (distance < 1) {
         this.updateStateCallback();
@@ -238,8 +236,6 @@ Joystick.prototype.onTouch = function(ev) {
         }
         this.quadrant = currentQuadrant;
     } else {
-        this.state[0] = Math.min(0.99999, Math.max(-0.99999, this.state[0]));
-        this.state[1] = Math.min(0.99999, Math.max(-0.99999, this.state[1]));
         this.updateStateCallback();
         if (VIBRATE_ON_PAD_BOUNDARY) {
             if (!VIBRATE_PROPORTIONALLY_TO_DISTANCE) { distance = 1; }
@@ -259,7 +255,10 @@ Joystick.prototype.onTouchStart = function(ev) {
 };
 Joystick.prototype.onTouchEnd = function() {
     if (!this.locking) {
-        this.state = [0, 0];
+        this.state[0] = 0;
+        this.state[1] = 0;
+        this.stateBuffer.setUint16(0, 0x4000, false);
+        this.stateBuffer.setUint16(2, 0x4000, false);
         this.updateStateCallback();
         this.updateCircle();
     }
@@ -268,16 +267,13 @@ Joystick.prototype.onTouchEnd = function() {
 };
 Joystick.prototype.updateCircle = function() {
     this.circle.style.transform = 'translate(-50%, -50%) translate(' +
-        (this.offset.xCenter + this.offset.halfWidth * this.state[0]) + 'px, ' +
-        (this.offset.yCenter + this.offset.halfHeight * this.state[1]) + 'px)';
-};
-Joystick.prototype.reportState = function() {
-    return this.state.map(function(val) {return Math.floor(128 * (val + 1));});
+        (this.offset.xCenter + this.offset.halfWidth * Math.max(-1, Math.min(this.state[0], 1))) + 'px, ' +
+        (this.offset.yCenter + this.offset.halfHeight * Math.max(-1, Math.min(this.state[1], 1))) + 'px)';
 };
 Joystick.prototype.setBufferView = function(cursor, buffer) {
     this.stateBuffer = new DataView(buffer, cursor, 4);
-    this.stateBuffer.setInt16(0, 0xfbad, false)
-    this.stateBuffer.setInt16(2, cursor, false)
+    this.stateBuffer.setUint16(0, 0x4000, false);
+    this.stateBuffer.setUint16(2, 0x4000, false);
     return cursor + 4;
 }
 
@@ -292,25 +288,25 @@ function Motion(id, updateStateCallback) {
     this.element.appendChild(this.trinket);
 }
 Motion.prototype = Object.create(Control.prototype);
-Motion.prototype.normalize = function(f) {
-    f *= ACCELERATION_CONSTANT;
-    if (f < -0.499999) { f = -0.499999; }
-    if (f > 0.499999) { f = 0.499999; }
-    return f + 0.5;
-};
 Motion.prototype.onAttached = function() {};
 Motion.prototype.onDeviceMotion = function(ev) {
-    motionState[0] = Motion.prototype.normalize(ev.accelerationIncludingGravity.x);
-    motionState[1] = Motion.prototype.normalize(ev.accelerationIncludingGravity.y);
-    motionState[2] = Motion.prototype.normalize(ev.accelerationIncludingGravity.z);
-    joypad.controls.deviceMotion.forEach(function(c) { c.updateTrinket(); });
+    motionState[0] = ev.accelerationIncludingGravity.x * ACCELERATION_CONSTANT;
+    motionState[1] = ev.accelerationIncludingGravity.y * ACCELERATION_CONSTANT;
+    motionState[2] = ev.accelerationIncludingGravity.z * ACCELERATION_CONSTANT;
+    joypad.controls.deviceMotion.forEach(function(c) {
+        c.stateBuffer.setUint16(0, truncate(0x4000 * motionState[c.mask] + 0x4000), false);
+        c.updateTrinket();
+    });
     joypad.updateState();
 };
 Motion.prototype.onDeviceOrientation = function(ev) {
     motionState[3] = ev.alpha / 360;
     motionState[4] = ev.beta / 360 + .5;
     motionState[5] = ev.gamma / 180 + .5;
-    joypad.controls.deviceOrientation.forEach(function(c) { c.updateTrinket(); });
+    joypad.controls.deviceOrientation.forEach(function(c) {
+        c.stateBuffer.setUint16(0, truncate(0x8000 * motionState[c.mask]), false);
+        c.updateTrinket();
+    });
     joypad.updateState();
 };
 Motion.prototype.updateTrinket0 = function() {};
@@ -324,9 +320,6 @@ Motion.prototype.updateTrinket4 = function() {
 };
 Motion.prototype.updateTrinket5 = function() {
     this.trinket.style.transform = 'rotateX(' + ((.5 - motionState[this.mask]) * 180) + 'deg)';
-};
-Motion.prototype.reportState = function() {
-    return Math.floor(255.999999 * motionState[this.mask]);
 };
 
 function Pedal(id, updateStateCallback) {
@@ -350,12 +343,13 @@ Pedal.prototype.onTouchMove = function(ev) {
     // This is the default handler, which uses the Y-coordinate to control the pedal.
     // This function is overwritten if the user confirms the screen can detect touch pressure:
     var pos = ev.targetTouches[0];
-    this.state = truncate((this.offset.y - pos.pageY) / this.offset.height + 1);
-    if (this.state == 0.999999) {
+    this.state = (this.offset.y - pos.pageY) / this.offset.height + 1;
+    if (this.state > 1) {
         queueForVibration(this.element.id, VIBRATION_MILLISECONDS_SATURATION);
     } else {
         unqueueForVibration(this.element.id);
     }
+    this.stateBuffer.setUint16(0, truncate(0x8000 * this.state), false);
     this.updateStateCallback();
 };
 Pedal.prototype.onTouchMoveForce = function(ev) {
@@ -363,16 +357,18 @@ Pedal.prototype.onTouchMoveForce = function(ev) {
     // Overwriting the handler once is much faster than checking
     // minForce and maxForce at every updateStateCallback:
     var pos = ev.targetTouches[0];
-    this.state = truncate((pos.force - minForce) / (maxForce - minForce));
-    if (this.state == 0.999999) {
+    this.state = (pos.force - minForce) / (maxForce - minForce);
+    if (this.state > 1) {
         queueForVibration(this.element.id, VIBRATION_MILLISECONDS_SATURATION);
     } else {
         unqueueForVibration(this.element.id);
     }
+    this.stateBuffer.setUint16(0, truncate(0x8000 * this.state), false);
     this.updateStateCallback();
 };
 Pedal.prototype.onTouchEnd = function() {
     this.state = 0;
+    this.stateBuffer.setUint16(0, 0, false);
     this.updateStateCallback();
     unqueueForVibration(this.element.id);
     this.element.classList.remove('pressed');
@@ -423,15 +419,16 @@ AnalogButton.prototype.processTouches = function() {
     }
 };
 AnalogButton.prototype.processTouchesForce = function() {
-    this.state = 0.000001;
+    this.state = 0;
     for (var id in this.currentTouches) {
         var touch = this.currentTouches[id];
         if (touch.pageX > this.offset.x && touch.pageX < this.offset.xMax &&
             touch.pageY > this.offset.y && touch.pageY < this.offset.yMax) {
-            this.state = Math.max(this.state, truncate((touch.force - minForce) / (maxForce - minForce)));
+            this.state = Math.max(this.state, (touch.force - minForce) / (maxForce - minForce));
         }
     }
-    if (this.state == 0.000001) {
+    this.stateBuffer.setUint16(0, truncate(this.state * 0x8000), false);
+    if (this.state == 0) {
         this.element.classList.remove('pressed');
         return 0;
     } else {
@@ -506,6 +503,7 @@ Knob.prototype.onTouch = function(ev) {
     // A real knob turns the same way no matter where you touch it.
     this.state = (this.initState + (Math.atan2(pos.pageY - this.offset.yCenter,
         pos.pageX - this.offset.xCenter)) / (2 * Math.PI)) % 1;
+    this.stateBuffer.setUint16(0, truncate(this.state * 0x4000 + 0x4000), false);
     this.updateStateCallback();
     var currentQuadrant = Math.floor(this.state * 8);
     if (VIBRATE_ON_QUADRANT_BOUNDARY && this.quadrant != currentQuadrant) {
@@ -549,7 +547,7 @@ Button.prototype.onAttached = function() {
     this.hitbox.addEventListener('touchend', this.onTouchEnd.bind(this), false);
     this.hitbox.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
     this.hitbox.style.transform = [
-        'translate(' + this.offset.x, 'px, ', this.offset.y, 'px) ',
+        'translate(', this.offset.x, 'px, ', this.offset.y, 'px) ',
         'scaleX(', this.offset.width, ') ',
         'scaleY(', this.offset.height, ')'
     ].join('');
@@ -564,15 +562,14 @@ Button.prototype.processTouches = function() {
         }
     }
     (this.state == 1) ? this.element.classList.add('pressed') : this.element.classList.remove('pressed');
+    this.stateBuffer.setUint8(0, this.state);
     return this.state * this.opaqueID;
 };
 Button.prototype.onTouchStart = AnalogButton.prototype.onTouchStart;
 Button.prototype.onTouchMove = AnalogButton.prototype.onTouchMove;
 Button.prototype.onTouchEnd = AnalogButton.prototype.onTouchEnd;
-Button.prototype.reportState = function() { return this.state; };
 Button.prototype.setBufferView = function(cursor, buffer) {
     this.stateBuffer = new DataView(buffer, cursor, 1);
-    this.stateBuffer.setInt8(0, cursor, false)
     return cursor + 1;
 }
 
@@ -602,20 +599,24 @@ DPad.prototype.onTouchStart = function(ev) {
     this.onTouchMove(ev);
 };
 DPad.prototype.onTouchMove = function(ev) {
-    this.state = [0, 0, 0, 0]; // up, left, down, right
+    // up, left, down, right
+    this.stateBuffer[0] = 0;
+    this.stateBuffer[1] = 0;
+    this.stateBuffer[2] = 0;
+    this.stateBuffer[3] = 0;
     Array.from(ev.targetTouches, function(pos) {
         if (pos.pageX > this.offset.x1 && pos.pageX < this.offset.x2) {
             if (pos.pageY < this.offset.up_y && pos.pageY > this.offset.y) {
-                this.state[0] = 1;
+                this.stateBuffer[0] = 1;
             } else if (pos.pageY > this.offset.down_y && pos.pageY < this.offset.yMax) {
-                this.state[2] = 1;
+                this.stateBuffer[2] = 1;
             }
         }
         if (pos.pageY > this.offset.y1 && pos.pageY < this.offset.y2) {
             if (pos.pageX < this.offset.left_x && pos.pageX > this.offset.x) {
-                this.state[1] = 1;
+                this.stateBuffer[1] = 1;
             } else if (pos.pageX > this.offset.right_x && pos.pageX < this.offset.xMax) {
-                this.state[3] = 1;
+                this.stateBuffer[3] = 1;
             }
         }
     }, this);
@@ -627,24 +628,22 @@ DPad.prototype.onTouchMove = function(ev) {
     }
 };
 DPad.prototype.onTouchEnd = function() {
-    this.state = [0, 0, 0, 0];
+    this.stateBuffer[0] = 0;
+    this.stateBuffer[1] = 0;
+    this.stateBuffer[2] = 0;
+    this.stateBuffer[3] = 0;
     this.oldState = 0;
     this.updateStateCallback();
     this.updateButtons();
 };
-DPad.prototype.reportState = function() { return this.state.toString(); };
 DPad.prototype.updateButtons = function() {
-    (this.state[0] == 1) ? this.element.classList.add('up') : this.element.classList.remove('up');
-    (this.state[1] == 1) ? this.element.classList.add('left') : this.element.classList.remove('left');
-    (this.state[2] == 1) ? this.element.classList.add('down') : this.element.classList.remove('down');
-    (this.state[3] == 1) ? this.element.classList.add('right') : this.element.classList.remove('right');
+    (this.stateBuffer[0] == 1) ? this.element.classList.add('up') : this.element.classList.remove('up');
+    (this.stateBuffer[1] == 1) ? this.element.classList.add('left') : this.element.classList.remove('left');
+    (this.stateBuffer[2] == 1) ? this.element.classList.add('down') : this.element.classList.remove('down');
+    (this.stateBuffer[3] == 1) ? this.element.classList.add('right') : this.element.classList.remove('right');
 };
 DPad.prototype.setBufferView = function(cursor, buffer) {
-    this.stateBuffer = new DataView(buffer, cursor, 4);
-    this.stateBuffer.setInt8(0, 0x00 + cursor, false)
-    this.stateBuffer.setInt8(1, 0x10 + cursor, false)
-    this.stateBuffer.setInt8(2, 0x20 + cursor, false)
-    this.stateBuffer.setInt8(3, 0x30 + cursor, false)
+    this.stateBuffer = new Uint8Array(buffer, cursor, 4);
     return cursor + 4;
 }
 
@@ -746,9 +745,8 @@ function Joypad() {
     checkVibration();
 }
 Joypad.prototype.updateState = function() {
-    var state = this.controls.byNumID.map(function(c) { return c.reportState(); }).join(',');
-    window.Yoke.update_vals(state);
-    this.updateDebugLabel(state);
+    window.Yoke.update_vals(serializer.decode(this.stateBuffer));
+    this.updateDebugLabel();
     if (!DEBUG_NO_CONSOLE_SPAM) {
         // shadow dummy function under a useful function
         console.log(this.stateBytes.reduce(
