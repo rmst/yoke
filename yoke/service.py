@@ -135,7 +135,7 @@ if system() is 'Windows':
             self.lib = self.device.lib
             self.id = self.device.id
             self.inStruct = '>x'
-            self.outStruct = self.device.struct
+            self.outStruct = self.device.outStruct
             self.events = []
             self.bytestring = bytestring
             #a vJoy controller has up to 8 axis with fixed names, and 128 buttons with no names.
@@ -243,13 +243,15 @@ def check_webserver(path):
         'mtime': 0,
     }
     for root, dirs, files in os.walk(path, onerror=walk_failed):
+        # If the folder separator is not a forward slash, convert it to a forward slash anyways.
+        # It's what Android expects.
         if root != path:
-            manifestContents['folders'].append(os.path.relpath(root, start=path))
+            manifestContents['folders'].append(os.path.relpath(root, start=path).replace(os.sep, '/'))
         for entry in files:
             if entry != 'manifest.json':
                 entrypath = os.path.join(root, entry)
                 entrystat = os.stat(entrypath)
-                manifestContents['files'].append(os.path.relpath(entrypath, start=path))
+                manifestContents['files'].append(os.path.relpath(entrypath, start=path).replace(os.sep, '/'))
                 manifestContents['size'] += entrystat.st_size
                 manifestContents['mtime'] = max(manifestContents['mtime'], entrystat.st_mtime)
     print('OK.')

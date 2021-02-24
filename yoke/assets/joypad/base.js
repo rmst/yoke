@@ -34,26 +34,16 @@ var ACCELERATION_CONSTANT = 0.025;
 var ANALOG_BUTTON_DEADZONE_CONSTANT = 1.10;
 
 // HELPER FUNCTIONS:
-// Within the Yoke webview, Yoke.update_vals() sends the joypad state.
-// Outside the Yoke webview, Yoke.update_vals() is redefined to have no effect.
-// This prevents JavaScript exceptions, and wastes less CPU time when in Yoke:
 if (typeof window.Yoke === 'undefined') {
-    window.Yoke = {update_vals: function() {}};
-}
-
-function prettyAlert(message) {
-    if (message === undefined) {
-        if (warnings.length > 0) {
-            message = warnings.shift(1);
-            warningDiv.innerHTML = message + '<p class=\'dismiss\'>Tap to dismiss.</p>';
-            warningDiv.style.display = 'inline';
-        } else {
-            warningDiv.style.display = 'none';
-        }
-    } else {
-        warnings.push(message);
-        if (warningDiv.style.display == 'none') { prettyAlert(); }
-    }
+    window.Yoke = {
+        // Within the Yoke webview, Yoke.update_vals() sends the joypad state.
+        // Outside the Yoke webview, Yoke.update_vals() is redefined to have no effect.
+        // This prevents JavaScript exceptions, and wastes less CPU time when in Yoke.
+        update_vals: function() {},
+        // Also a way to send prompts to Yoke, which defaults to an alert()
+        // outside the Webview
+        alert: function(msg) {alert(msg);}
+    };
 }
 
 // https://stackoverflow.com/questions/1960473/get-all-unique-values-in-a-javascript-array-remove-duplicates#14438954
@@ -130,7 +120,7 @@ function truncate(val) {
         (val > 0x7fff) ? 0x7fff : Math.floor(val);
 }
 
-var serializer = new TextDecoder("iso-8859-1")
+var serializer = new TextDecoder('iso-8859-1');
 
 // HAPTIC FEEDBACK MIXING:
 var vibrating = {};
@@ -200,7 +190,7 @@ Control.prototype.setBufferView = function(cursor, buffer) {
     this.stateBuffer = new DataView(buffer, cursor, 2);
     this.stateBuffer.setUint16(0, 0x0000 + cursor, false);
     return cursor + 2;
-}
+};
 
 function Joystick(id, updateStateCallback) {
     Control.call(this, 'joystick', id, updateStateCallback);
@@ -275,7 +265,7 @@ Joystick.prototype.setBufferView = function(cursor, buffer) {
     this.stateBuffer.setUint16(0, 0x4000, false);
     this.stateBuffer.setUint16(2, 0x4000, false);
     return cursor + 4;
-}
+};
 
 function Motion(id, updateStateCallback) {
     // Motion calculates always every coordinate, then applies a mask on it.
@@ -402,15 +392,16 @@ AnalogButton.prototype.onAttached = function() {
     this.hitbox.style.transform = transformation.join('');
 };
 AnalogButton.prototype.processTouches = function() {
-    this.state = 0.000001;
+    this.state = 0;
     for (var id in this.currentTouches) {
         var touch = this.currentTouches[id];
-        this.state = Math.max(this.state, truncate(ANALOG_BUTTON_DEADZONE_CONSTANT * Math.min(
+        this.state = Math.max(this.state, ANALOG_BUTTON_DEADZONE_CONSTANT * Math.min(
             1 - Math.abs((touch.pageY - this.offset.yCenter) / this.offset.halfHeight),
             1 - Math.abs((touch.pageX - this.offset.xCenter) / this.offset.halfWidth)
-        )));
+        ));
     }
-    if (this.state == 0.000001) {
+    this.stateBuffer.setUint16(0, truncate(this.state * 0x8000), false);
+    if (this.state == 0) {
         this.element.classList.remove('pressed');
         return 0;
     } else {
@@ -503,7 +494,7 @@ Knob.prototype.onTouch = function(ev) {
     // A real knob turns the same way no matter where you touch it.
     this.state = (this.initState + (Math.atan2(pos.pageY - this.offset.yCenter,
         pos.pageX - this.offset.xCenter)) / (2 * Math.PI)) % 1;
-    this.stateBuffer.setUint16(0, truncate(this.state * 0x4000 + 0x4000), false);
+    this.stateBuffer.setUint16(0, truncate(this.state * 0x8000), false);
     this.updateStateCallback();
     var currentQuadrant = Math.floor(this.state * 8);
     if (VIBRATE_ON_QUADRANT_BOUNDARY && this.quadrant != currentQuadrant) {
@@ -571,7 +562,7 @@ Button.prototype.onTouchEnd = AnalogButton.prototype.onTouchEnd;
 Button.prototype.setBufferView = function(cursor, buffer) {
     this.stateBuffer = new DataView(buffer, cursor, 1);
     return cursor + 1;
-}
+};
 
 function DPad(id, updateStateCallback) {
     Control.call(this, 'dpad', id, updateStateCallback);
@@ -621,7 +612,7 @@ DPad.prototype.onTouchMove = function(ev) {
         }
     }, this);
     this.updateStateCallback();
-    var currentState = this.state.reduce(function(acc, cur) {return (acc << 1) + cur;}, 0);
+    var currentState = this.stateBuffer.reduce(function(acc, cur) {return (acc << 1) + cur;}, 0);
     if (currentState != this.oldState) {
         this.oldState = currentState; this.updateButtons();
         window.navigator.vibrate(VIBRATION_MILLISECONDS_DPAD);
@@ -645,7 +636,7 @@ DPad.prototype.updateButtons = function() {
 DPad.prototype.setBufferView = function(cursor, buffer) {
     this.stateBuffer = new Uint8Array(buffer, cursor, 4);
     return cursor + 4;
-}
+};
 
 // JOYPAD:
 function Joypad() {
@@ -690,16 +681,20 @@ function Joypad() {
         } else {
             this.debugLabel = new Control('debug', 'dbg');
             this.element.appendChild(this.debugLabel.element);
-            this.updateDebugLabel = function() {
-                // shadow dummy function under a useful function
-                this.debugLabel.element.innerHTML = this.stateBytes.reduce(
-                    function(acc, cur) {
-                        return acc + cur.toString(16).padStart(2, '0') + ':';
-                    }, ':'
-                )
-            };
         }
     }, this);
+    if (DEBUG_NO_CONSOLE_SPAM || this.debugLabel != null) {
+        this.updateDebugLabel = function() {
+            // shadow dummy function under a useful function
+            var hexdump = this.stateBytes.reduce(
+                function(acc, cur) {
+                    return acc + cur.toString(16).padStart(2, '0') + ':';
+                }, ':'
+            );
+            this.debugLabel.element.innerHTML = hexdump;
+            if (!DEBUG_NO_CONSOLE_SPAM) {console.log(hexdump);}
+        };
+    }
     // Prepare template for sending joypad state:
     this.stateBuffer = new ArrayBuffer(1 + 2 * this.controls.axes + this.controls.buttons);
     this.stateBytes = new Uint8Array(this.stateBuffer);
@@ -714,7 +709,7 @@ function Joypad() {
     }, this);
     // Check for controls:
     if (this.controls.byNumID.length == 0) {
-        prettyAlert('Your gamepad looks empty. Is <code>user.css</code> missing or broken?');
+        window.Yoke.alert('Your gamepad looks empty. Is `user.css` missing or broken?');
     }
     // Prepare general and shared event listeners:
     if (this.controls.deviceMotion.length > 0) {
@@ -747,21 +742,13 @@ function Joypad() {
 Joypad.prototype.updateState = function() {
     window.Yoke.update_vals(serializer.decode(this.stateBuffer));
     this.updateDebugLabel();
-    if (!DEBUG_NO_CONSOLE_SPAM) {
-        // shadow dummy function under a useful function
-        console.log(this.stateBytes.reduce(
-            function(acc, cur) {
-                return acc + cur.toString(16).padStart(2, '0');
-            }, ''
-        ))
-    }
 };
 Joypad.prototype.updateDebugLabel = function() {}; //dummy function
 Joypad.prototype.mnemonics = function(id, callback) {
     // Chooses the correct control for the joypad from its mnemonic code.
     var legalLabels = '';
     if (id.length < 2 || id.length > 3) {
-        prettyAlert('<code>' + id + '</code> is not a valid code. Control codes have 2 or 3 characters.');
+        window.Yoke.alert('`' + id + '` is not a valid code. Control codes have 2 or 3 characters.');
         return null;
     } else {
         switch (id[0]) {
@@ -772,25 +759,25 @@ Joypad.prototype.mnemonics = function(id, callback) {
             case 'm':
                 legalLabels = 'xyzabg';
                 if (legalLabels.indexOf(id[1]) == -1) {
-                    prettyAlert('Motion detection error: \
-                        Unrecognised coordinate <code>' + id[1] + '</code>.');
+                    window.Yoke.alert('Motion detection error: \
+                        Unrecognised coordinate `' + id[1] + '`.');
                     return null;
                 } else {
-                    if (id.length != 2) { prettyAlert('Please use only one coordinate per motion sensor.'); }
-            this.controls.axes += 1;
+                    if (id.length != 2) { window.Yoke.alert('Please use only one coordinate per motion sensor.'); }
+                    this.controls.axes += 1;
                     return new Motion(id, callback);
                 }
             case 'p':
                 legalLabels = 'abt';
                 if (legalLabels.indexOf(id[1]) == -1) {
-                    prettyAlert('<code>' + id + '</code> is not a valid pedal. \
-                        Please use <code>pa</code> or <code>pt</code> for accelerator \
-                        and <code>pb</code> for brakes.');
+                    window.Yoke.alert('`' + id + '` is not a valid pedal. \
+                        Please use `pa` or `pt` for accelerator \
+                        and `pb` for brakes.');
                     return null;
                 } else {
-                this.controls.axes += 1;
-                return new Pedal(id, callback);
-            }
+                    this.controls.axes += 1;
+                    return new Pedal(id, callback);
+                }
             case 'k':
                 this.controls.axes += 1;
                 return new Knob(id, callback);
@@ -802,7 +789,7 @@ Joypad.prototype.mnemonics = function(id, callback) {
                 return new Button(id, callback);
             case 'd':
                 if (id != 'dp') {
-                    prettyAlert('D-pads are now produced with the code <code>dp</code>. \
+                    window.Yoke.alert('D-pads are now produced with the code `dp`. \
                         Please update your layout.');
                     return null;
                 } else {
@@ -810,18 +797,17 @@ Joypad.prototype.mnemonics = function(id, callback) {
                     return new DPad(id, callback);
                 }
             default:
-                prettyAlert('Unrecognised control <code>' + id + '</code> at user.css.');
+                window.Yoke.alert('Unrecognised control `' + id + '` at user.css.');
                 return null;
         }
     }
-}
+};
 
 
 // BASE CODE:
 // These variables are automatically updated by the code:
 var joypad = null;
 var motionState = [0, 0, 0, 0, 0, 0];
-var warnings = [];
 
 // These will record the minimum and maximum force the screen can register.
 // They'll hopefully be updated with the actual minimum and maximum:
@@ -876,7 +862,6 @@ function loadPad(filename) {
     link.onload = function() {
         document.getElementById('joypad').style.display = 'grid';
         if (window.CSS && CSS.supports('display', 'grid')) {
-            warningDiv.addEventListener('click', function() { prettyAlert(); }, false);
             warningDiv.style.display = 'none';
             if (minForce > maxForce) { // no touch force detection capability
                 joypad = new Joypad();

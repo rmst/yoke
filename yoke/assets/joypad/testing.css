@@ -9,7 +9,7 @@
      * Do not try drawing non-rectangular shapes. */
         ".   pa  pa  .   k1  k1  .   .   .   .   .   dp  dp  dp  .   .   "
         ".   pa  pa  .   k1  k1  .   .   .   .   .   dp  dp  dp  .   .   "
-        ".   pa  pa  .   k1  k1  .   .   .   .   .   dp  dp  dp  .   .   "
+        ".   pa  pa  .   k1  k1  .   .   x   .   .   dp  dp  dp  .   .   "
         ".   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   "
         ".   mz  mz  b1  b1  b1  b1  b1  .   a1  a1  a1  .   .   .   .   "
         ".   mz  mz  b1  b1  b1  b1  b1  .   a1  a1  a1  a2  a2  .   .   "
