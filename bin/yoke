@@ -3,6 +3,7 @@ import yoke
 from yoke import EVENTS
 import argparse
 import sys
+import errno
 
 sys.tracebacklimit = 3
 
@@ -21,7 +22,7 @@ try:
 except KeyboardInterrupt:
     pass
 except OSError as err:
-    if err.errno == 98:
+    if err.errno == errno.EADDRINUSE:
         print('Port already in use.')
         print('Hint: you can run yoke again with no arguments to try a random port,')
         print('or select a port with option --port')
