@@ -19,11 +19,11 @@ service = yoke.Service(args.name, args.id, args.iface, args.port, args.buffer)
 
 try:
     service.run()
-except KeyboardInterrupt:
+except (KeyboardInterrupt, RuntimeError):
     pass
 except OSError as err:
     if err.errno == errno.EADDRINUSE:
-        print('Port already in use.')
+        print('UDP port already in use.')
         print('Hint: you can run yoke again with no arguments to try a random port,')
         print('or select a port with option --port')
 finally:

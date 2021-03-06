@@ -89,7 +89,8 @@ class Device:
             with open(fn) as f:
                 fname = f.read().split()[0]  # need to split because there seem to be newlines
                 if name == fname:
-                    raise AttributeError('Device name "{}" already taken. Set another name with --name NAME'.format(name))
+                    print('\nDevice name "{}" already taken. Set another name with --name NAME'.format(name))
+                    raise RuntimeError
 
         # set range (0, 0x7fff) for abs events
         self.events = events
@@ -102,7 +103,7 @@ class Device:
             import uinput
             self.device = uinput.Device(events, name, BUS_VIRTUAL)
         except Exception as e:
-            print("Failed to initialize device via uinput.")
+            print("\nFailed to initialize device via uinput.")
             print("Hint: try loading kernel driver with `sudo modprobe uinput`.")
             print("Hint: make sure you've run `yoke-enable-uinput` to configure permissions.")
             print("")
@@ -268,9 +269,11 @@ def run_webserver(port, path):
     print('Starting webserver on ', port, path)
     class RH(HTTPRequestHandler):
         basepath = path
-    with socketserver.TCPServer(('', port), RH) as httpd:
-        httpd.serve_forever()
-
+    try:
+        with socketserver.TCPServer(('', port), RH) as httpd:
+            httpd.serve_forever()
+    except OSError:
+        exit()
 
 DEFAULT_CLIENT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'yoke', 'assets', 'joypad')
 
@@ -311,7 +314,8 @@ class Service:
         self.port = port
 
         check_webserver(self.client_path)
-        Thread(target=run_webserver, args=(self.port, self.client_path), daemon=True).start()
+        self.thread = Thread(target=run_webserver, args=(self.port, self.client_path), daemon=True)
+        self.thread.start()
 
         # create zeroconf service
         stype = '_yoke._udp.local.'
@@ -327,13 +331,19 @@ class Service:
         )
         zeroconf.register_service(self.info, ttl=10)
 
+        if not self.thread.is_alive():
+            print('\nTCP port is already in use.')
+            print('Please wait for a few seconds before retrying')
+            print('or use a different port number.')
+            raise RuntimeError
+
         while True:
-            print('\nTo connect select "{}" on your device,'.format(netname))
-            print('or connect manually to "{}:{}"'.format(adr, port))
-            print('Press Ctrl+C to exit.')
             trecv = time()
             irecv = 0
             connection = None
+            print('\nTo connect select "{}" on your device,'.format(netname))
+            print('or connect manually to "{}:{}"'.format(adr, port))
+            print('Press Ctrl+C to exit.')
 
             while True:
                 try:
