@@ -2,12 +2,14 @@ from time import sleep, time
 from platform import system
 import atexit
 import sys
-
 from yoke import events as EVENTS
 from yoke.network import *
 import struct
-
 from glob import glob
+from threading import Thread
+import uinput
+if system() is 'Windows':
+    from yoke.vjoy.vjoydevice import VjoyDevice
 
 ABS_EVENTS = [getattr(EVENTS, n) for n in dir(EVENTS) if n.startswith('ABS_')]
 
@@ -36,7 +38,6 @@ class Device:
 
         BUS_VIRTUAL = 0x06
         try:
-            import uinput
             self.device = uinput.Device(events, name, BUS_VIRTUAL)
         except Exception as e:
             raise UInputDisabledError(*e.args)
@@ -56,8 +57,6 @@ class Device:
 # Override on Windows
 if system() is 'Windows':
     print('Warning: This is not well tested on Windows!')
-
-    from yoke.vjoy.vjoydevice import VjoyDevice
 
     class Device:
         def __init__(self, id=1, name='Yoke', events=(), bytestring=b'!impossible?aliases#string$'):
@@ -117,8 +116,6 @@ if system() is 'Windows':
             self.buttons = 0
         def close(self):
             self.device.close()
-
-from threading import Thread
 
 class Service:
     sock = None
