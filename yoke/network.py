@@ -84,6 +84,8 @@ def run_webserver(port, path):
         with socketserver.TCPServer(('', port), RH) as httpd:
             httpd.serve_forever()
     except OSError:
+        # No need for passing OSError to the main thread, just end this thread.
+        # Service will verify the thread is closed and raise a TCPPortError.
         exit()
 
 DEFAULT_CLIENT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'yoke', 'assets', 'joypad')

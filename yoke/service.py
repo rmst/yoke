@@ -11,6 +11,14 @@ from glob import glob
 
 ABS_EVENTS = [getattr(EVENTS, n) for n in dir(EVENTS) if n.startswith('ABS_')]
 
+# Basic error handlers used (and explained) by the script bin/yoke:
+class TCPPortError(RuntimeError):
+    pass
+class DeviceNameTakenError(RuntimeError):
+    pass
+class UInputDisabledError(Exception):
+    pass
+
 class Device:
     def __init__(self, id=1, name='Yoke', events=(), bytestring=b'!impossible?aliases#string$'):
         self.name = name + '-' + str(id)
@@ -18,8 +26,7 @@ class Device:
             with open(fn) as f:
                 fname = f.read().split()[0]  # need to split because there seem to be newlines
                 if name == fname:
-                    print('\nDevice name "{}" already taken. Set another name with --name NAME'.format(name))
-                    raise RuntimeError
+                    raise DeviceNameTakenError(name)
 
         # set range (0, 0x7fff) for abs events
         self.events = events
@@ -32,16 +39,11 @@ class Device:
             import uinput
             self.device = uinput.Device(events, name, BUS_VIRTUAL)
         except Exception as e:
-            print("\nFailed to initialize device via uinput.")
-            print("Hint: try loading kernel driver with `sudo modprobe uinput`.")
-            print("Hint: make sure you've run `yoke-enable-uinput` to configure permissions.")
-            print("")
-            print("More info: {}".format(e.args))
-            raise
+            raise UInputDisabledError(*e.args)
 
     def emit(self, d, v):
         if d not in self.events:
-            print('Event {d} has not been registered… yet?')
+            print('Event {d} has not been registered… yet?'.format(d))
         self.device.emit(d, int(v), False)
 
     def flush(self):
@@ -173,10 +175,7 @@ class Service:
         zeroconf.register_service(self.info, ttl=10)
 
         if not self.thread.is_alive():
-            print('\nTCP port is already in use.')
-            print('Please wait for a few seconds before retrying')
-            print('or use a different port number.')
-            raise RuntimeError
+            raise TCPPortError
 
         while True:
             trecv = time()
