@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import yoke
-from yoke import EVENTS
 import argparse
 import sys
+import errno
 
 sys.tracebacklimit = 3
 
@@ -14,12 +14,36 @@ parser.add_argument('--port', type=int, default=0, help='port to listen on')
 parser.add_argument('--buffer', type=int, default=64, help='socket buffer length, in bytes (larger buffers add more lag, but allow for more complex gamepads)')
 args = parser.parse_args()
 
-service = yoke.Service(args.name, args.id, args.iface, args.port, args.buffer)
+service = None
 
 try:
+    service = yoke.Service(args.name, args.id, args.iface, args.port, args.buffer)
     service.run()
 except KeyboardInterrupt:
     pass
+except OSError as err:
+    if err.errno == errno.EADDRINUSE:
+        print('UDP port already in use.')
+        print('Hint: you can run yoke again with no arguments to try a random port,')
+        print('or select a port with option --port')
+except yoke.service.TCPPortError:
+    print()
+    print('TCP port already in use.')
+    print('Please wait for a few seconds before retrying')
+    print('or select a different port with option --port')
+    pass
+except yoke.service.DeviceNameTakenError as err:
+    print()
+    print('Device name "{}" already taken. Set another name with --name NAME'.format(err.args[0]))
+except yoke.service.UInputDisabledError as err:
+    print()
+    print("Failed to initialize device via uinput.")
+    print("Hint: try loading kernel driver with `sudo modprobe uinput`.")
+    print("Hint: make sure you've run `yoke-enable-uinput` to configure permissions.")
+    print()
+    print("More info: {}".format(err.args))
 finally:
+    print()
     print("Shutting down…")
-    service.close()
+    if service is not None:
+        service.close()
