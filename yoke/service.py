@@ -7,9 +7,10 @@ from yoke.network import *
 import struct
 from glob import glob
 from threading import Thread
-import uinput
-if system() is 'Windows':
+if system() == 'Windows':
     from yoke.vjoy.vjoydevice import VjoyDevice
+elif system() == 'Linux':
+    import uinput
 
 ABS_EVENTS = [getattr(EVENTS, n) for n in dir(EVENTS) if n.startswith('ABS_')]
 
@@ -55,9 +56,7 @@ class Device:
 
 
 # Override on Windows
-if system() is 'Windows':
-    print('Warning: This is not well tested on Windows!')
-
+if system() == 'Windows':
     class Device:
         def __init__(self, id=1, name='Yoke', events=(), bytestring=b'!impossible?aliases#string$'):
             super().__init__()
@@ -195,6 +194,11 @@ class Service:
                         irecv = 0
                         # If the message starts with a null byte, it is a status report from the game controller.
                         if (m[0] == 0):
+                            if (self.status_length != self.dev.inStruct.size):
+                                self.status_length = self.dev.inStruct.size
+                                # This should not help, but for some reason, it does on Windows:
+                                if system() == 'Windows':
+                                    self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self.status_length)
                             v = self.preprocess(m)
                             for ev, val in zip(self.dev.events, v):
                                 self.dev.emit(ev, val)
@@ -206,6 +210,7 @@ class Service:
                                 # Oops, the message didn't fit in.
                                 # Do nothing yet, but restore expected length to its original value:
                                 self.status_length = self.bufsize
+                                self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self.status_length)
                             elif m != self.dev.bytestring:
                                 v = m.decode(encoding='UTF-8')
                                 for key, value in EVENTS.ALIAS.items():
@@ -215,7 +220,6 @@ class Service:
                                     events = [getattr(EVENTS, n) for n in v]
                                     self.dev.close()
                                     self.dev = Device(self.devid, self.name, events, m)
-                                    self.status_length = self.dev.inStruct.size
                                     print('New control layout chosen.')
                                 except AttributeError:
                                     print('Error. Invalid layout discarded.')
@@ -232,6 +236,7 @@ class Service:
                     print('Timeout ({} seconds), disconnected.'.format(self.tdelta_max))
                     print('  (listened {} times per second)'.format(int(irecv/tdelta)))
                     self.status_length = self.bufsize
+                    self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self.status_length)
                     break
 
                 sleep(self.dt)
