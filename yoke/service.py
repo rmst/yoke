@@ -15,12 +15,10 @@ elif system() == 'Linux':
 ABS_EVENTS = [getattr(EVENTS, n) for n in dir(EVENTS) if n.startswith('ABS_')]
 
 # Basic error handlers used (and explained) by the script bin/yoke:
-class TCPPortError(RuntimeError):
-    pass
-class DeviceNameTakenError(RuntimeError):
-    pass
-class UInputDisabledError(Exception):
-    pass
+class TCPPortError(RuntimeError): pass
+class DeviceNameTakenError(RuntimeError): pass
+class UInputDisabledError(Exception): pass
+class MalformedMessageError(Exception): pass
 
 class Device:
     def __init__(self, id=1, name='Yoke', events=(), bytestring=b''):
@@ -140,7 +138,10 @@ class Service:
         self.status_length = bufsize
 
     def preprocess(self, message):
-        v = self.dev.inStruct.unpack(message)
+        try:
+            v = self.dev.inStruct.unpack(message)
+        except struct.error:
+            raise MalformedMessageError(len(message), self.dev.inStruct.size)
         return v
 
     def run(self):
