@@ -1,4 +1,4 @@
-from time import sleep, time
+from time import sleep, perf_counter
 from platform import system
 import atexit
 import sys
@@ -23,7 +23,7 @@ class UInputDisabledError(Exception):
     pass
 
 class Device:
-    def __init__(self, id=1, name='Yoke', events=(), bytestring=b'!impossible?aliases#string$'):
+    def __init__(self, id=1, name='Yoke', events=(), bytestring=b''):
         self.name = name + '-' + str(id)
         for fn in glob('/sys/class/input/js*/device/name'):
             with open(fn) as f:
@@ -52,13 +52,15 @@ class Device:
         self.device.syn()
 
     def close(self):
-        self.device.destroy()
+        if self.bytestring != b'':
+            self.device.destroy()
+            self.bytestring = b''
 
 
 # Override on Windows
 if system() == 'Windows':
     class Device:
-        def __init__(self, id=1, name='Yoke', events=(), bytestring=b'!impossible?aliases#string$'):
+        def __init__(self, id=1, name='Yoke', events=(), bytestring=b''):
             super().__init__()
             self.name = name + '-' + str(id)
             self.device = VjoyDevice(id)
@@ -115,13 +117,16 @@ if system() == 'Windows':
             self.buttons = 0
         def close(self):
             self.device.close()
+            self.bytestring = b''
 
 class Service:
     sock = None
     info = None
     name = None
     devid = None
-    dt = 0.020
+    # dt should be noticeably lower than the app's polling rate,
+    # at least on Windows:
+    dt = 0.006
     tdelta_max = 2
 
     def __init__(self, devname='Yoke', devid='1', iface='auto', port=0, bufsize=64, client_path=DEFAULT_CLIENT_PATH):
@@ -174,7 +179,7 @@ class Service:
             raise TCPPortError
 
         while True:
-            trecv = time()
+            trecv = perf_counter()
             irecv = 0
             connection = None
             print('\nTo connect select "{}" on your device,'.format(netname))
@@ -185,44 +190,54 @@ class Service:
                 try:
                     m, address = self.sock.recvfrom(self.status_length)
 
-                    if connection is None:
+                    if connection is None and m[0] != 255:
                         print('Connected to ', address)
                         connection = address
 
                     if connection == address:
-                        trecv = time()
+                        trecv = perf_counter()
                         irecv = 0
-                        # If the message starts with a null byte, it is a status report from the game controller.
+                        # The first byte of a message tells us its general content:
+                        # NULL BYTE: status report from the game controller.
                         if (m[0] == 0):
-                            if (self.status_length != self.dev.inStruct.size):
-                                self.status_length = self.dev.inStruct.size
-                                # This should not help, but for some reason, it does on Windows:
-                                if system() == 'Windows':
-                                    self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self.status_length)
-                            v = self.preprocess(m)
-                            for ev, val in zip(self.dev.events, v):
+                            for ev, val in zip(self.dev.events, self.preprocess(m)):
                                 self.dev.emit(ev, val)
                             self.dev.flush()
-                        # Else, it is information for a layout.
-                        # If this is different than the current one, replace device.
+                        # 0xFF BYTE: request for disconnection. Same effect as a timeout.
+                        elif (m[0] == 255):
+                            print('Disconnected by request. Device destroyed.')
+                            self.status_length = self.bufsize
+                            self.dev.close()
+                            break
+                        # ANYTHING ELSE: information for a new layout.
+                        # If there is no registered device, it registers a new device.
+                        # If the device is already registered, check bytestrings. If they appear to match, ignore.
+                        # If they don't match, print an error message and don't acknowledge.
                         else:
-                            if len(m) >= self.status_length:
-                                # Oops, the message didn't fit in.
-                                # Do nothing yet, but restore expected length to its original value:
-                                self.status_length = self.bufsize
-                                self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self.status_length)
-                            elif m != self.dev.bytestring:
+                            if self.dev.bytestring == b'':
                                 v = m.decode(encoding='UTF-8')
                                 for key, value in EVENTS.ALIAS.items():
                                     v = v.replace(key, value)
                                 v = v.split(',')
                                 try:
                                     events = [getattr(EVENTS, n) for n in v]
-                                    self.dev.close()
                                     self.dev = Device(self.devid, self.name, events, m)
                                     print('New control layout chosen.')
+                                    self.status_length = self.dev.inStruct.size
+                                    # HOTFIXES FOR WINDOWS.
+                                    # Its websocket seem to lose packets on a predictable fashion, or create latency.
+                                    # Until the root cause for this is found:
+                                    if system() == 'Windows':
+                                        # Windows doesn't acknowledge new layout registry messages after the first
+                                        # for unclear reasons (possibly related to a mismatch between expected and
+                                        # actual message length).
+                                        # Until this is fixed, delay timeouts until receiving the first status report:
+                                        trecv = trecv + 86400 # 24 hours will do.
                                 except AttributeError:
                                     print('Error. Invalid layout discarded.')
+                            else:
+                                if not self.dev.bytestring.startswith(m):
+                                    print('Error. Must unregister device before registering another.')
 
                     else:
                         pass  # ignore packets from other addresses
@@ -230,13 +245,13 @@ class Service:
                 except (socket.timeout, socket.error):
                     pass
 
-                tdelta = time() - trecv
+                tdelta = perf_counter() - trecv
 
                 if connection is not None and tdelta > self.tdelta_max:
                     print('Timeout ({} seconds), disconnected.'.format(self.tdelta_max))
                     print('  (listened {} times per second)'.format(int(irecv/tdelta)))
                     self.status_length = self.bufsize
-                    self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self.status_length)
+                    if self.dev.bytestring != b'': self.dev.close()
                     break
 
                 sleep(self.dt)
@@ -248,7 +263,7 @@ class Service:
 
     def close(self):
         atexit.unregister(self.close_atexit)
-        if self.dev is not None:
+        if self.dev.bytestring != b'':
             self.dev.close()
         if self.sock is not None:
             self.sock.close()
