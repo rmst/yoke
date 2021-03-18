@@ -35,14 +35,14 @@ var ANALOG_BUTTON_DEADZONE_CONSTANT = 1.10;
 
 // HELPER FUNCTIONS:
 if (typeof window.Yoke === 'undefined') {
+    // These functions are redefined when loaded from outside the app to avoid JS errors,
+    // and to allow for quick debugging on the computer.
+    // A full description of these functions is located at:
+    // https://github.com/rmst/yoke-android/blob/master/app/src/main/java/com/simonramstedt/yoke/YokeActivity.java
     window.Yoke = {
-        // Within the Yoke webview, Yoke.update_vals() sends the joypad state.
-        // Outside the Yoke webview, Yoke.update_vals() is redefined to have no effect.
-        // This prevents JavaScript exceptions, and wastes less CPU time when in Yoke.
-        update_vals: function() {},
-        // Also a way to send prompts to Yoke, which defaults to an alert()
-        // outside the Webview
-        alert: function(msg) {alert(msg);}
+        update_vals: function() {}, // send gamepad status to Yoke app
+        set_bye: function() {}, // set pattern for Yoke to send before disconnecting from client
+        alert: function(msg) {alert(msg);} // show prompt on Yoke app
     };
 }
 
@@ -698,7 +698,11 @@ function Joypad() {
     // Prepare template for sending joypad state:
     this.stateBuffer = new ArrayBuffer(1 + 2 * this.controls.axes + this.controls.buttons);
     this.stateBytes = new Uint8Array(this.stateBuffer);
-    new DataView(this.stateBuffer).setUint8(0, 0); //header
+    // Declare a disconnection pattern.
+    this.stateBytes[0] = 255;
+    window.Yoke.set_bye(serializer.decode(this.stateBuffer));
+    // Now set a different header for regular status reports (also defined at `service.py`):
+    this.stateBytes[0] = 0;
     // Attach controls:
     var cursor = 1;
     this.controls.byNumID.forEach(function(c) {

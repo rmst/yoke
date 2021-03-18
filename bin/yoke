@@ -42,6 +42,13 @@ except yoke.service.UInputDisabledError as err:
     print("Hint: make sure you've run `yoke-enable-uinput` to configure permissions.")
     print()
     print("More info: {}".format(err.args))
+except yoke.service.MalformedMessageError as err:
+    print()
+    print("Received a status report of the wrong length.")
+    print("Received {} bytes, expected {}".format(err.args[0], err.args[1]))
+    print()
+    print("This can be a temporary error due to connection problems,")
+    print("or a defect from the joypad on the webserver.")
 finally:
     print()
     print("Shutting down…")
