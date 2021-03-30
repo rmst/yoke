@@ -7,6 +7,7 @@ html {
 }
 
 body {
+    background: #0099CC;
     margin: 0;
     padding: 0;
     overflow: hidden;
@@ -20,25 +21,14 @@ body {
     height: 100vh;
 }
 
-#warning, #calibration {
+#calibration {
     display: none;
     position: fixed;
     z-index: 10;
     border-radius: 10px;
     padding: 3vh 3vw 3vh;
-    filter: drop-shadow(0px 0px 5px black)
-}
-
-#warning {
-    background: #F0B080;
-    width: 64vw;
-    height: 44vh;
-    top: 25vh;
-    left: 18vw;
-}
-
-#calibration {
-    background: #B0B0B0;
+    filter: drop-shadow(0px 0px 5px black);
+    background: #DDDDDD;
     width: 80vw;
     height: 74vh;
     top: 6vw;
@@ -65,7 +55,7 @@ body {
 
 #menu > * {
     flex: 1 1 auto;
-    background: #cccccc;
+    background: #fff6;
     border-radius: 10px;
     margin: 3px;
     padding-top: 30vh;
@@ -97,12 +87,13 @@ div {
 /* Joysticks */
 .joystick {
     background-image: url("img/joystick.svg");
-    background-color: #bbb;
+    background-color: #33b5e5;
+    border: 3px #0df solid;
 }
 .circle {
     background-color: black;
-    width: 10px;
-    height: 10px;
+    width: 20px;
+    height: 20px;
     border-radius: 100%;
     z-index: 2;
     position: absolute;

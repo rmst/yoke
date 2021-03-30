@@ -1,7 +1,10 @@
 'use strict';
 
 // SETTINGS:
-var VIBRATE_ON_QUADRANT_BOUNDARY = true;
+// Octant refers to the 8 sectors in which the area of a joystick is divided.
+// These 8 sectors are more or less aligned with the cardinal directions,
+// and allow one to feel when one is changing directions without looking.
+var VIBRATE_ON_OCTANT_BOUNDARY = true;
 var VIBRATE_ON_PAD_BOUNDARY = true;
 var VIBRATE_PROPORTIONALLY_TO_DISTANCE = true;
 // These 2 options are recommended for testing in non-kiosk/non-embedded browsers:
@@ -11,7 +14,7 @@ var DEBUG_NO_CONSOLE_SPAM = true;
 // CONSTANTS:
 // When clicking a button (onTouchStart):
 var VIBRATION_MILLISECONDS_IN = 40;
-// When changing quadrants in a joystick:
+// When changing octants in a joystick:
 var VIBRATION_MILLISECONDS_OVER = 20;
 // When forcing a control over the maximum or the minimum:
 var VIBRATION_MILLISECONDS_SATURATION = [10, 10];
@@ -195,7 +198,7 @@ Control.prototype.setBufferView = function(cursor, buffer) {
 function Joystick(id, updateStateCallback) {
     Control.call(this, 'joystick', id, updateStateCallback);
     this.state = [0, 0];
-    this.quadrant = -2;
+    this.octant = -2;
     this.locking = (id[0] == 's');
     this.circle = document.createElement('div');
     this.circle.className = 'circle';
@@ -203,40 +206,49 @@ function Joystick(id, updateStateCallback) {
 }
 Joystick.prototype = Object.create(Control.prototype);
 Joystick.prototype.onAttached = function() {
-    this.updateCircle();
+    this.updateCircle(this.offset.xCenter, this.offset.yCenter);
     this.element.addEventListener('touchmove', this.onTouch.bind(this), false);
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
     this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
+    this.offset.factorX = 0x4000 / this.offset.halfWidth;
+    this.offset.factorY = 0x4000 / this.offset.halfHeight;
 };
+// This contant defines the limits of all the octants in analytic geometry:
+Joystick.prototype.EIGHTH_OF_RADIAN = 1 / Math.sin(Math.PI / 8);
 Joystick.prototype.onTouch = function(ev) {
     var pos = ev.targetTouches[0];
-    this.state[0] = (pos.pageX - this.offset.xCenter) / this.offset.halfWidth;
-    this.state[1] = (pos.pageY - this.offset.yCenter) / this.offset.halfHeight;
-    this.stateBuffer.setUint16(0, truncate(this.state[0] * 0x4000 + 0x4000), false);
-    this.stateBuffer.setUint16(2, truncate(this.state[1] * 0x4000 + 0x4000), false);
+    this.state[0] = (pos.pageX - this.offset.xCenter) * this.offset.factorX;
+    this.state[1] = (pos.pageY - this.offset.yCenter) * this.offset.factorY;
+    this.stateBuffer.setUint16(0, truncate(this.state[0] + 0x4000), false);
+    this.stateBuffer.setUint16(2, truncate(this.state[1] + 0x4000), false);
+    this.updateStateCallback();
     var distance = Math.max(Math.abs(this.state[0]), Math.abs(this.state[1]));
-    if (distance < 1) {
-        this.updateStateCallback();
+    if (distance < 0x4000) {
         unqueueForVibration(this.element.id);
-        var currentQuadrant = Math.atan2(this.state[1], this.state[0]) / Math.PI + 1.125; // rad ÷ pi, shifted 22.5 deg. [0.25, 2.25]
-        currentQuadrant = Math.floor((currentQuadrant * 4) % 8); // [1, 9] → [1, 8)+[0, 1)
-        if (VIBRATE_ON_QUADRANT_BOUNDARY && this.quadrant != -2 && this.quadrant != currentQuadrant) {
+        // Instead of calculating an accurate angle, we hardcode the limits of each octant using analytic geometry:
+        // the lines that divide the sector are x/sin(π/8)=y, etc.
+        var currentOctant =
+            ((this.state[0] * this.EIGHTH_OF_RADIAN > this.state[1]) ? 1 : 0) +
+            ((this.state[0] > this.state[1] * -this.EIGHTH_OF_RADIAN) ? 2 : 0) +
+            ((this.state[0] * -this.EIGHTH_OF_RADIAN > this.state[1]) ? 4 : 0) +
+            ((this.state[0] > this.state[1] * this.EIGHTH_OF_RADIAN) ? 8 : 0);
+        if (VIBRATE_ON_OCTANT_BOUNDARY && this.octant != -2 && this.octant != currentOctant) {
             window.navigator.vibrate(VIBRATION_MILLISECONDS_OVER);
         }
-        this.quadrant = currentQuadrant;
+        this.octant = currentOctant;
     } else {
-        this.updateStateCallback();
         if (VIBRATE_ON_PAD_BOUNDARY) {
-            if (!VIBRATE_PROPORTIONALLY_TO_DISTANCE) { distance = 1; }
             queueForVibration(this.element.id, [
-                distance * VIBRATION_MILLISECONDS_SATURATION[0],
+                VIBRATE_PROPORTIONALLY_TO_DISTANCE
+                    ? distance / 0x4000 * VIBRATION_MILLISECONDS_SATURATION[0]
+                    : VIBRATION_MILLISECONDS_SATURATION[0],
                 VIBRATION_MILLISECONDS_SATURATION[1]
             ]);
         }
-        this.quadrant = -2;
+        this.octant = -2;
     }
-    this.updateCircle();
+    this.updateCircle(pos.pageX, pos.pageY);
 };
 Joystick.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
@@ -250,15 +262,15 @@ Joystick.prototype.onTouchEnd = function() {
         this.stateBuffer.setUint16(0, 0x4000, false);
         this.stateBuffer.setUint16(2, 0x4000, false);
         this.updateStateCallback();
-        this.updateCircle();
+        this.updateCircle(this.offset.xCenter, this.offset.yCenter);
     }
-    this.quadrant = -2;
+    this.octant = -2;
     unqueueForVibration(this.element.id);
 };
-Joystick.prototype.updateCircle = function() {
+Joystick.prototype.updateCircle = function(x, y) {
     this.circle.style.transform = 'translate(-50%, -50%) translate(' +
-        (this.offset.xCenter + this.offset.halfWidth * Math.max(-1, Math.min(this.state[0], 1))) + 'px, ' +
-        (this.offset.yCenter + this.offset.halfHeight * Math.max(-1, Math.min(this.state[1], 1))) + 'px)';
+        Math.max(Math.min(x, this.offset.xMax), this.offset.x) + 'px, ' +
+        Math.max(Math.min(y, this.offset.yMax), this.offset.y) + 'px)';
 };
 Joystick.prototype.setBufferView = function(cursor, buffer) {
     this.stateBuffer = new DataView(buffer, cursor, 4);
@@ -481,7 +493,7 @@ Knob.prototype.onAttached = function() {
     this.knobCircle.style.height = this.offset.height + 'px';
     this.knobCircle.style.width = this.offset.width + 'px';
     this.updateCircles();
-    this.quadrant = 0;
+    this.octant = 0;
     this.element.addEventListener('touchmove', this.onTouch.bind(this), false);
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
@@ -496,11 +508,11 @@ Knob.prototype.onTouch = function(ev) {
         pos.pageX - this.offset.xCenter)) / (2 * Math.PI)) % 1;
     this.stateBuffer.setUint16(0, truncate(this.state * 0x8000), false);
     this.updateStateCallback();
-    var currentQuadrant = Math.floor(this.state * 8);
-    if (VIBRATE_ON_QUADRANT_BOUNDARY && this.quadrant != currentQuadrant) {
+    var currentOctant = Math.floor(this.state * 8);
+    if (VIBRATE_ON_OCTANT_BOUNDARY && this.octant != currentOctant) {
         window.navigator.vibrate(VIBRATION_MILLISECONDS_OVER);
     }
-    this.quadrant = currentQuadrant;
+    this.octant = currentOctant;
     this.updateCircles();
 };
 Knob.prototype.onTouchStart = function(ev) {
