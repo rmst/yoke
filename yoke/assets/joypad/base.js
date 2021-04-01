@@ -632,14 +632,16 @@ function Joypad() {
     }, this);
     // this.updateDebugLabel() is a NO-OP until needed:
     this.debugMessage = '';
-    if (DEBUG_NO_CONSOLE_SPAM || this.debugLabel != null) {
+    if (!DEBUG_NO_CONSOLE_SPAM || this.debugLabel != null) {
         this.updateDebugLabel = function() {
             var dump = this.stateBytes.reduce(
                 function(acc, cur) {
                     return acc + cur.toString(16).padStart(2, '0') + ':';
                 }, ':'
             );
-            this.debugLabel.element.innerHTML = dump + '<br/>' + this.debugMessage;
+            if (this.debugLabel != null) {
+                this.debugLabel.element.innerHTML = dump + '<br/>' + this.debugMessage;
+            }
             if (!DEBUG_NO_CONSOLE_SPAM) {console.log(dump + '\n' + this.debugMessage);}
         };
     }
