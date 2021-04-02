@@ -141,7 +141,16 @@ div {
 #bm { background-image: url('img/button.svg#bm'); background-color: #444; }
 
 /* D-pad */
-#dp { background-image: url('img/dp.svg'); }
+.dpad { background-image: url('img/dp.svg'); }
+.dpad.u   { background-image: url('img/dp.svg#u'); }
+.dpad.ur  { background-image: url('img/dp.svg#ur'); }
+.dpad.r   { background-image: url('img/dp.svg#r'); }
+.dpad.dr  { background-image: url('img/dp.svg#dr'); }
+.dpad.d   { background-image: url('img/dp.svg#d'); }
+.dpad.dl  { background-image: url('img/dp.svg#dl'); }
+.dpad.l   { background-image: url('img/dp.svg#l'); }
+.dpad.ul  { background-image: url('img/dp.svg#ul'); }
+.dpad.all { background-image: url('img/dp.svg#all'); }
 
 /* Analog buttons */
 #a1 { background-image: url('img/analog.svg#a1'); background-color: #66f; }

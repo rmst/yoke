@@ -561,7 +561,7 @@ DPad.prototype.onTouchMove = function(ev) {
     this.updateStateCallback();
     var currentState = this.stateBuffer.reduce(function(acc, cur) {return (acc << 1) + cur;}, 0);
     if (currentState != this.oldState) {
-        this.oldState = currentState; this.updateButtons();
+        this.oldState = currentState; this.updateButtons(currentState);
         window.navigator.vibrate(VIBRATION_MILLISECONDS_DPAD);
     }
 };
@@ -572,13 +572,21 @@ DPad.prototype.onTouchEnd = function() {
     this.stateBuffer[3] = 0;
     this.oldState = 0;
     this.updateStateCallback();
-    this.updateButtons();
+    this.updateButtons(0);
 };
-DPad.prototype.updateButtons = function() {
-    (this.stateBuffer[0] == 1) ? this.element.classList.add('up') : this.element.classList.remove('up');
-    (this.stateBuffer[1] == 1) ? this.element.classList.add('left') : this.element.classList.remove('left');
-    (this.stateBuffer[2] == 1) ? this.element.classList.add('down') : this.element.classList.remove('down');
-    (this.stateBuffer[3] == 1) ? this.element.classList.add('right') : this.element.classList.remove('right');
+DPad.prototype.updateButtons = function(state) {
+    switch (state) {
+        case  0: this.element.className = 'control dpad';   break;
+        case  1: this.element.className = 'control dpad r';   break;
+        case  2: this.element.className = 'control dpad d';   break;
+        case  4: this.element.className = 'control dpad l';   break;
+        case  8: this.element.className = 'control dpad u';   break;
+        case  3: this.element.className = 'control dpad dr';  break;
+        case  6: this.element.className = 'control dpad dl';  break;
+        case  9: this.element.className = 'control dpad ur';  break;
+        case 12: this.element.className = 'control dpad ul';  break;
+        default: this.element.className = 'control dpad all'; break;
+    }
 };
 DPad.prototype.setBufferView = function(cursor, buffer) {
     this.stateBuffer = new Uint8Array(buffer, cursor, 4);
