@@ -18,6 +18,8 @@ var VIBRATION_MILLISECONDS_IN = 40;
 var VIBRATION_MILLISECONDS_OVER = 20;
 // When forcing a control over the maximum or the minimum:
 var VIBRATION_MILLISECONDS_SATURATION = [10, 10];
+// When pushing a thumb joystick down or releasing it:
+var VIBRATION_MILLISECONDS_THUMB = 35;
 // When clicking a D-Pad button (this.state change):
 var VIBRATION_MILLISECONDS_DPAD = 35;
 // Length, relative to the D-pad, of the hitbox of a D-pad leg, from border to center:
@@ -61,8 +63,8 @@ function categories(a, b) {
         if (id == 'dbg') { sortScores[i] = 999998; } else {
             sortScores[i] = 999997;
             switch (id[0]) {
-                // 's' is a locking joystick, 'j' - non-locking
-                case 's': case 'j': sortScores[i] = 100000; break;
+                // 's' is a locking joystick, 'j' - non-locking, 't' - thumbstick with L3/R3 button
+                case 's': case 'j': case 't': sortScores[i] = 100000; break;
                 case 'm': sortScores[i] = 200000; break;
                 case 'p': sortScores[i] = 300000; break;
                 case 'k': sortScores[i] = 400000; break;
@@ -163,9 +165,14 @@ Control.prototype.setBufferView = function(cursor, buffer) {
 
 function Joystick(id, updateStateCallback) {
     Control.call(this, 'joystick', id, updateStateCallback);
-    this.state = [0, 0];
-    this.octant = -2;
     this.locking = (id[0] == 's');
+    if (id[0] == 't') {
+        this.state = [0, 0, 0];
+        this.oldButtonState = 0;
+    } else {
+        this.state = [0, 0];
+        this.checkThumbButton = function() {};
+    }
     this.circle = document.createElement('div');
     this.circle.className = 'circle';
     this.element.appendChild(this.circle);
@@ -177,6 +184,9 @@ Joystick.prototype.onAttached = function() {
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
     this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
+    if (this.element.id[0] == 't') {
+        this.element.classList.add('thumb');
+    }
     this.offset.factorX = 0x4000 / this.offset.halfWidth;
     this.offset.factorY = 0x4000 / this.offset.halfHeight;
 };
@@ -188,6 +198,7 @@ Joystick.prototype.onTouch = function(ev) {
     this.state[1] = (pos.pageY - this.offset.yCenter) * this.offset.factorY;
     this.stateBuffer.setUint16(0, truncate(this.state[0] + 0x4000), false);
     this.stateBuffer.setUint16(2, truncate(this.state[1] + 0x4000), false);
+    this.checkThumbButton(ev);
     this.updateStateCallback();
     var distance = Math.max(Math.abs(this.state[0]), Math.abs(this.state[1]));
     if (distance < 0x4000) {
@@ -227,11 +238,32 @@ Joystick.prototype.onTouchEnd = function() {
         this.state[1] = 0;
         this.stateBuffer.setUint16(0, 0x4000, false);
         this.stateBuffer.setUint16(2, 0x4000, false);
-        this.updateStateCallback();
-        this.updateCircle(this.offset.xCenter, this.offset.yCenter);
     }
+    if (this.state.length == 3) {
+        this.state[2] = 0;
+        this.stateBuffer.setUint8(4, 0);
+        this.oldButtonState = 0;
+    }
+    this.updateStateCallback();
+    this.updateCircle(this.offset.xCenter, this.offset.yCenter);
     this.octant = -2;
     unqueueForVibration(this.element.id);
+};
+Joystick.prototype.checkThumbButton = function(ev) {
+    this.state[2] = (ev.targetTouches.length > 1) ? 1 : 0;
+    this.stateBuffer.setUint8(4, this.state[2]);
+    if (this.oldButtonState != this.state[2]) {
+        window.navigator.vibrate(VIBRATION_MILLISECONDS_THUMB);
+        this.oldButtonState = this.state[2];
+    }
+};
+Joystick.prototype.checkThumbButtonForce = function(ev) {
+    this.state[2] = (ev.targetTouches[0].force > midForce) ? 1 : 0;
+    this.stateBuffer.setUint8(4, this.state[2]);
+    if (this.oldButtonState != this.state[2]) {
+        window.navigator.vibrate(VIBRATION_MILLISECONDS_THUMB);
+        this.oldButtonState = this.state[2];
+    }
 };
 Joystick.prototype.updateCircle = function(x, y) {
     this.circle.style.transform = 'translate(-50%, -50%) translate(' +
@@ -239,10 +271,17 @@ Joystick.prototype.updateCircle = function(x, y) {
         Math.max(Math.min(y, this.offset.yMax), this.offset.y) + 'px)';
 };
 Joystick.prototype.setBufferView = function(cursor, buffer) {
-    this.stateBuffer = new DataView(buffer, cursor, 4);
-    this.stateBuffer.setUint16(0, 0x4000, false);
-    this.stateBuffer.setUint16(2, 0x4000, false);
-    return cursor + 4;
+    if (this.element.id[0] == 't') {
+        this.stateBuffer = new DataView(buffer, cursor, 5);
+        this.stateBuffer.setUint16(0, 0x4000, false);
+        this.stateBuffer.setUint16(2, 0x4000, false);
+        return cursor + 5;
+    } else {
+        this.stateBuffer = new DataView(buffer, cursor, 4);
+        this.stateBuffer.setUint16(0, 0x4000, false);
+        this.stateBuffer.setUint16(2, 0x4000, false);
+        return cursor + 4;
+    }
 };
 
 function Motion(id, updateStateCallback) {
@@ -723,6 +762,9 @@ Joypad.prototype.mnemonics = function(id, callback) {
         return null;
     } else {
         switch (id[0]) {
+            case 't':
+                // 't' is a thumbstick with L3/R3 button
+                this.controls.buttons += 1;
             case 's': case 'j':
                 // 's' is a locking joystick, 'j' - non-locking
                 this.controls.axes += 2;
@@ -784,6 +826,9 @@ var motionState = [0, 0, 0, 0, 0, 0];
 // They'll hopefully be updated with the actual minimum and maximum:
 var minForce = 1;
 var maxForce = 0;
+// And this, for the moment, is only used for the thumb joysticks.
+// By default, it's set to the arithmetic mean of minForce and maxForce.
+var midForce = 0.5;
 
 // This function updates minForce and maxForce if the force is not exactly 0 or 1.
 // If minForce is not less than maxForce after a touch event,
@@ -793,6 +838,7 @@ function recordPressure(ev) {
     if (force > 0 && force < 1) {
         minForce = Math.min(minForce, force);
         maxForce = Math.max(maxForce, force);
+        midForce = (minForce + maxForce) / 2;
         forceBar.style.transform = 'scaleX(' + force + ')';
         forceBar.style.opacity = '1';
     }
@@ -846,6 +892,7 @@ function loadPad(filename) {
                     calibrationDiv.style.display = 'none';
                     Pedal.prototype.onTouchMove = Pedal.prototype.onTouchMoveForce;
                     AnalogButton.prototype.processTouches = AnalogButton.prototype.processTouchesForce;
+                    Joystick.prototype.checkThumbButton = Joystick.prototype.checkThumbButtonForce;
                     joypad = new Joypad();
                 });
                 document.getElementById('calibrationNo').addEventListener('click', function() {
