@@ -761,10 +761,12 @@ Joypad.prototype.mnemonics = function(id, callback) {
         window.Yoke.alert('`' + id + '` is not a valid code. Control codes have 2 or 3 characters.');
         return null;
     } else {
+        /*eslint no-fallthrough: "error"*/
         switch (id[0]) {
             case 't':
                 // 't' is a thumbstick with L3/R3 button
                 this.controls.buttons += 1;
+                // falls through
             case 's': case 'j':
                 // 's' is a locking joystick, 'j' - non-locking
                 this.controls.axes += 2;
