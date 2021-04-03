@@ -6,21 +6,19 @@
 // and allow one to feel when one is changing directions without looking.
 var VIBRATE_ON_OCTANT_BOUNDARY = true;
 var VIBRATE_ON_PAD_BOUNDARY = true;
-var VIBRATE_PROPORTIONALLY_TO_DISTANCE = true;
+var VIBRATE_PROPORTIONALLY_TO_DISTANCE = false;
 // These 2 options are recommended for testing in non-kiosk/non-embedded browsers:
 var WAIT_FOR_FULLSCREEN = false;
 var DEBUG_NO_CONSOLE_SPAM = true;
-
-// CONSTANTS:
-// When clicking a button (onTouchStart):
+// Duration of vibration when clicking a button (onTouchStart):
 var VIBRATION_MILLISECONDS_IN = 40;
-// When changing octants in a joystick:
+// Duration of vibration when changing octants in a joystick:
 var VIBRATION_MILLISECONDS_OVER = 20;
-// When forcing a control over the maximum or the minimum:
-var VIBRATION_MILLISECONDS_SATURATION = [10, 10];
-// When pushing a thumb joystick down or releasing it:
-var VIBRATION_MILLISECONDS_THUMB = 35;
-// When clicking a D-Pad button (this.state change):
+// Duration of vibration when forcing a control over the maximum or the minimum:
+var VIBRATION_MILLISECONDS_SATURATION = [9, 11];
+// Duration of vibration when pushing a thumb joystick down or releasing it:
+var VIBRATION_MILLISECONDS_THUMB = 45;
+// Duration of vibration when clicking a D-Pad button (this.state change):
 var VIBRATION_MILLISECONDS_DPAD = 35;
 // Length, relative to the D-pad, of the hitbox of a D-pad leg, from border to center:
 var DPAD_BUTTON_LENGTH = 0.4;
@@ -37,6 +35,16 @@ var ACCELERATION_CONSTANT = 0.025;
 // The dead zone length/width, relative to the analog button hitbox length/width,
 // will be 1 - (1 / ANALOG_BUTTON_DEADZONE_CONSTANT).
 var ANALOG_BUTTON_DEADZONE_CONSTANT = 1.10;
+// If true, the controller will check for finger pressure detection.
+// If false, it will assume the screen cannot measure this, and load
+// alternate control methods (like number of fingers and distance to center).
+var PRESSURE_DETECTION_ENABLED = true;
+// Pressure-sensitive controls will not be responsive to finger pressures lower than this:
+var MINIMUM_FORCE = 0.1;
+// Pressure-sensitive controls will not respond differently if finger pressures are stronger than this:
+var MAXIMUM_FORCE = 0.4;
+// This threshold is, for the moment, only used for the button under thumbstick
+var THRESHOLD_FORCE = 0.2;
 
 // HELPER FUNCTIONS:
 if (typeof window.Yoke === 'undefined') {
@@ -264,7 +272,7 @@ Joystick.prototype.checkThumbButton = function(ev) {
     }
 };
 Joystick.prototype.checkThumbButtonForce = function(ev) {
-    this.state[2] = (ev.targetTouches[0].force > midForce) ? 1 : 0;
+    this.state[2] = (ev.targetTouches[0].force > THRESHOLD_FORCE) ? 1 : 0;
     this.stateBuffer.setUint8(4, this.state[2]);
     if (this.oldButtonState != this.state[2]) {
         window.navigator.vibrate(VIBRATION_MILLISECONDS_THUMB);
@@ -369,9 +377,9 @@ Pedal.prototype.onTouchMove = function(ev) {
 Pedal.prototype.onTouchMoveForce = function(ev) {
     // This is the replacement handler, which uses touch pressure.
     // Overwriting the handler once is much faster than checking
-    // minForce and maxForce at every updateStateCallback:
+    // MINIMUM_FORCE and MAXIMUM_FORCE at every updateStateCallback:
     var pos = ev.targetTouches[0];
-    this.state = (pos.force - minForce) / (maxForce - minForce);
+    this.state = (pos.force - MINIMUM_FORCE) / (MAXIMUM_FORCE - MINIMUM_FORCE);
     if (this.state > 1) {
         queueForVibration(this.element.id, VIBRATION_MILLISECONDS_SATURATION);
     } else {
@@ -430,7 +438,7 @@ AnalogButton.prototype.processTouchesForce = function(ev) {
     for (var touch of ev.touches) {
         if (touch.pageX > this.offset.x && touch.pageX < this.offset.xMax &&
             touch.pageY > this.offset.y && touch.pageY < this.offset.yMax) {
-            this.state = Math.max(this.state, (touch.force - minForce) / (maxForce - minForce));
+            this.state = Math.max(this.state, (touch.force - MINIMUM_FORCE) / (MAXIMUM_FORCE - MINIMUM_FORCE));
         }
     }
     this.stateBuffer.setUint16(0, truncate(this.state * 0x8000), false);
@@ -831,28 +839,6 @@ Joypad.prototype.mnemonics = function(id, callback) {
 var joypad = null;
 var motionState = [0, 0, 0, 0, 0, 0];
 
-// These will record the minimum and maximum force the screen can register.
-// They'll hopefully be updated with the actual minimum and maximum:
-var minForce = 1;
-var maxForce = 0;
-// And this, for the moment, is only used for the thumb joysticks.
-// By default, it's set to the arithmetic mean of minForce and maxForce.
-var midForce = 0.5;
-
-// This function updates minForce and maxForce if the force is not exactly 0 or 1.
-// If minForce is not less than maxForce after a touch event,
-// the touchscreen can't detect finger pressure, even if it reports it can.
-function recordPressure(ev) {
-    var force = ev.targetTouches[0].force;
-    if (force > 0 && force < 1) {
-        minForce = Math.min(minForce, force);
-        maxForce = Math.max(maxForce, force);
-        midForce = (minForce + maxForce) / 2;
-        forceBar.style.transform = 'scaleX(' + force + ')';
-        forceBar.style.opacity = '1';
-    }
-}
-
 // If the user's browser needs permission to vibrate
 // it's more convenient to ask for it first before entering fullscreen.
 // This is useful e.g. in Firefox for Android.
@@ -889,25 +875,13 @@ function loadPad(filename) {
         document.getElementById('joypad').style.display = 'grid';
         if (window.CSS && CSS.supports('display', 'grid')) {
             warningDiv.style.display = 'none';
-            if (minForce > maxForce) { // no touch force detection capability
+            if (PRESSURE_DETECTION_ENABLED == false || joypad == 0 || joypad == 1 || joypad == null) { // no touch force detection capability
                 joypad = new Joypad();
             } else { // possible force detection capability
-                var calibrationDiv = document.getElementById('calibration');
-                forceBar.style.opacity = '0.2';
-                calibrationDiv.style.display = 'inline';
-                calibrationDiv.addEventListener('touchmove', recordPressure);
-                calibrationDiv.addEventListener('touchend', function() { forceBar.style.opacity = '0.2'; });
-                document.getElementById('calibrationOk').addEventListener('click', function() {
-                    calibrationDiv.style.display = 'none';
-                    Pedal.prototype.onTouchMove = Pedal.prototype.onTouchMoveForce;
-                    AnalogButton.prototype.processTouches = AnalogButton.prototype.processTouchesForce;
-                    Joystick.prototype.checkThumbButton = Joystick.prototype.checkThumbButtonForce;
-                    joypad = new Joypad();
-                });
-                document.getElementById('calibrationNo').addEventListener('click', function() {
-                    calibrationDiv.style.display = 'none';
-                    minForce = 1; maxForce = 0; joypad = new Joypad();
-                });
+                Pedal.prototype.onTouchMove = Pedal.prototype.onTouchMoveForce;
+                AnalogButton.prototype.processTouches = AnalogButton.prototype.processTouchesForce;
+                Joystick.prototype.checkThumbButton = Joystick.prototype.checkThumbButtonForce;
+                joypad = new Joypad();
             }
         }
     };
@@ -915,13 +889,13 @@ function loadPad(filename) {
     head.appendChild(link);
 }
 
-var forceBar = document.getElementById('force');
 var warningDiv = document.getElementById('warning');
 document.getElementById('menu').childNodes.forEach(function(child) {
     var id = child.id;
     if (id) {
         child.addEventListener('click', function() { loadPad(id + '.css'); });
-        child.addEventListener('touchstart', recordPressure);
-        child.addEventListener('touchmove', recordPressure);
+        // If the pressure is between 0 (not normally achievable) or 1 (maximum),
+        // the touchscreen can almost certainly detect finger pressure.
+        child.addEventListener('touchstart', function(ev) { joypad = ev.targetTouches[0].force; });
     }
 });
