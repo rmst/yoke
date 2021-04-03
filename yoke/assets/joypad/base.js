@@ -180,7 +180,7 @@ function Joystick(id, updateStateCallback) {
 Joystick.prototype = Object.create(Control.prototype);
 Joystick.prototype.onAttached = function() {
     this.updateCircle(this.offset.xCenter, this.offset.yCenter);
-    this.element.addEventListener('touchmove', this.onTouch.bind(this), false);
+    this.element.addEventListener('touchmove', this.onTouchMove.bind(this), false);
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
     this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
@@ -192,7 +192,7 @@ Joystick.prototype.onAttached = function() {
 };
 // This contant defines the limits of all the octants in analytic geometry:
 Joystick.prototype.EIGHTH_OF_RADIAN = 1 / Math.sin(Math.PI / 8);
-Joystick.prototype.onTouch = function(ev) {
+Joystick.prototype.onTouchMove = function(ev) {
     var pos = ev.targetTouches[0];
     this.state[0] = (pos.pageX - this.offset.xCenter) * this.offset.factorX;
     this.state[1] = (pos.pageY - this.offset.yCenter) * this.offset.factorY;
@@ -229,31 +229,37 @@ Joystick.prototype.onTouch = function(ev) {
 };
 Joystick.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
-    this.onTouch(ev);
+    this.onTouchMove(ev);
     window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
 };
-Joystick.prototype.onTouchEnd = function() {
-    if (!this.locking) {
-        this.state[0] = 0;
-        this.state[1] = 0;
-        this.stateBuffer.setUint16(0, 0x4000, false);
-        this.stateBuffer.setUint16(2, 0x4000, false);
+Joystick.prototype.onTouchEnd = function(ev) {
+    if (ev.targetTouches.length == 0) {
+        if (!this.locking) {
+            this.state[0] = 0;
+            this.state[1] = 0;
+            this.stateBuffer.setUint16(0, 0x4000, false);
+            this.stateBuffer.setUint16(2, 0x4000, false);
+        }
+        if (this.state.length == 3) {
+            this.state[2] = 0;
+            this.stateBuffer.setUint8(4, 0);
+            this.element.classList.remove('pressed');
+            this.oldButtonState = 0;
+        }
+        this.updateStateCallback();
+        this.updateCircle(this.offset.xCenter, this.offset.yCenter);
+        this.octant = -2;
+        unqueueForVibration(this.element.id);
+    } else {
+        this.onTouchMove(ev);
     }
-    if (this.state.length == 3) {
-        this.state[2] = 0;
-        this.stateBuffer.setUint8(4, 0);
-        this.oldButtonState = 0;
-    }
-    this.updateStateCallback();
-    this.updateCircle(this.offset.xCenter, this.offset.yCenter);
-    this.octant = -2;
-    unqueueForVibration(this.element.id);
 };
 Joystick.prototype.checkThumbButton = function(ev) {
     this.state[2] = (ev.targetTouches.length > 1) ? 1 : 0;
     this.stateBuffer.setUint8(4, this.state[2]);
     if (this.oldButtonState != this.state[2]) {
         window.navigator.vibrate(VIBRATION_MILLISECONDS_THUMB);
+        (this.state[2] == 0) ? this.element.classList.remove('pressed') : this.element.classList.add('pressed');
         this.oldButtonState = this.state[2];
     }
 };
@@ -262,6 +268,7 @@ Joystick.prototype.checkThumbButtonForce = function(ev) {
     this.stateBuffer.setUint8(4, this.state[2]);
     if (this.oldButtonState != this.state[2]) {
         window.navigator.vibrate(VIBRATION_MILLISECONDS_THUMB);
+        (this.state[2] == 0) ? this.element.classList.remove('pressed') : this.element.classList.add('pressed');
         this.oldButtonState = this.state[2];
     }
 };
@@ -479,12 +486,12 @@ Knob.prototype.onAttached = function() {
     this.knobCircle.style.width = this.offset.width + 'px';
     this.updateCircles();
     this.octant = 0;
-    this.element.addEventListener('touchmove', this.onTouch.bind(this), false);
+    this.element.addEventListener('touchmove', this.onTouchMove.bind(this), false);
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
     this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
 };
-Knob.prototype.onTouch = function(ev) {
+Knob.prototype.onTouchMove = function(ev) {
     var pos = ev.targetTouches[0];
     // The knob now increments the state proportionally to the turned angle.
     // This requires subtracting the current angular position from the position at onTouchStart
