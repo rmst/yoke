@@ -880,10 +880,8 @@ function loadPad(filename, pressureSensitive) {
                 Pedal.prototype.onTouchMove = Pedal.prototype.onTouchMoveForce;
                 AnalogButton.prototype.processTouches = AnalogButton.prototype.processTouchesForce;
                 Joystick.prototype.checkThumbButton = Joystick.prototype.checkThumbButtonForce;
-                joypad = new Joypad();
-            } else { // no touch force detection capability
-                joypad = new Joypad();
             }
+            joypad = new Joypad();
         }
     };
 
