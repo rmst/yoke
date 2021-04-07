@@ -74,7 +74,7 @@ body {
     background: #000;
     color: #0f0;
     font-family: monospace;
-    word-wrap: break-word;
+    white-space: pre-wrap;
     z-index: 2;
 }
 

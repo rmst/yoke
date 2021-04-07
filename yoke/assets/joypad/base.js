@@ -698,13 +698,13 @@ function Joypad() {
         this.updateDebugLabel = function() {
             var dump = this.stateBytes.reduce(
                 function(acc, cur) {
-                    return acc + cur.toString(16).padStart(2, '0') + ':';
+                    return acc + cur.toString(16).padStart(2, '0') + ':&#8203;'; // zero-width-space
                 }, ':'
-            );
+            ) + '\n' + this.debugMessage;
             if (this.debugLabel != null) {
-                this.debugLabel.element.innerHTML = dump + '<br/>' + this.debugMessage;
+                this.debugLabel.element.innerHTML = dump;
             }
-            if (!DEBUG_NO_CONSOLE_SPAM) {console.log(dump + '\n' + this.debugMessage);}
+            if (!DEBUG_NO_CONSOLE_SPAM) {console.log(dump);}
         };
     }
     // Prepare template for sending joypad state:
@@ -838,13 +838,14 @@ Joypad.prototype.mnemonics = function(id, callback) {
 // These variables are automatically updated by the code:
 var joypad = null;
 var motionState = [0, 0, 0, 0, 0, 0];
+var pressureSensitive = false;
 
 // If the user's browser needs permission to vibrate
 // it's more convenient to ask for it first before entering fullscreen.
 // This is useful e.g. in Firefox for Android.
 window.navigator.vibrate(50);
 
-function loadPad(filename) {
+function loadPad(filename, pressureSensitive) {
     var head = document.head;
     var link = document.createElement('link');
     link.type = 'text/css';
@@ -874,13 +875,13 @@ function loadPad(filename) {
     link.onload = function() {
         document.getElementById('joypad').style.display = 'grid';
         if (window.CSS && CSS.supports('display', 'grid')) {
-            warningDiv.style.display = 'none';
-            if (PRESSURE_DETECTION_ENABLED == false || joypad == 0 || joypad == 1 || joypad == null) { // no touch force detection capability
-                joypad = new Joypad();
-            } else { // possible force detection capability
+            document.getElementById('warning').style.display = 'none';
+            if (pressureSensitive) { // touch force detection capability
                 Pedal.prototype.onTouchMove = Pedal.prototype.onTouchMoveForce;
                 AnalogButton.prototype.processTouches = AnalogButton.prototype.processTouchesForce;
                 Joystick.prototype.checkThumbButton = Joystick.prototype.checkThumbButtonForce;
+                joypad = new Joypad();
+            } else { // no touch force detection capability
                 joypad = new Joypad();
             }
         }
@@ -889,13 +890,20 @@ function loadPad(filename) {
     head.appendChild(link);
 }
 
-var warningDiv = document.getElementById('warning');
 document.getElementById('menu').childNodes.forEach(function(child) {
     var id = child.id;
     if (id) {
-        child.addEventListener('click', function() { loadPad(id + '.css'); });
         // If the pressure is between 0 (not normally achievable) or 1 (maximum),
         // the touchscreen can almost certainly detect finger pressure.
-        child.addEventListener('touchstart', function(ev) { joypad = ev.targetTouches[0].force; });
+        // Edge cases are reported as `false` (no pressure-sensitive capacity).
+        child.addEventListener('touchstart', function(ev) {
+            pressureSensitive = PRESSURE_DETECTION_ENABLED && // user can forbid pressure-sensitive controls
+                (ev.targetTouches[0].force > 0 && ev.targetTouches[0].force < 1);
+        });
+        // pressureSensitive is initialized to `false`.
+        // In normal touchscreen devices, click is triggered after touchstart, so pressureSensitive should be updated.
+        // If touchstart is somehow not triggered (for example, by using a mouse or emulation),
+        // the default pressure-agnostic control method is loaded:
+        child.addEventListener('click', function() { loadPad(id + '.css', pressureSensitive); });
     }
 });
