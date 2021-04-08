@@ -7,6 +7,7 @@ html {
 }
 
 body {
+    background: #0099CC;
     margin: 0;
     padding: 0;
     overflow: hidden;
@@ -20,25 +21,14 @@ body {
     height: 100vh;
 }
 
-#warning, #calibration {
+#calibration {
     display: none;
     position: fixed;
     z-index: 10;
     border-radius: 10px;
     padding: 3vh 3vw 3vh;
-    filter: drop-shadow(0px 0px 5px black)
-}
-
-#warning {
-    background: #F0B080;
-    width: 64vw;
-    height: 44vh;
-    top: 25vh;
-    left: 18vw;
-}
-
-#calibration {
-    background: #B0B0B0;
+    filter: drop-shadow(0px 0px 5px black);
+    background: #DDDDDD;
     width: 80vw;
     height: 74vh;
     top: 6vw;
@@ -65,7 +55,7 @@ body {
 
 #menu > * {
     flex: 1 1 auto;
-    background: #cccccc;
+    background: #fff6;
     border-radius: 10px;
     margin: 3px;
     padding-top: 30vh;
@@ -84,7 +74,7 @@ body {
     background: #000;
     color: #0f0;
     font-family: monospace;
-    word-wrap: break-word;
+    white-space: pre-wrap;
     z-index: 2;
 }
 
@@ -97,23 +87,37 @@ div {
 /* Joysticks */
 .joystick {
     background-image: url("img/joystick.svg");
-    background-color: #bbb;
+    background-color: hsl(196, 77%, 55%);
+    border: 3px hsl(188, 100%, 50%) solid;
 }
 .circle {
     background-color: black;
-    width: 10px;
-    height: 10px;
+    width: 20px;
+    height: 20px;
     border-radius: 100%;
     z-index: 2;
     position: absolute;
     left: 0px;
     top: 0px;
 }
+.joystick.thumb > .circle { background-color: #444; }
+.joystick.pressed {
+    background-color: hsl(196, 77%, 33%);
+    border: 3px hsl(188, 100%, 30%) solid;
+}
 
-/* Buttons */
-.analogbutton { background-color: #ccc; z-index: 1; }
-.button { background-color: #bbb; z-index: 1; }
-.pressed { filter: brightness(70%); }
+/* Buttons (digital and analog) */
+.analogbutton, .button {
+    z-index: 1;
+    border-width: 2px;
+    border-radius: 4px;
+}
+.analogbutton { background-color: #ccc; }
+.button { background-color: #bbb; }
+.analogbutton:not(.pressed), .button:not(.pressed) { border-style: outset; }
+.analogbutton.pressed, .button.pressed {
+    filter: brightness(70%); border-style: inset;
+}
 .buttonhitbox {
     position: absolute;
     top: 0px;
@@ -123,48 +127,54 @@ div {
     transform-origin: top left;
     opacity: 0;
 }
-/* seq 1 16 | xargs -I xx echo "#bxx { background-image: url('img/bxx.svg'); }" */
-/* Some edits done by hand */
-#b1 { background-image: url('img/b1.svg'); background-color: #00d; }
-#b2 { background-image: url('img/b2.svg'); background-color: #e00; }
-#b3 { background-image: url('img/b3.svg'); background-color: #dd0; }
-#b4 { background-image: url('img/b4.svg'); background-color: #0d0; }
-#b5 { background-image: url('img/b5.svg'); }
-#b6 { background-image: url('img/b6.svg'); }
-#b7 { background-image: url('img/b7.svg'); }
-#b8 { background-image: url('img/b8.svg'); }
-#b9 { background-image: url('img/b9.svg'); }
-#b10 { background-image: url('img/b10.svg'); }
-#b11 { background-image: url('img/b11.svg'); }
-#b12 { background-image: url('img/b12.svg'); }
-#b13 { background-image: url('img/b13.svg'); }
-#b14 { background-image: url('img/b14.svg'); }
-#b15 { background-image: url('img/b15.svg'); }
-#b16 { background-image: url('img/b16.svg'); }
-#bg { background-image: url('img/bg.svg'); background-color: #444; }
-#bs { background-image: url('img/bs.svg'); background-color: #444; }
-#bm { background-image: url('img/bm.svg'); background-color: #444; }
+#b1 { background-image: url('img/button.svg#b1'); background-color: #00c; border-color: #00c; }
+#b2 { background-image: url('img/button.svg#b2'); background-color: #e00; border-color: #e00; }
+#b3 { background-image: url('img/button.svg#b3'); background-color: #dd0; border-color: #dd0; }
+#b4 { background-image: url('img/button.svg#b4'); background-color: #0c0; border-color: #0c0; }
+#b5 { background-image: url('img/button.svg#b5'); background-color: #a0a; border-color: #a0a; }
+#b6 { background-image: url('img/button.svg#b6'); background-color: #c70; border-color: #c70; }
+#b7 { background-image: url('img/button.svg#b7'); }
+#b8 { background-image: url('img/button.svg#b8'); }
+#b9 { background-image: url('img/button.svg#b9'); }
+#b10 { background-image: url('img/button.svg#b10'); }
+#b11 { background-image: url('img/button.svg#b11'); }
+#b12 { background-image: url('img/button.svg#b12'); }
+#b13 { background-image: url('img/button.svg#b13'); }
+#b14 { background-image: url('img/button.svg#b14'); }
+#b15 { background-image: url('img/button.svg#b15'); }
+#b16 { background-image: url('img/button.svg#b16'); }
+#bg { background-image: url('img/button.svg#bg'); background-color: #445; border-color: #445; }
+#bs { background-image: url('img/button.svg#bs'); background-color: #445; border-color: #445; }
+#bm { background-image: url('img/button.svg#bm'); background-color: #445; border-color: #445; }
+
+#a1 { background-image: url('img/analog.svg#a1'); background-color: #66f; border-color: #66f; }
+#a2 { background-image: url('img/analog.svg#a2'); background-color: #f33; border-color: #f33; }
+#a3 { background-image: url('img/analog.svg#a3'); background-color: #ff2; border-color: #ff2; }
+#a4 { background-image: url('img/analog.svg#a4'); background-color: #2f2; border-color: #2f2; }
+#a5 { background-image: url('img/analog.svg#a5'); }
+#a6 { background-image: url('img/analog.svg#a6'); }
+#a7 { background-image: url('img/analog.svg#a7'); }
+#a8 { background-image: url('img/analog.svg#a8'); }
+#a9 { background-image: url('img/analog.svg#a9'); }
+#a10 { background-image: url('img/analog.svg#a10'); }
+#a11 { background-image: url('img/analog.svg#a11'); }
+#a12 { background-image: url('img/analog.svg#a12'); }
+#a13 { background-image: url('img/analog.svg#a13'); }
+#a14 { background-image: url('img/analog.svg#a14'); }
+#a15 { background-image: url('img/analog.svg#a15'); }
+#a16 { background-image: url('img/analog.svg#a16'); }
 
 /* D-pad */
-#dp { background-image: url('img/dp.svg'); }
-
-/* Analog buttons */
-#a1 { background-image: url('img/a1.svg'); background-color: #66f; }
-#a2 { background-image: url('img/a2.svg'); background-color: #f33; }
-#a3 { background-image: url('img/a3.svg'); background-color: #ff2; }
-#a4 { background-image: url('img/a4.svg'); background-color: #2f2; }
-#a5 { background-image: url('img/a5.svg'); }
-#a6 { background-image: url('img/a6.svg'); }
-#a7 { background-image: url('img/a7.svg'); }
-#a8 { background-image: url('img/a8.svg'); }
-#a9 { background-image: url('img/a9.svg'); }
-#a10 { background-image: url('img/a10.svg'); }
-#a11 { background-image: url('img/a11.svg'); }
-#a12 { background-image: url('img/a12.svg'); }
-#a13 { background-image: url('img/a13.svg'); }
-#a14 { background-image: url('img/a14.svg'); }
-#a15 { background-image: url('img/a15.svg'); }
-#a16 { background-image: url('img/a16.svg'); }
+.dpad { background-image: url('img/dp.svg'); }
+.dpad.u   { background-image: url('img/dp.svg#u'); }
+.dpad.ur  { background-image: url('img/dp.svg#ur'); }
+.dpad.r   { background-image: url('img/dp.svg#r'); }
+.dpad.dr  { background-image: url('img/dp.svg#dr'); }
+.dpad.d   { background-image: url('img/dp.svg#d'); }
+.dpad.dl  { background-image: url('img/dp.svg#dl'); }
+.dpad.l   { background-image: url('img/dp.svg#l'); }
+.dpad.ul  { background-image: url('img/dp.svg#ul'); }
+.dpad.all { background-image: url('img/dp.svg#all'); }
 
 /* Motion controls */
 .motion { background-color: #ddd; }

@@ -1,0 +1,43 @@
+<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+    <defs><style>
+        text {
+            font-family: 'Noto Serif', serif;
+            font-size: 196px;
+            font-weight: bold;
+            text-anchor: middle;
+            fill: #fff8;
+            display: none;
+            dominant-baseline: middle;
+        }
+        text.tight {
+            font-size: 160px;
+        }
+        text:target {display:inline;}
+    </style></defs>
+    <ellipse ry="160" rx="160" cy="200" cx="200" stroke-width="20" stroke="rgba(255, 255, 255, 0.2)" stroke-dasharray="210 35" fill="none"/>
+    <text id="as" y="200" x="200">▶</text>
+    <text id="ag" y="210" x="200">G</text>
+    <text id="am" y="210" x="200">M</text>
+    <text id="aa" y="210" x="200">A</text>
+    <text id="ab" y="210" x="200">B</text>
+    <text id="ac" y="210" x="200">C</text>
+    <text id="ax" y="210" x="200">X</text>
+    <text id="ay" y="210" x="200">Y</text>
+    <text id="az" y="210" x="200">Z</text>
+    <text id="a1" y="210" x="200">1</text>
+    <text id="a2" y="210" x="200">2</text>
+    <text id="a3" y="210" x="200">3</text>
+    <text id="a4" y="210" x="200">4</text>
+    <text id="a5" y="210" x="200">5</text>
+    <text id="a6" y="210" x="200">6</text>
+    <text id="a7" y="210" x="200">7</text>
+    <text id="a8" y="210" x="200">8</text>
+    <text id="a9" y="210" x="200">9</text>
+    <text class="tight" id="a10" y="210" x="200">10</text>
+    <text class="tight" id="a11" y="210" x="200">11</text>
+    <text class="tight" id="a12" y="210" x="200">12</text>
+    <text class="tight" id="a13" y="210" x="200">13</text>
+    <text class="tight" id="a14" y="210" x="200">14</text>
+    <text class="tight" id="a15" y="210" x="200">15</text>
+    <text class="tight" id="a16" y="210" x="200">16</text>
+</svg>

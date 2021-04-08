@@ -20,6 +20,9 @@
         /* Possible values:
          * j1, j2, j3... for joystick (returns to center when released);
          * s1, s2, s3... for sticky joystick (stays in place when released);
+         * t1, t2, t3... for thumb joystick (returns to center, and can be
+           pressed down with force or two fingers to simulate L3/R3 button,
+           like in console controllers).
          * m_ for motion detector, where _ is one of these letters:
               * x for acceleration in the X-axis (left to right),
               * y for acceleration in the Y-axis (bottom to top),

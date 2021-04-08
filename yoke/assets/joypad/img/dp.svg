@@ -1,11 +1,52 @@
-<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" preserveAspectRatio="none">
-    <symbol id="arrow">
-        <ellipse ry="40" rx="40" cy="50" cx="50" stroke-width="5" stroke="rgba(255, 255, 255, 0.5)" fill="rgba(0, 0, 0, 0)"/>
-        <text font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="'Noto Serif', serif" font-size="49" y="50" x="50" fill="rgba(255, 255, 255, 0.5)">↑</text>
-    </symbol>
-    <path id="body" fill="rgba(128, 128, 128, 1)" stroke-width="0" d="M 0,100 h 100 v -100 h 100 v 100 h 100 v 100 h -100 v 100 h -100 v -100 h -100 Z" />
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 304 304" preserveAspectRatio="none">
+    <defs>
+        <linearGradient id="shadow" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="black" stop-opacity="0.6" />
+            <stop offset="80%" stop-color="black" stop-opacity="0.3" />
+            <stop offset="100%" stop-color="black" stop-opacity="0" />
+        </linearGradient>
+        <symbol id="arrow">
+            <path fill="#779" stroke="none" d="M 50,30 l -20,40 h 40 Z" />
+        </symbol>
+        <style>
+            g { display: none; }
+            g:target { display:inline; }
+        </style>
+    </defs>
+    <path id="body" fill="#445" stroke="#779" stroke-width="4" d="M 0,100 h 100 v -100 h 100 v 100 h 100 v 100 h -100 v 100 h -100 v -100 h -100 Z" />
     <use href="#arrow" x="100" y="0"/>
     <use href="#arrow" x="100" y="200" transform="rotate(180, 150, 250)" />
     <use href="#arrow" x="0" y="100" transform="rotate(270, 50, 150)" />
     <use href="#arrow" x="200" y="100" transform="rotate(90, 250, 150) "/>
+    <g id="u">
+        <rect fill="url(#shadow)" x="98" y="-2" height="100" width="100" />
+    </g>
+    <g id="ur">
+        <rect fill="url(#shadow)" x="98" y="-2" height="100" width="100" />
+        <rect fill="url(#shadow)" x="98" y="-2" height="100" width="100" transform="rotate(90, 150, 150)"/>
+    </g>
+    <g id="r">
+        <rect fill="url(#shadow)" x="98" y="-2" height="100" width="100" transform="rotate(90, 150, 150)"/>
+    </g>
+    <g id="dr">
+        <rect fill="url(#shadow)" x="98" y="-2" height="100" width="100" transform="rotate(180, 150, 150)"/>
+        <rect fill="url(#shadow)" x="98" y="-2" height="100" width="100" transform="rotate(90, 150, 150)"/>
+    </g>
+    <g id="d">
+        <rect fill="url(#shadow)" x="98" y="-2" height="100" width="100" transform="rotate(180, 150, 150)"/>
+    </g>
+    <g id="dl">
+        <rect fill="url(#shadow)" x="98" y="-2" height="100" width="100" transform="rotate(180, 150, 150)"/>
+        <rect fill="url(#shadow)" x="98" y="-2" height="100" width="100" transform="rotate(270, 150, 150)"/>
+    </g>
+    <g id="l">
+        <rect fill="url(#shadow)" x="98" y="-2" height="100" width="100" transform="rotate(270, 150, 150)"/>
+    </g>
+    <g id="ul">
+        <rect fill="url(#shadow)" x="98" y="-2" height="100" width="100" />
+        <rect fill="url(#shadow)" x="98" y="-2" height="100" width="100" transform="rotate(270, 150, 150)"/>
+    </g>
+    <g id="all">
+        <path id="body" fill="#0007" stroke="#0007" stroke-width="4" d="M 0,100 h 100 v -100 h 100 v 100 h 100 v 100 h -100 v 100 h -100 v -100 h -100 Z" />
+    </g>
 </svg>

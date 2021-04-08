@@ -1,14 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1" viewBox="0 0 1 1" preserveAspectRatio="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="-100 -100 200 200" preserveAspectRatio="none">
     <defs><style>
-        path {
-            fill: none;
-            stroke: #999;
-            stroke-linecap: square;
-            stroke-width: 0.03px;
-        }
+        .sector {stroke: none; fill: #00000020;}
+        .limit {stroke-width: 1px; fill: none;}
     </style></defs>
-    <path d="M -1,0.5 H 2" transform="rotate(22.5  0.5 0.5)" />
-    <path d="M -1,0.5 H 2" transform="rotate(67.5  0.5 0.5)" />
-    <path d="M -1,0.5 H 2" transform="rotate(112.5 0.5 0.5)" />
-    <path d="M -1,0.5 H 2" transform="rotate(157.5 0.5 0.5)" />
+    <!-- 8 equally wide angular sectors -->
+    <path class="sector" d="M  38.27,100 H  100 V 38.27 L -100,-38.27 V -100 H -38.27 Z" />
+    <path class="sector" d="M -38.27,100 H -100 V 38.27 L  100,-38.27 V -100 H  38.27 Z" />
+    <!-- Primitive depth effect -->
+    <path class="limit" d="M  38.27,-100 L 0,0 L  38.27, 100 M -100,-38.27 L 0,0 L 100,-38.27" stroke="white" />
+    <path class="limit" d="M -38.27,-100 L 0,0 L -38.27, 100 M -100, 38.27 L 0,0 L 100, 38.27" stroke="black" />
 </svg>

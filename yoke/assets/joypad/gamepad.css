@@ -1,25 +1,31 @@
 /* Gamepad settings the user might want to change. */
 
 #joypad {
-    grid-template-columns: repeat(16, 1fr);
-    grid-template-rows: repeat(9, 1fr);
+    grid-template-columns: repeat(28, 1fr);
+    grid-template-rows: repeat(12, 1fr);
     grid-template-areas:
     /* The map below must match the number of rows and columns specified above.
      * Controls may cover any rectangular area.
      * Do not try drawing non-rectangular shapes. */
-        ".   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   "
-        ".   .   .   .   .   .   .   .   .   .   .   .   b4  b4  .   .   "
-        ".   .   .   .   .   .   .   .   .   .   .   .   b4  b4  .   .   "
-        ".   j1  j1  j1  .   bg  .   .   bs  .   b3  b3  .   .   b2  b2  "
-        ".   j1  j1  j1  .   .   .   .   .   .   b3  b3  .   .   b2  b2  "
-        ".   j1  j1  j1  .   .   j2  j2  .   .   .   .   b1  b1  .   .   "
-        ".   .   .   .   .   .   j2  j2  .   .   .   .   b1  b1  .   .   "
-        ".   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   "
-        "dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg dbg "
+        "a1 a1 .  b5 b5 b5 b5 b5 .  .  .  .  .  .  .  .  .  .  .  .  b6 b6 b6 b6 b6 .  a2 a2 "
+        "a1 a1 .  b5 b5 b5 b5 b5 .  .  .  .  .  .  .  .  .  .  .  .  b6 b6 b6 b6 b6 .  a2 a2 "
+        "a1 a1 .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  a2 a2 "
+        ".  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  "
+        ".  .  .  .  .  .  .  .  bg bg .  .  bm bm .  .  bs bs .  .  .  .  .  .  b4 b4 .  .  "
+        ".  t1 t1 t1 .  .  .  .  .  .  .  .  bm bm .  .  .  .  .  .  .  .  .  .  b4 b4 .  .  "
+        ".  t1 t1 t1 .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  b3 b3 .  .  b2 b2 "
+        ".  t1 t1 t1 .  dp dp dp dp .  .  .  .  .  .  .  .  .  .  .  .  .  b3 b3 .  .  b2 b2 "
+        ".  .  .  .  .  dp dp dp dp .  .  .  .  .  .  .  .  .  t2 t2 t2 .  .  .  b1 b1 .  .  "
+        ".  .  .  .  .  dp dp dp dp .  .  .  .  .  .  .  .  .  t2 t2 t2 .  .  .  b1 b1 .  .  "
+        ".  .  .  .  .  dp dp dp dp .  .  .  .  .  .  .  .  .  t2 t2 t2 .  .  .  .  .  .  .  "
+        ".  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  "
         ;
         /* Possible values:
          * j1, j2, j3... for joystick (returns to center when released);
          * s1, s2, s3... for sticky joystick (stays in place when released);
+         * t1, t2, t3... for thumb joystick (returns to center, and can be
+           pressed down with force or two fingers to simulate L3/R3 button,
+           like in console controllers).
          * m_ for motion detector, where _ is one of these letters:
               * x for acceleration in the X-axis (left to right),
               * y for acceleration in the Y-axis (bottom to top),

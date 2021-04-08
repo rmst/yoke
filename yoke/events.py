@@ -601,6 +601,8 @@ ALIAS = {
 's1': 'ABS_X,ABS_Y',
 's2': 'ABS_RX,ABS_RY',
 's3': 'ABS_TOOL_WIDTH,ABS_MAX',
+'t1': 'ABS_X,ABS_Y,BTN_THUMB',
+'t2': 'ABS_RX,ABS_RY,BTN_THUMB2',
 'mx': 'ABS_MISC',
 'my': 'ABS_RZ',
 'mz': 'ABS_Z',
@@ -648,8 +650,6 @@ ALIAS = {
 'b21': 'BTN_BASE4',
 'b22': 'BTN_BASE5',
 'b23': 'BTN_BASE6',
-'b24': 'BTN_THUMB',
-'b25': 'BTN_THUMB2',
-'b26': 'BTN_TRIGGER',
+'b24': 'BTN_TRIGGER',
 'dp': 'BTN_DPAD_UP,BTN_DPAD_LEFT,BTN_DPAD_DOWN,BTN_DPAD_RIGHT',
 }
