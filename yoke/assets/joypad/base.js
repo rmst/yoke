@@ -1,4 +1,8 @@
 'use strict';
+// DEBUG SETTINGS:
+// These 2 options are recommended for testing in non-kiosk/non-embedded browsers:
+var WAIT_FOR_FULLSCREEN = false;
+var DEBUG_NO_CONSOLE_SPAM = true;
 
 // SETTINGS:
 // Octant refers to the 8 sectors in which the area of a joystick is divided.
@@ -7,9 +11,6 @@
 var VIBRATE_ON_OCTANT_BOUNDARY = true;
 var VIBRATE_ON_PAD_BOUNDARY = true;
 var VIBRATE_PROPORTIONALLY_TO_DISTANCE = false;
-// These 2 options are recommended for testing in non-kiosk/non-embedded browsers:
-var WAIT_FOR_FULLSCREEN = false;
-var DEBUG_NO_CONSOLE_SPAM = true;
 // Duration of vibration when clicking a button (onTouchStart):
 var VIBRATION_MILLISECONDS_IN = 40;
 // Duration of vibration when changing octants in a joystick:
@@ -97,6 +98,44 @@ function categories(a, b) {
 function truncate(val) {
     return (val < 0) ? 0 :
         (val > 0x7fff) ? 0x7fff : Math.floor(val);
+}
+
+function parseTime(c) {
+    if (c.endsWith('ms')) {
+        return parseFloat(c) / 1000;
+    } else if (c.endsWith('s') || parseFloat(c).toString() == c) {
+        return parseFloat(c);
+    } else {
+        return undefined;
+    }
+}
+
+function parsePercentage(c) {
+    if (c.endsWith('%')) {
+        return parseFloat(c) / 100;
+    } else if (parseFloat(c).toString() == c) {
+        return parseFloat(c);
+    } else {
+        return undefined;
+    }
+}
+
+function parseDistance(c) {
+    return (c.endsWith('px') || parseFloat(c).toString() == c) ? parseFloat(c) : undefined;
+}
+
+function parseBoolean(c) {
+    switch (c) {
+        case 'yes':
+        case 'true':
+            return true; break;
+        case 'no':
+        case 'none':
+        case 'false':
+            return false; break;
+        default:
+            return undefined; break;
+    }
 }
 
 var serializer = new TextDecoder('iso-8859-1');
@@ -401,7 +440,7 @@ function AnalogButton(id, updateStateCallback) {
     this.state = 0;
     this.oldState = 0;
     this.hitbox = document.createElement('div');
-    this.hitbox.className = 'buttonhitbox';
+    this.hitbox.className = 'hitbox';
     this.element.appendChild(this.hitbox);
 }
 AnalogButton.prototype = Object.create(Control.prototype);
@@ -535,7 +574,7 @@ function Button(id, updateStateCallback) {
     this.state = 0;
     this.oldState = 0;
     this.hitbox = document.createElement('div');
-    this.hitbox.className = 'buttonhitbox';
+    this.hitbox.className = 'hitbox';
     this.element.appendChild(this.hitbox);
 }
 Button.prototype = Object.create(Control.prototype);
@@ -832,6 +871,15 @@ Joypad.prototype.mnemonics = function(id, callback) {
         }
     }
 };
+Joypad.prototype.readVariable = function (key, vartype) {
+    var output = getComputedStyle(this.element).getPropertyValue(key)
+        .trim().replace(/\s+/g, ' ').toLocaleLowerCase('en-US').split(' ').map(vartype);
+    if (output.reduce(function (acc, cur) {return (acc || typeof cur === 'undefined');}, false)) {
+        window.Yoke.alert('Value for variable `' + key + '` could not be parsed. Unexpected behavior may occur.');
+    }
+    return (output.length == 1) ? output[0] : output;
+};
+Control.prototype.readVariable = Joypad.prototype.readVariable;
 
 
 // BASE CODE:

@@ -1,94 +1,54 @@
-/* Basic properties */
+/** CONTROLS **/
 
-html {
-    touch-action: none;
-    user-select: none;
-    -webkit-user-select: none;
+.control { /* Do not modify this line: */ z-index: 2;
+
+    /* Default Yoke configuration follows.
+     * Times can be given as milliseconds (8ms) or seconds (8s).
+     * Boolean options can be given as yes/true or no/none/false.
+     * Numbers can be given as-is, or as percentages.
+     * Most options may be disabled setting all values to 0/no/none/false. */
+
+    /* The area that a joystick or knob covers is divided in 8 octants.
+     * Yoke can vibrate when the finger changes octants. */
+    --vibrate-on-octant-edge: 20ms;
+    /* Vibration pattern when the finger is over the joystick edge.
+     * The first value is the vibration time,
+     * the second value is the relaxation time. */
+    --vibrate-on-edge: 9ms 11ms;
+    /* If `yes` or `true`, the vibration becomes stronger the
+     * farther the joystick is pushed beyond its borders. */
+    --vibrate-proportionally-to-distance: no;
+    /* Tactile feedback when a control "clicks", for example:
+     * thumbstick is pressed down to simulate L3/R3 button;
+     * a button or a D-pad leg is clicked.
+     * (Yoke never vibrates on finger release to avoid crosstalk). */
+    --vibrate-on-click: 40ms;
+    /* Tactile feedback when a knob or joystick is touched: */
+    --vibrate-on-touch: 40ms;
+    /* Width and height of a central deadzone:
+     * (round or square, depending on the shape of the control itself). */
+    --center-deadzone: 9% 9%;
+    /* Calibration for pressure-sensitive controls.
+     * The first value is the minimum pressure that will engage it,
+     * while the second value is the pressure that will saturate it.
+     * The meaning for joysticks is slightly different; see below. */
+    --force-thresholds: 10% 40%;
 }
 
-body {
-    background: #0099CC;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    text-align: center;
-    vertical-align: middle;
-}
-
-#joypad {
-    display: none;
-    width: 100vw;
-    height: 100vh;
-}
-
-#calibration {
-    display: none;
-    position: fixed;
-    z-index: 10;
-    border-radius: 10px;
-    padding: 3vh 3vw 3vh;
-    filter: drop-shadow(0px 0px 5px black);
-    background: #DDDDDD;
-    width: 80vw;
-    height: 74vh;
-    top: 6vw;
-    left: 7vw;
-}
-
-#force {
-    position: absolute;
-    background: #008000;
-    width: 70vw;
-    height: 11px;
-    transform-origin: left;
-}
-
-#calibrationOk, #calibrationNo { width: 48%; padding: 4vh 0vh 4vh; }
-
-#menu {
-    width: 100vw;
-    height: 100vh;
-    display: flex;
-    flex-flow: row wrap;
-    justify-content: space-evenly;
-}
-
-#menu > * {
-    flex: 1 1 auto;
-    background: #fff6;
-    border-radius: 10px;
-    margin: 3px;
-    padding-top: 30vh;
-    text-align: center;
-    vertical-align: middle;
-}
-
-.dismiss {
-    margin-top: 5vh;
-    font-size: 80%;
-}
-
-#dbg {
-    vertical-align: middle;
-    overflow: hidden;
-    background: #000;
-    color: #0f0;
-    font-family: monospace;
-    white-space: pre-wrap;
-    z-index: 2;
-}
-
-div {
-    background-size: 100% 100%;
-}
-
-.control { z-index: 2; }
+/* Variables after this line override the defaults above for specific controls.
+ * Some variables only are defined for one specific type of control (like D-pads.) */
 
 /* Joysticks */
 .joystick {
     background-image: url("img/joystick.svg");
     background-color: hsl(196, 77%, 55%);
     border: 3px hsl(188, 100%, 50%) solid;
+    --vibrate-on-click: 45ms;
+    /* Calibration for finger pressure.
+     * On joysticks, the first value has no effect yet.
+     * The second value is only used on joysticks with a L3/R3 button below,
+     * and determines at which pressure is it considered pressed. */
+    --force-thresholds: 10% 20%;
 }
 .circle {
     background-color: black;
@@ -111,6 +71,13 @@ div {
     z-index: 1;
     border-width: 2px;
     border-radius: 4px;
+    /* Tactile feedback. Applies to analog and digital buttons alike: */
+    --vibrate-on-click: 40ms;
+    /* Distance that the hitbox of a button covers beyond its apparent size.
+     * This allows a single finger to press more than one button.
+     * First value controls left and right overshoot,
+     * second values controls top and bottom overshoot. */
+    --overshoot-hitbox: 7px 7px;
 }
 .analogbutton { background-color: #ccc; }
 .button { background-color: #bbb; }
@@ -118,7 +85,7 @@ div {
 .analogbutton.pressed, .button.pressed {
     filter: brightness(70%); border-style: inset;
 }
-.buttonhitbox {
+.button > .hitbox, .analogbutton > .hitbox {
     position: absolute;
     top: 0px;
     left: 0px;
@@ -129,7 +96,7 @@ div {
 }
 #b1 { background-image: url('img/button.svg#b1'); background-color: #00c; border-color: #00c; }
 #b2 { background-image: url('img/button.svg#b2'); background-color: #e00; border-color: #e00; }
-#b3 { background-image: url('img/button.svg#b3'); background-color: #dd0; border-color: #dd0; }
+#b3 { background-image: url('img/button.svg#b3'); background-color: #cc0; border-color: #cc0; }
 #b4 { background-image: url('img/button.svg#b4'); background-color: #0c0; border-color: #0c0; }
 #b5 { background-image: url('img/button.svg#b5'); background-color: #a0a; border-color: #a0a; }
 #b6 { background-image: url('img/button.svg#b6'); background-color: #c70; border-color: #c70; }
@@ -149,7 +116,7 @@ div {
 
 #a1 { background-image: url('img/analog.svg#a1'); background-color: #66f; border-color: #66f; }
 #a2 { background-image: url('img/analog.svg#a2'); background-color: #f33; border-color: #f33; }
-#a3 { background-image: url('img/analog.svg#a3'); background-color: #ff2; border-color: #ff2; }
+#a3 { background-image: url('img/analog.svg#a3'); background-color: #ee2; border-color: #ee2; }
 #a4 { background-image: url('img/analog.svg#a4'); background-color: #2f2; border-color: #2f2; }
 #a5 { background-image: url('img/analog.svg#a5'); }
 #a6 { background-image: url('img/analog.svg#a6'); }
@@ -165,7 +132,14 @@ div {
 #a16 { background-image: url('img/analog.svg#a16'); }
 
 /* D-pad */
-.dpad { background-image: url('img/dp.svg'); }
+.dpad {
+    background-image: url('img/dp.svg');
+    --vibrate-on-click: 35ms;
+    /* Length and width of a D-pad button hitbox, given as percentages of the
+     * length and width of the whole D-pad.
+     * Buttons should overlap slightly to allow for easy diagonal movement. */
+    --button-hitbox: 40% 50%;
+}
 .dpad.u   { background-image: url('img/dp.svg#u'); }
 .dpad.ur  { background-image: url('img/dp.svg#ur'); }
 .dpad.r   { background-image: url('img/dp.svg#r'); }
@@ -177,11 +151,18 @@ div {
 .dpad.all { background-image: url('img/dp.svg#all'); }
 
 /* Motion controls */
-.motion { background-color: #ddd; }
+.motion {
+    background-color: #ddd;
+    /* Constant normalization factor for acceleration. Indirectly sets the
+     * maximum acceleration Yoke can detect. */
+    --normalization-constant: 0.025;
+}
 .motiontrinket { width: 100%; height: 100%; background-image: url('img/motiontrinket.svg'); }
 
 /* Pedals */
-.pedal { background-color: #333; }
+#pa { background-image: url('img/pedal.svg#accelerator') }
+#pb { background-image: url('img/pedal.svg#brake') }
+#pt { background-image: url('img/pedal.svg#accelerator') }
 
 /* Knobs */
 .knob { }
@@ -197,5 +178,53 @@ div {
     top: 50%;
     left: 90%;
     transform: translate(-50%, -50%);
+}
+
+/** GENERAL STYLE **/
+body {
+    background: #0099CC;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    text-align: center;
+    vertical-align: middle;
+}
+#menu {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: space-evenly;
+}
+#menu > * {
+    flex: 1 1 auto;
+    background: #fff6;
+    border-radius: 10px;
+    margin: 3px;
+    padding-top: 30vh;
+    text-align: center;
+    vertical-align: middle;
+}
+#dbg {
+    vertical-align: middle;
+    overflow: hidden;
+    background: #000;
+    color: #0f0;
+    font-family: monospace;
+    white-space: pre-wrap;
+    z-index: 2;
+}
+
+/** BASIC PROPERTIES -- DO NOT MODIFY **/
+html {
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+div {
+    background-size: 100% 100%;
+}
+#joypad {
+    display: none; width: 100vw; height: 100vh;
 }
 
