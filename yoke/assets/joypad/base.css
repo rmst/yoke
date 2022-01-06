@@ -27,7 +27,7 @@
     --vibrate-on-touch: 40ms;
     /* Width and height of a central deadzone:
      * (round or square, depending on the shape of the control itself). */
-    --center-deadzone: 9% 9%;
+    --center-deadzone: 10% 10%;
     /* Calibration for pressure-sensitive controls.
      * The first value is the minimum pressure that will engage it,
      * while the second value is the pressure that will saturate it.
@@ -40,15 +40,31 @@
 
 /* Joysticks */
 .joystick {
-    background-image: url("img/joystick.svg");
-    background-color: hsl(196, 77%, 55%);
-    border: 3px hsl(188, 100%, 50%) solid;
     --vibrate-on-click: 45ms;
     /* Calibration for finger pressure.
      * On joysticks, the first value has no effect yet.
      * The second value is only used on joysticks with a L3/R3 button below,
      * and determines at which pressure is it considered pressed. */
     --force-thresholds: 10% 20%;
+    /* Determines the shape of both the joystick itself and the central deadzone, if any.
+     * If circle or ellipse, specify only one percentage (from center to edge).
+     * If rectangle or square, specify the percentage per axis */
+    --shape: rectangle;
+    --center-deadzone: 10% 10%;
+}
+.joystick.ellipse, .joystick.thumb {
+    --shape: circle;
+    --center-deadzone: 15%;
+}
+.joysticksquare {
+    background-image: url("img/joystick.svg");
+    background-color: hsl(196, 77%, 55%);
+    border: 3px hsl(188, 100%, 50%) solid;
+    position: absolute;
+    box-sizing: border-box;
+}
+.joysticksquare.ellipse {
+    border-radius: 100%;
 }
 .circle {
     background-color: black;
@@ -61,7 +77,7 @@
     top: 0px;
 }
 .joystick.thumb > .circle { background-color: #444; }
-.joystick.pressed {
+.joysticksquare.pressed {
     background-color: hsl(196, 77%, 33%);
     border: 3px hsl(188, 100%, 30%) solid;
 }

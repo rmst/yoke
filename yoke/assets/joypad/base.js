@@ -63,9 +63,9 @@ function truncate(val) {
 
 function parseTime(c) {
     if (c.endsWith('ms')) {
-        return parseFloat(c) / 1000;
-    } else if (c.endsWith('s') || parseFloat(c).toString() == c) {
         return parseFloat(c);
+    } else if (c.endsWith('s') || parseFloat(c).toString() == c) {
+        return parseFloat(c) * 1000;
     } else if (c == 'none' || c == 'no' || c == 'false') {
         return 0;
     } else {
@@ -153,7 +153,7 @@ function Control(type, id, updateStateCallback) {
 Control.prototype.shape = 'rectangle';
 Control.prototype.getBoundingClientRect = function() {
     this.offset = this.element.getBoundingClientRect();
-    if (this.shape == 'square') {
+    if (this.shape == 'square' || this.shape == 'circle') {
         if (this.offset.width < this.offset.height) {
             this.offset.y += (this.offset.height - this.offset.width) / 2;
             this.offset.height = this.offset.width;
@@ -176,6 +176,7 @@ Control.prototype.getBoundingClientRect = function() {
     this.offset.yMax = this.offset.y + this.offset.height;
 };
 Control.prototype.onAttached = function() {};
+Control.prototype.readConfig = function() {};
 Control.prototype.setBufferView = function(cursor, buffer) {
     this.stateBuffer = new DataView(buffer, cursor, 2);
     this.stateBuffer.setUint16(0, 0x0000 + cursor, false);
@@ -192,6 +193,13 @@ function Joystick(id, updateStateCallback) {
         this.state = [0, 0];
         this.checkThumbButton = function() {};
     }
+    this.joystickSquare = document.createElement('div');
+    this.joystickSquare.className = 'joysticksquare';
+    this.element.appendChild(this.joystickSquare);
+    if (this.element.id[0] == 't') {
+        this.element.classList.add('thumb');
+    }
+
     this.circle = document.createElement('div');
     this.circle.className = 'circle';
     this.element.appendChild(this.circle);
@@ -199,20 +207,41 @@ function Joystick(id, updateStateCallback) {
 Joystick.prototype = Object.create(Control.prototype);
 Joystick.prototype.onAttached = function() {
     this.updateCircle(this.offset.xCenter, this.offset.yCenter);
+    // Resizing the joystick to fit whatever shape is specified.
+    this.joystickSquare.style.top = this.offset.y + 'px';
+    this.joystickSquare.style.left = this.offset.x + 'px';
+    this.joystickSquare.style.height = this.offset.height + 'px';
+    this.joystickSquare.style.width = this.offset.width + 'px';
     this.element.addEventListener('touchmove', this.onTouchMove.bind(this), false);
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
     this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
-    if (this.element.id[0] == 't') {
-        this.element.classList.add('thumb');
+    if (this.shape == 'circle' || this.shape == 'ellipse') {
+        this.offset.factorX = 0x4000 / this.offset.halfWidth;
+        this.offset.factorY = 0x4000 / this.offset.halfHeight;
+        this.offset.factorR = 0x4000 / (0x4000 - this.centerDeadzone);
+    } else {
+        this.offset.xDeadLow = this.offset.xCenter - this.offset.halfWidth * this.centerDeadzone[0];
+        this.offset.xDeadHigh = this.offset.xCenter + this.offset.halfWidth * this.centerDeadzone[0];
+        this.offset.yDeadLow = this.offset.yCenter - this.offset.halfHeight * this.centerDeadzone[1];
+        this.offset.yDeadHigh = this.offset.yCenter + this.offset.halfHeight * this.centerDeadzone[1];
+        this.offset.factorX = 0x4000 / (this.offset.halfWidth * (1 - this.centerDeadzone[0]));
+        this.offset.factorY = 0x4000 / (this.offset.halfHeight * (1 - this.centerDeadzone[1]));
     }
-    this.offset.factorX = 0x4000 / this.offset.halfWidth;
-    this.offset.factorY = 0x4000 / this.offset.halfHeight;
-    this.vibrateOnClick = this.readVariable('--vibrate-on-click', parseTime) * 1000;
-    this.vibrateOnTouch = this.readVariable('--vibrate-on-touch', parseTime) * 1000;
-    this.vibrateOnEdge = this.readVariable('--vibrate-on-edge', parseTime)
-        .map(function (c) {return c * 1000;});
-    this.vibrateOnOctantEdge = this.readVariable('--vibrate-on-octant-edge', parseTime) * 1000;
+};
+Joystick.prototype.readConfig = function() {
+    this.centerDeadzone = this.readVariable('--center-deadzone', parsePercentage);
+    this.shape = this.readVariable('--shape', 'circle|ellipse|rectangle|square');
+    if (this.shape == 'circle' || this.shape == 'ellipse') {
+        this.centerDeadzone = this.centerDeadzone * 0x4000;
+        this.joystickSquare.classList.add('ellipse');
+        this.onTouchMove = this.onTouchMoveCircle;
+        this.updateCircle = this.updateCircleCircle;
+    }
+    this.vibrateOnClick = this.readVariable('--vibrate-on-click', parseTime);
+    this.vibrateOnTouch = this.readVariable('--vibrate-on-touch', parseTime);
+    this.vibrateOnEdge = this.readVariable('--vibrate-on-edge', parseTime);
+    this.vibrateOnOctantEdge = this.readVariable('--vibrate-on-octant-edge', parseTime);
     this.vibrateProportionallyToDistance = this.readVariable('--vibrate-proportionally-to-distance', parseBoolean);
     this.forceThresholds = this.readVariable('--force-thresholds', parsePercentage);
 };
@@ -220,8 +249,20 @@ Joystick.prototype.onAttached = function() {
 Joystick.prototype.EIGHTH_OF_RADIAN = 1 / Math.sin(Math.PI / 8);
 Joystick.prototype.onTouchMove = function(ev) {
     var pos = ev.targetTouches[0];
-    this.state[0] = (pos.pageX - this.offset.xCenter) * this.offset.factorX;
-    this.state[1] = (pos.pageY - this.offset.yCenter) * this.offset.factorY;
+    if (pos.pageX < this.offset.xDeadLow) {
+        this.state[0] = (pos.pageX - this.offset.xDeadLow) * this.offset.factorX;
+    } else if (pos.pageX > this.offset.xDeadHigh) {
+        this.state[0] = (pos.pageX - this.offset.xDeadHigh) * this.offset.factorX;
+    } else {
+        this.state[0] = 0;
+    }
+    if (pos.pageY < this.offset.yDeadLow) {
+        this.state[1] = (pos.pageY - this.offset.yDeadLow) * this.offset.factorY;
+    } else if (pos.pageY > this.offset.yDeadHigh) {
+        this.state[1] = (pos.pageY - this.offset.yDeadHigh) * this.offset.factorY;
+    } else {
+        this.state[1] = 0;
+    }
     this.stateBuffer.setUint16(0, truncate(this.state[0] + 0x4000), false);
     this.stateBuffer.setUint16(2, truncate(this.state[1] + 0x4000), false);
     this.checkThumbButton(ev);
@@ -253,6 +294,50 @@ Joystick.prototype.onTouchMove = function(ev) {
     }
     this.updateCircle(pos.pageX, pos.pageY);
 };
+Joystick.prototype.onTouchMoveCircle = function(ev) {
+    var pos = ev.targetTouches[0];
+    this.state[0] = (pos.pageX - this.offset.xCenter) * this.offset.factorX;
+    this.state[1] = (pos.pageY - this.offset.yCenter) * this.offset.factorY;
+    this.checkThumbButton(ev);
+    var distance = Math.hypot(this.state[0], this.state[1]);
+    if (distance < this.centerDeadzone) {
+        this.state[0] = 0;
+        this.state[1] = 0;
+        this.octant = -2;
+    } else if (distance < 0x4000) {
+        var newDistance = (distance - this.centerDeadzone) * this.offset.factorR;
+        this.state[0] *= newDistance / distance;
+        this.state[1] *= newDistance / distance;
+        unqueueForVibration(this.element.id);
+        // Instead of calculating an accurate angle, we hardcode the limits of each octant using analytic geometry:
+        // the lines that divide the sector are x/sin(π/8)=y, etc.
+        var currentOctant =
+            ((this.state[0] * this.EIGHTH_OF_RADIAN > this.state[1]) ? 1 : 0) +
+            ((this.state[0] > this.state[1] * -this.EIGHTH_OF_RADIAN) ? 2 : 0) +
+            ((this.state[0] * -this.EIGHTH_OF_RADIAN > this.state[1]) ? 4 : 0) +
+            ((this.state[0] > this.state[1] * this.EIGHTH_OF_RADIAN) ? 8 : 0);
+        if (this.vibrateOnOctantEdge && this.octant != -2 && this.octant != currentOctant) {
+            window.navigator.vibrate(this.vibrateOnOctantEdge);
+        }
+        this.octant = currentOctant;
+    } else {
+        if (this.vibrateOnEdge[0]) {
+            queueForVibration(this.element.id, [
+                this.vibrateProportionallyToDistance
+                    ? distance / 0x4000 * this.vibrateOnEdge[0]
+                    : this.vibrateOnEdge[0],
+                this.vibrateOnEdge[1]
+            ]);
+        }
+        this.state[0] *= 0x4000 / distance;
+        this.state[1] *= 0x4000 / distance;
+        this.octant = -2;
+    }
+    this.stateBuffer.setUint16(0, truncate(this.state[0] + 0x4000), false);
+    this.stateBuffer.setUint16(2, truncate(this.state[1] + 0x4000), false);
+    this.updateStateCallback();
+    this.updateCircle(pos.pageX, pos.pageY, distance);
+};
 Joystick.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
     this.onTouchMove(ev);
@@ -269,7 +354,7 @@ Joystick.prototype.onTouchEnd = function(ev) {
         if (this.state.length == 3) {
             this.state[2] = 0;
             this.stateBuffer.setUint8(4, 0);
-            this.element.classList.remove('pressed');
+            this.joystickSquare.classList.remove('pressed');
             this.oldButtonState = 0;
         }
         this.updateStateCallback();
@@ -285,7 +370,7 @@ Joystick.prototype.checkThumbButton = function(ev) {
     this.stateBuffer.setUint8(4, this.state[2]);
     if (this.oldButtonState != this.state[2]) {
         window.navigator.vibrate(this.vibrateOnClick);
-        (this.state[2] == 0) ? this.element.classList.remove('pressed') : this.element.classList.add('pressed');
+        (this.state[2] == 0) ? this.joystickSquare.classList.remove('pressed') : this.joystickSquare.classList.add('pressed');
         this.oldButtonState = this.state[2];
     }
 };
@@ -294,7 +379,7 @@ Joystick.prototype.checkThumbButtonForce = function(ev) {
     this.stateBuffer.setUint8(4, this.state[2]);
     if (this.oldButtonState != this.state[2]) {
         window.navigator.vibrate(this.vibrateOnClick);
-        (this.state[2] == 0) ? this.element.classList.remove('pressed') : this.element.classList.add('pressed');
+        (this.state[2] == 0) ? this.joystickSquare.classList.remove('pressed') : this.joystickSquare.classList.add('pressed');
         this.oldButtonState = this.state[2];
     }
 };
@@ -302,6 +387,18 @@ Joystick.prototype.updateCircle = function(x, y) {
     this.circle.style.transform = 'translate(-50%, -50%) translate(' +
         Math.max(Math.min(x, this.offset.xMax), this.offset.x) + 'px, ' +
         Math.max(Math.min(y, this.offset.yMax), this.offset.y) + 'px)';
+};
+Joystick.prototype.updateCircleCircle = function(x, y, distance) {
+    if (distance > 0x4000) {
+        this.circle.style.transform = 'translate(-50%, -50%) translate(' +
+            ((x - this.offset.xCenter) * 0x4000 / distance + this.offset.xCenter) + 'px, ' +
+            ((y - this.offset.yCenter) * 0x4000 / distance + this.offset.yCenter) + 'px)';
+    } else {
+        // also runs if distance is undefined:
+        this.circle.style.transform = 'translate(-50%, -50%) translate(' +
+            x + 'px, ' +
+            y + 'px)';
+    }
 };
 Joystick.prototype.setBufferView = function(cursor, buffer) {
     if (this.element.id[0] == 't') {
@@ -328,7 +425,7 @@ function Motion(id, updateStateCallback) {
     this.element.appendChild(this.trinket);
 }
 Motion.prototype = Object.create(Control.prototype);
-Motion.prototype.onAttached = function() {
+Motion.prototype.readConfig = function() {
     this.normalizationConstant = this.readVariable('--normalization-constant', parsePercentage);
 };
 Motion.prototype.onDeviceMotion = function(ev) {
@@ -374,9 +471,10 @@ Pedal.prototype.onAttached = function() {
     this.element.addEventListener('touchmove', this.onTouchMove.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
     this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
-    this.vibrateOnEdge = this.readVariable('--vibrate-on-edge', parseTime)
-        .map(function (c) {return c * 1000;});
-    this.vibrateOnTouch = this.readVariable('--vibrate-on-touch', parseTime) * 1000;
+};
+Pedal.prototype.readConfig = function() {
+    this.vibrateOnEdge = this.readVariable('--vibrate-on-edge', parseTime);
+    this.vibrateOnTouch = this.readVariable('--vibrate-on-touch', parseTime);
     this.forceThresholds = this.readVariable('--force-thresholds', parsePercentage);
 };
 Pedal.prototype.onTouchStart = function(ev) {
@@ -440,7 +538,9 @@ AnalogButton.prototype.onAttached = function() {
         'scaleX(', this.offset.width, ') ',
         'scaleY(', this.offset.height, ')'
     ].join('');
-    this.vibrateOnClick = this.readVariable('--vibrate-on-click', parseTime) * 1000;
+};
+AnalogButton.prototype.readConfig = function() {
+    this.vibrateOnClick = this.readVariable('--vibrate-on-click', parseTime);
     this.forceThresholds = this.readVariable('--force-thresholds', parsePercentage);
     this.centerDeadzone = this.readVariable('--center-deadzone', parsePercentage)
         .map(function (c) {return 1 / (1 - c);});
@@ -526,7 +626,9 @@ Knob.prototype.onAttached = function() {
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
     this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
-    this.vibrateOnTouch = this.readVariable('--vibrate-on-touch', parseTime) * 1000;
+};
+Knob.prototype.readConfig = function() {
+    this.vibrateOnTouch = this.readVariable('--vibrate-on-touch', parseTime);
     this.vibrateOnOctantEdge = this.readVariable('--vibrate-on-octant-edge', parseTime);
 };
 Knob.prototype.onTouchMove = function(ev) {
@@ -607,16 +709,18 @@ DPad.prototype.onAttached = function() {
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
     this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
     // Precalculate the borders of the buttons:
-    this.offset.buttonHitbox = this.readVariable('--button-hitbox', parsePercentage);
-    this.offset.x1 = this.offset.xCenter - this.offset.buttonHitbox[1] * this.offset.halfWidth;
-    this.offset.x2 = this.offset.xCenter + this.offset.buttonHitbox[1] * this.offset.halfWidth;
-    this.offset.up_y = this.offset.y + this.offset.buttonHitbox[0] * this.offset.height;
-    this.offset.down_y = this.offset.yMax - this.offset.buttonHitbox[0] * this.offset.height;
-    this.offset.y1 = this.offset.yCenter - this.offset.buttonHitbox[1] * this.offset.halfHeight;
-    this.offset.y2 = this.offset.yCenter + this.offset.buttonHitbox[1] * this.offset.halfHeight;
-    this.offset.left_x = this.offset.x + this.offset.buttonHitbox[0] * this.offset.width;
-    this.offset.right_x = this.offset.xMax - this.offset.buttonHitbox[0] * this.offset.width;
-    this.vibrateOnClick = this.readVariable('--vibrate-on-click', parseTime) * 1000;
+    this.offset.x1 = this.offset.xCenter - this.buttonHitbox[1] * this.offset.halfWidth;
+    this.offset.x2 = this.offset.xCenter + this.buttonHitbox[1] * this.offset.halfWidth;
+    this.offset.up_y = this.offset.y + this.buttonHitbox[0] * this.offset.height;
+    this.offset.down_y = this.offset.yMax - this.buttonHitbox[0] * this.offset.height;
+    this.offset.y1 = this.offset.yCenter - this.buttonHitbox[1] * this.offset.halfHeight;
+    this.offset.y2 = this.offset.yCenter + this.buttonHitbox[1] * this.offset.halfHeight;
+    this.offset.left_x = this.offset.x + this.buttonHitbox[0] * this.offset.width;
+    this.offset.right_x = this.offset.xMax - this.buttonHitbox[0] * this.offset.width;
+    this.vibrateOnClick = this.readVariable('--vibrate-on-click', parseTime);
+};
+DPad.prototype.readConfig = function() {
+    this.buttonHitbox = this.readVariable('--button-hitbox', parsePercentage);
 };
 DPad.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
@@ -751,6 +855,7 @@ function Joypad() {
     var cursor = 1;
     this.controls.byNumID.forEach(function(c) {
         this.element.appendChild(c.element);
+        c.readConfig();
         cursor = c.setBufferView(cursor, this.stateBuffer);
         c.getBoundingClientRect();
         c.onAttached();
@@ -859,20 +964,40 @@ Joypad.prototype.mnemonics = function(id, callback) {
                     return new DPad(id, callback);
                 }
             default:
-                window.Yoke.alert('Unrecognised control `' + id + '` at user.css.');
+                window.Yoke.alert('Unrecognized control `' + id + '` at user.css.');
                 return null;
         }
     }
 };
-Joypad.prototype.readVariable = function (key, vartype) {
+Control.prototype.readVariable = function (key, vartype) {
     var output = getComputedStyle(this.element).getPropertyValue(key)
-        .trim().replace(/\s+/g, ' ').toLocaleLowerCase('en-US').split(' ').map(vartype);
-    if (output.reduce(function (acc, cur) {return (acc || typeof cur === 'undefined');}, false)) {
-        window.Yoke.alert('Value for variable `' + key + '` could not be parsed. Unexpected behavior may occur.');
+        .trim().replace(/\s+/g, ' ').toLocaleLowerCase('en-US').split(' ');
+    switch (typeof vartype) {
+        case 'undefined':
+            return output;
+            break;
+        case 'string':
+            output = output[0];
+            if (vartype.split('|').indexOf(output) > -1) {
+                return output;
+            } else {
+                window.Yoke.alert('Value for variable `' + key + '` was unexpected. Unexpected behavior may occur.');
+                return undefined;
+            }
+            break;
+        case 'function':
+            output = output.map(vartype);
+            if (output.reduce(function (acc, cur) {return (acc || typeof cur === 'undefined');}, false)) {
+                window.Yoke.alert('Value for variable `' + key + '` could not be parsed. Unexpected behavior may occur.');
+            }
+            return (output.length == 1) ? output[0] : output;
+            break;
+        default:
+            window.Yoke.alert('Method to parse variable `' + key + '` not specified.');
+            return undefined;
+            break;
     }
-    return (output.length == 1) ? output[0] : output;
 };
-Control.prototype.readVariable = Joypad.prototype.readVariable;
 
 
 // BASE CODE:
