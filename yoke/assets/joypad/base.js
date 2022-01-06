@@ -1,51 +1,12 @@
 'use strict';
 // DEBUG SETTINGS:
-// These 2 options are recommended for testing in non-kiosk/non-embedded browsers:
+// These options are recommended for testing in non-kiosk/non-embedded browsers:
 var WAIT_FOR_FULLSCREEN = false;
 var DEBUG_NO_CONSOLE_SPAM = true;
-
-// SETTINGS:
-// Octant refers to the 8 sectors in which the area of a joystick is divided.
-// These 8 sectors are more or less aligned with the cardinal directions,
-// and allow one to feel when one is changing directions without looking.
-var VIBRATE_ON_OCTANT_BOUNDARY = true;
-var VIBRATE_ON_PAD_BOUNDARY = true;
-var VIBRATE_PROPORTIONALLY_TO_DISTANCE = false;
-// Duration of vibration when clicking a button (onTouchStart):
-var VIBRATION_MILLISECONDS_IN = 40;
-// Duration of vibration when changing octants in a joystick:
-var VIBRATION_MILLISECONDS_OVER = 20;
-// Duration of vibration when forcing a control over the maximum or the minimum:
-var VIBRATION_MILLISECONDS_SATURATION = [9, 11];
-// Duration of vibration when pushing a thumb joystick down or releasing it:
-var VIBRATION_MILLISECONDS_THUMB = 45;
-// Duration of vibration when clicking a D-Pad button (this.state change):
-var VIBRATION_MILLISECONDS_DPAD = 35;
-// Length, relative to the D-pad, of the hitbox of a D-pad leg, from border to center:
-var DPAD_BUTTON_LENGTH = 0.4;
-// Length, relative to the D-pad, of the hitbox of a D-pad leg, measured perpendicularly to the length:
-var DPAD_BUTTON_WIDTH = 0.5;
-// Pixels between apparent and real (oversized) hitbox of a button, to the left (and the right):
-var BUTTON_OVERSHOOT_WIDTH = 7;
-// Pixels between apparent and real (oversized) hitbox of a button, upwards (and downwards):
-var BUTTON_OVERSHOOT_HEIGHT = 7;
-// To normalize values from accelerometers:
-var ACCELERATION_CONSTANT = 0.025;
-// Multiplier for analog buttons in non-force-detecting mode.
-// (Simulated force is multiplied by this number, and truncated in case of saturation.)
-// The dead zone length/width, relative to the analog button hitbox length/width,
-// will be 1 - (1 / ANALOG_BUTTON_DEADZONE_CONSTANT).
-var ANALOG_BUTTON_DEADZONE_CONSTANT = 1.10;
 // If true, the controller will check for finger pressure detection.
 // If false, it will assume the screen cannot measure this, and load
 // alternate control methods (like number of fingers and distance to center).
 var PRESSURE_DETECTION_ENABLED = true;
-// Pressure-sensitive controls will not be responsive to finger pressures lower than this:
-var MINIMUM_FORCE = 0.1;
-// Pressure-sensitive controls will not respond differently if finger pressures are stronger than this:
-var MAXIMUM_FORCE = 0.4;
-// This threshold is, for the moment, only used for the button under thumbstick
-var THRESHOLD_FORCE = 0.2;
 
 // HELPER FUNCTIONS:
 if (typeof window.Yoke === 'undefined') {
@@ -105,6 +66,8 @@ function parseTime(c) {
         return parseFloat(c) / 1000;
     } else if (c.endsWith('s') || parseFloat(c).toString() == c) {
         return parseFloat(c);
+    } else if (c == 'none' || c == 'no' || c == 'false') {
+        return 0;
     } else {
         return undefined;
     }
@@ -115,13 +78,21 @@ function parsePercentage(c) {
         return parseFloat(c) / 100;
     } else if (parseFloat(c).toString() == c) {
         return parseFloat(c);
+    } else if (c == 'none' || c == 'no' || c == 'false') {
+        return 0;
     } else {
         return undefined;
     }
 }
 
 function parseDistance(c) {
-    return (c.endsWith('px') || parseFloat(c).toString() == c) ? parseFloat(c) : undefined;
+    if (c.endsWith('px') || parseFloat(c).toString() == c) {
+        return parseFloat(c);
+    } else if (c == 'none' || c == 'no' || c == 'false') {
+        return 0;
+    } else {
+        return undefined;
+    }
 }
 
 function parseBoolean(c) {
@@ -129,8 +100,8 @@ function parseBoolean(c) {
         case 'yes':
         case 'true':
             return true; break;
-        case 'no':
         case 'none':
+        case 'no':
         case 'false':
             return false; break;
         default:
@@ -191,10 +162,11 @@ Control.prototype.getBoundingClientRect = function() {
             this.offset.width = this.offset.height;
         }
     } else if (this.shape == 'overshoot') {
-        this.offset.x -= BUTTON_OVERSHOOT_WIDTH;
-        this.offset.y -= BUTTON_OVERSHOOT_HEIGHT;
-        this.offset.width += 2 * BUTTON_OVERSHOOT_WIDTH;
-        this.offset.height += 2 * BUTTON_OVERSHOOT_HEIGHT;
+        this.offset.overshootHitbox = this.readVariable('--overshoot-hitbox', parseDistance);
+        this.offset.x -= this.offset.overshootHitbox[0];
+        this.offset.y -= this.offset.overshootHitbox[1];
+        this.offset.width += 2 * this.offset.overshootHitbox[0];
+        this.offset.height += 2 * this.offset.overshootHitbox[1];
     }
     this.offset.halfWidth = this.offset.width / 2;
     this.offset.halfHeight = this.offset.height / 2;
@@ -236,6 +208,13 @@ Joystick.prototype.onAttached = function() {
     }
     this.offset.factorX = 0x4000 / this.offset.halfWidth;
     this.offset.factorY = 0x4000 / this.offset.halfHeight;
+    this.vibrateOnClick = this.readVariable('--vibrate-on-click', parseTime) * 1000;
+    this.vibrateOnTouch = this.readVariable('--vibrate-on-touch', parseTime) * 1000;
+    this.vibrateOnEdge = this.readVariable('--vibrate-on-edge', parseTime)
+        .map(function (c) {return c * 1000;});
+    this.vibrateOnOctantEdge = this.readVariable('--vibrate-on-octant-edge', parseTime) * 1000;
+    this.vibrateProportionallyToDistance = this.readVariable('--vibrate-proportionally-to-distance', parseBoolean);
+    this.forceThresholds = this.readVariable('--force-thresholds', parsePercentage);
 };
 // This contant defines the limits of all the octants in analytic geometry:
 Joystick.prototype.EIGHTH_OF_RADIAN = 1 / Math.sin(Math.PI / 8);
@@ -257,17 +236,17 @@ Joystick.prototype.onTouchMove = function(ev) {
             ((this.state[0] > this.state[1] * -this.EIGHTH_OF_RADIAN) ? 2 : 0) +
             ((this.state[0] * -this.EIGHTH_OF_RADIAN > this.state[1]) ? 4 : 0) +
             ((this.state[0] > this.state[1] * this.EIGHTH_OF_RADIAN) ? 8 : 0);
-        if (VIBRATE_ON_OCTANT_BOUNDARY && this.octant != -2 && this.octant != currentOctant) {
-            window.navigator.vibrate(VIBRATION_MILLISECONDS_OVER);
+        if (this.vibrateOnOctantEdge && this.octant != -2 && this.octant != currentOctant) {
+            window.navigator.vibrate(this.vibrateOnOctantEdge);
         }
         this.octant = currentOctant;
     } else {
-        if (VIBRATE_ON_PAD_BOUNDARY) {
+        if (this.vibrateOnEdge[0]) {
             queueForVibration(this.element.id, [
-                VIBRATE_PROPORTIONALLY_TO_DISTANCE
-                    ? distance / 0x4000 * VIBRATION_MILLISECONDS_SATURATION[0]
-                    : VIBRATION_MILLISECONDS_SATURATION[0],
-                VIBRATION_MILLISECONDS_SATURATION[1]
+                this.vibrateProportionallyToDistance
+                    ? distance / 0x4000 * this.vibrateOnEdge[0]
+                    : this.vibrateOnEdge[0],
+                this.vibrateOnEdge[1]
             ]);
         }
         this.octant = -2;
@@ -277,7 +256,7 @@ Joystick.prototype.onTouchMove = function(ev) {
 Joystick.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
     this.onTouchMove(ev);
-    window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
+    window.navigator.vibrate(this.vibrateOnTouch);
 };
 Joystick.prototype.onTouchEnd = function(ev) {
     if (ev.targetTouches.length == 0) {
@@ -305,16 +284,16 @@ Joystick.prototype.checkThumbButton = function(ev) {
     this.state[2] = (ev.targetTouches.length > 1) ? 1 : 0;
     this.stateBuffer.setUint8(4, this.state[2]);
     if (this.oldButtonState != this.state[2]) {
-        window.navigator.vibrate(VIBRATION_MILLISECONDS_THUMB);
+        window.navigator.vibrate(this.vibrateOnClick);
         (this.state[2] == 0) ? this.element.classList.remove('pressed') : this.element.classList.add('pressed');
         this.oldButtonState = this.state[2];
     }
 };
 Joystick.prototype.checkThumbButtonForce = function(ev) {
-    this.state[2] = (ev.targetTouches[0].force > THRESHOLD_FORCE) ? 1 : 0;
+    this.state[2] = (ev.targetTouches[0].force > this.forceThresholds[1]) ? 1 : 0;
     this.stateBuffer.setUint8(4, this.state[2]);
     if (this.oldButtonState != this.state[2]) {
-        window.navigator.vibrate(VIBRATION_MILLISECONDS_THUMB);
+        window.navigator.vibrate(this.vibrateOnClick);
         (this.state[2] == 0) ? this.element.classList.remove('pressed') : this.element.classList.add('pressed');
         this.oldButtonState = this.state[2];
     }
@@ -349,11 +328,13 @@ function Motion(id, updateStateCallback) {
     this.element.appendChild(this.trinket);
 }
 Motion.prototype = Object.create(Control.prototype);
-Motion.prototype.onAttached = function() {};
+Motion.prototype.onAttached = function() {
+    this.normalizationConstant = this.readVariable('--normalization-constant', parsePercentage);
+};
 Motion.prototype.onDeviceMotion = function(ev) {
-    motionState[0] = ev.accelerationIncludingGravity.x * ACCELERATION_CONSTANT;
-    motionState[1] = ev.accelerationIncludingGravity.y * ACCELERATION_CONSTANT;
-    motionState[2] = ev.accelerationIncludingGravity.z * ACCELERATION_CONSTANT;
+    motionState[0] = ev.accelerationIncludingGravity.x * this.normalizationConstant;
+    motionState[1] = ev.accelerationIncludingGravity.y * this.normalizationConstant;
+    motionState[2] = ev.accelerationIncludingGravity.z * this.normalizationConstant;
     joypad.controls.deviceMotion.forEach(function(c) {
         c.stateBuffer.setUint16(0, truncate(0x4000 * motionState[c.mask] + 0x4000), false);
         c.updateTrinket();
@@ -393,10 +374,14 @@ Pedal.prototype.onAttached = function() {
     this.element.addEventListener('touchmove', this.onTouchMove.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
     this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
+    this.vibrateOnEdge = this.readVariable('--vibrate-on-edge', parseTime)
+        .map(function (c) {return c * 1000;});
+    this.vibrateOnTouch = this.readVariable('--vibrate-on-touch', parseTime) * 1000;
+    this.forceThresholds = this.readVariable('--force-thresholds', parsePercentage);
 };
 Pedal.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
-    window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
+    window.navigator.vibrate(this.vibrateOnTouch);
     this.onTouchMove(ev);
     this.element.classList.add('pressed');
 };
@@ -406,7 +391,7 @@ Pedal.prototype.onTouchMove = function(ev) {
     var pos = ev.targetTouches[0];
     this.state = (this.offset.y - pos.pageY) / this.offset.height + 1;
     if (this.state > 1) {
-        queueForVibration(this.element.id, VIBRATION_MILLISECONDS_SATURATION);
+        queueForVibration(this.element.id, this.vibrateOnEdge);
     } else {
         unqueueForVibration(this.element.id);
     }
@@ -416,11 +401,11 @@ Pedal.prototype.onTouchMove = function(ev) {
 Pedal.prototype.onTouchMoveForce = function(ev) {
     // This is the replacement handler, which uses touch pressure.
     // Overwriting the handler once is much faster than checking
-    // MINIMUM_FORCE and MAXIMUM_FORCE at every updateStateCallback:
+    // minimum and maximum force at every updateStateCallback:
     var pos = ev.targetTouches[0];
-    this.state = (pos.force - MINIMUM_FORCE) / (MAXIMUM_FORCE - MINIMUM_FORCE);
+    this.state = (pos.force - this.forceThresholds[0]) / (this.forceThresholds[1] - this.forceThresholds[0]);
     if (this.state > 1) {
-        queueForVibration(this.element.id, VIBRATION_MILLISECONDS_SATURATION);
+        queueForVibration(this.element.id, this.vibrateOnEdge);
     } else {
         unqueueForVibration(this.element.id);
     }
@@ -455,13 +440,17 @@ AnalogButton.prototype.onAttached = function() {
         'scaleX(', this.offset.width, ') ',
         'scaleY(', this.offset.height, ')'
     ].join('');
+    this.vibrateOnClick = this.readVariable('--vibrate-on-click', parseTime) * 1000;
+    this.forceThresholds = this.readVariable('--force-thresholds', parsePercentage);
+    this.centerDeadzone = this.readVariable('--center-deadzone', parsePercentage)
+        .map(function (c) {return 1 / (1 - c);});
 };
 AnalogButton.prototype.processTouches = function(ev) {
     this.state = 0;
     for (var touch of ev.touches) {
-        this.state = Math.max(this.state, ANALOG_BUTTON_DEADZONE_CONSTANT * Math.min(
-            1 - Math.abs((touch.pageY - this.offset.yCenter) / this.offset.halfHeight),
-            1 - Math.abs((touch.pageX - this.offset.xCenter) / this.offset.halfWidth)
+        this.state = Math.max(this.state, Math.min(
+            this.centerDeadzone[1] * (1 - Math.abs((touch.pageY - this.offset.yCenter) / this.offset.halfHeight)),
+            this.centerDeadzone[0] * (1 - Math.abs((touch.pageX - this.offset.xCenter) / this.offset.halfWidth))
         ));
     }
     this.stateBuffer.setUint16(0, truncate(this.state * 0x8000), false);
@@ -477,7 +466,7 @@ AnalogButton.prototype.processTouchesForce = function(ev) {
     for (var touch of ev.touches) {
         if (touch.pageX > this.offset.x && touch.pageX < this.offset.xMax &&
             touch.pageY > this.offset.y && touch.pageY < this.offset.yMax) {
-            this.state = Math.max(this.state, (touch.force - MINIMUM_FORCE) / (MAXIMUM_FORCE - MINIMUM_FORCE));
+            this.state = Math.max(this.state, (touch.force - this.forceThresholds[0]) / (this.forceThresholds[1] - this.forceThresholds[0]));
         }
     }
     this.stateBuffer.setUint16(0, truncate(this.state * 0x8000), false);
@@ -500,7 +489,7 @@ AnalogButton.prototype.onTouchMove = function(ev) {
     }).reduce(function(acc, cur) {return acc || cur;}, false);
     this.updateStateCallback();
     if (stateChanged) {
-        window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
+        window.navigator.vibrate(this.vibrateOnClick);
     }
 
 };
@@ -537,6 +526,8 @@ Knob.prototype.onAttached = function() {
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
     this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
+    this.vibrateOnTouch = this.readVariable('--vibrate-on-touch', parseTime) * 1000;
+    this.vibrateOnOctantEdge = this.readVariable('--vibrate-on-octant-edge', parseTime);
 };
 Knob.prototype.onTouchMove = function(ev) {
     var pos = ev.targetTouches[0];
@@ -548,8 +539,8 @@ Knob.prototype.onTouchMove = function(ev) {
     this.stateBuffer.setUint16(0, truncate(this.state * 0x8000), false);
     this.updateStateCallback();
     var currentOctant = Math.floor(this.state * 8);
-    if (VIBRATE_ON_OCTANT_BOUNDARY && this.octant != currentOctant) {
-        window.navigator.vibrate(VIBRATION_MILLISECONDS_OVER);
+    if (this.vibrateOnOctantEdge && this.octant != currentOctant) {
+        window.navigator.vibrate(this.vibrateOnOctantEdge);
     }
     this.octant = currentOctant;
     this.updateCircles();
@@ -559,7 +550,7 @@ Knob.prototype.onTouchStart = function(ev) {
     var pos = ev.targetTouches[0];
     this.initState = this.state - (Math.atan2(pos.pageY - this.offset.yCenter,
         pos.pageX - this.offset.xCenter) / (2 * Math.PI)) + 1;
-    window.navigator.vibrate(VIBRATION_MILLISECONDS_IN);
+    window.navigator.vibrate(this.vibrateOnTouch);
 };
 Knob.prototype.onTouchEnd = function() {
     this.updateStateCallback();
@@ -616,14 +607,16 @@ DPad.prototype.onAttached = function() {
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
     this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
     // Precalculate the borders of the buttons:
-    this.offset.x1 = this.offset.xCenter - DPAD_BUTTON_WIDTH * this.offset.halfWidth;
-    this.offset.x2 = this.offset.xCenter + DPAD_BUTTON_WIDTH * this.offset.halfWidth;
-    this.offset.up_y = this.offset.y + DPAD_BUTTON_LENGTH * this.offset.height;
-    this.offset.down_y = this.offset.yMax - DPAD_BUTTON_LENGTH * this.offset.height;
-    this.offset.y1 = this.offset.yCenter - DPAD_BUTTON_WIDTH * this.offset.halfHeight;
-    this.offset.y2 = this.offset.yCenter + DPAD_BUTTON_WIDTH * this.offset.halfHeight;
-    this.offset.left_x = this.offset.x + DPAD_BUTTON_LENGTH * this.offset.width;
-    this.offset.right_x = this.offset.xMax - DPAD_BUTTON_LENGTH * this.offset.width;
+    this.offset.buttonHitbox = this.readVariable('--button-hitbox', parsePercentage);
+    this.offset.x1 = this.offset.xCenter - this.offset.buttonHitbox[1] * this.offset.halfWidth;
+    this.offset.x2 = this.offset.xCenter + this.offset.buttonHitbox[1] * this.offset.halfWidth;
+    this.offset.up_y = this.offset.y + this.offset.buttonHitbox[0] * this.offset.height;
+    this.offset.down_y = this.offset.yMax - this.offset.buttonHitbox[0] * this.offset.height;
+    this.offset.y1 = this.offset.yCenter - this.offset.buttonHitbox[1] * this.offset.halfHeight;
+    this.offset.y2 = this.offset.yCenter + this.offset.buttonHitbox[1] * this.offset.halfHeight;
+    this.offset.left_x = this.offset.x + this.offset.buttonHitbox[0] * this.offset.width;
+    this.offset.right_x = this.offset.xMax - this.offset.buttonHitbox[0] * this.offset.width;
+    this.vibrateOnClick = this.readVariable('--vibrate-on-click', parseTime) * 1000;
 };
 DPad.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
@@ -655,7 +648,7 @@ DPad.prototype.onTouchMove = function(ev) {
     var currentState = this.stateBuffer.reduce(function(acc, cur) {return (acc << 1) + cur;}, 0);
     if (currentState != this.oldState) {
         this.oldState = currentState; this.updateButtons(currentState);
-        window.navigator.vibrate(VIBRATION_MILLISECONDS_DPAD);
+        window.navigator.vibrate(this.vibrateOnClick);
     }
 };
 DPad.prototype.onTouchEnd = function() {
