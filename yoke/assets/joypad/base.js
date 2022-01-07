@@ -193,9 +193,9 @@ function Joystick(id, updateStateCallback) {
         this.state = [0, 0];
         this.checkThumbButton = function() {};
     }
-    this.joystickSquare = document.createElement('div');
-    this.joystickSquare.className = 'joysticksquare';
-    this.element.appendChild(this.joystickSquare);
+    this.inner = document.createElement('div');
+    this.inner.className = 'inner';
+    this.element.appendChild(this.inner);
     if (this.element.id[0] == 't') {
         this.element.classList.add('thumb');
     }
@@ -208,10 +208,10 @@ Joystick.prototype = Object.create(Control.prototype);
 Joystick.prototype.onAttached = function() {
     this.updateCircle(this.offset.xCenter, this.offset.yCenter);
     // Resizing the joystick to fit whatever shape is specified.
-    this.joystickSquare.style.top = this.offset.y + 'px';
-    this.joystickSquare.style.left = this.offset.x + 'px';
-    this.joystickSquare.style.height = this.offset.height + 'px';
-    this.joystickSquare.style.width = this.offset.width + 'px';
+    this.inner.style.top = this.offset.y + 'px';
+    this.inner.style.left = this.offset.x + 'px';
+    this.inner.style.height = this.offset.height + 'px';
+    this.inner.style.width = this.offset.width + 'px';
     this.element.addEventListener('touchmove', this.onTouchMove.bind(this), false);
     this.element.addEventListener('touchstart', this.onTouchStart.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
@@ -234,7 +234,7 @@ Joystick.prototype.readConfig = function() {
     this.shape = this.readVariable('--shape', 'circle|ellipse|rectangle|square');
     if (this.shape == 'circle' || this.shape == 'ellipse') {
         this.centerDeadzone = this.centerDeadzone * 0x4000;
-        this.joystickSquare.classList.add('ellipse');
+        this.inner.classList.add('ellipse');
         this.onTouchMove = this.onTouchMoveCircle;
         this.updateCircle = this.updateCircleCircle;
     }
@@ -354,7 +354,7 @@ Joystick.prototype.onTouchEnd = function(ev) {
         if (this.state.length == 3) {
             this.state[2] = 0;
             this.stateBuffer.setUint8(4, 0);
-            this.joystickSquare.classList.remove('pressed');
+            this.inner.classList.remove('pressed');
             this.oldButtonState = 0;
         }
         this.updateStateCallback();
@@ -370,7 +370,7 @@ Joystick.prototype.checkThumbButton = function(ev) {
     this.stateBuffer.setUint8(4, this.state[2]);
     if (this.oldButtonState != this.state[2]) {
         window.navigator.vibrate(this.vibrateOnClick);
-        (this.state[2] == 0) ? this.joystickSquare.classList.remove('pressed') : this.joystickSquare.classList.add('pressed');
+        (this.state[2] == 0) ? this.inner.classList.remove('pressed') : this.inner.classList.add('pressed');
         this.oldButtonState = this.state[2];
     }
 };
@@ -379,7 +379,7 @@ Joystick.prototype.checkThumbButtonForce = function(ev) {
     this.stateBuffer.setUint8(4, this.state[2]);
     if (this.oldButtonState != this.state[2]) {
         window.navigator.vibrate(this.vibrateOnClick);
-        (this.state[2] == 0) ? this.joystickSquare.classList.remove('pressed') : this.joystickSquare.classList.add('pressed');
+        (this.state[2] == 0) ? this.inner.classList.remove('pressed') : this.inner.classList.add('pressed');
         this.oldButtonState = this.state[2];
     }
 };
@@ -605,21 +605,17 @@ function Knob(id, updateStateCallback) {
     this.state = 0.5;
     this.initState = 0.5; // state at onTouchStart
     this.initTransform = ''; // style.transform
-    this.knobCircle = document.createElement('div');
-    this.knobCircle.className = 'knobcircle';
-    this.element.appendChild(this.knobCircle);
-    this.circle = document.createElement('div');
-    this.circle.className = 'circle';
-    this.knobCircle.appendChild(this.circle);
+    this.inner = document.createElement('div');
+    this.inner.className = 'inner';
+    this.element.appendChild(this.inner);
 }
 Knob.prototype = Object.create(Control.prototype);
-Knob.prototype.shape = 'square';
 Knob.prototype.onAttached = function() {
     // Centering the knob within the boundary.
-    this.knobCircle.style.top = this.offset.y + 'px';
-    this.knobCircle.style.left = this.offset.x + 'px';
-    this.knobCircle.style.height = this.offset.height + 'px';
-    this.knobCircle.style.width = this.offset.width + 'px';
+    this.inner.style.top = this.offset.y + 'px';
+    this.inner.style.left = this.offset.x + 'px';
+    this.inner.style.height = this.offset.height + 'px';
+    this.inner.style.width = this.offset.width + 'px';
     this.updateCircles();
     this.octant = 0;
     this.element.addEventListener('touchmove', this.onTouchMove.bind(this), false);
@@ -628,6 +624,7 @@ Knob.prototype.onAttached = function() {
     this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
 };
 Knob.prototype.readConfig = function() {
+    this.shape = this.readVariable('--shape', 'circle|ellipse|rectangle|square');
     this.vibrateOnTouch = this.readVariable('--vibrate-on-touch', parseTime);
     this.vibrateOnOctantEdge = this.readVariable('--vibrate-on-octant-edge', parseTime);
 };
@@ -659,7 +656,7 @@ Knob.prototype.onTouchEnd = function() {
     this.updateCircles();
 };
 Knob.prototype.updateCircles = function() {
-    this.knobCircle.style.transform = 'rotate(' + ((this.state + 0.25) * 360) + 'deg)';
+    this.inner.style.transform = 'rotate(' + (this.state * 360) + 'deg)';
 };
 
 function Button(id, updateStateCallback) {
@@ -701,6 +698,9 @@ function DPad(id, updateStateCallback) {
     Control.call(this, 'dpad', id, updateStateCallback);
     this.state = [0, 0, 0, 0];
     this.oldState = -1;
+    this.inner = document.createElement('div');
+    this.inner.className = 'inner';
+    this.element.appendChild(this.inner);
 }
 DPad.prototype = Object.create(Control.prototype);
 DPad.prototype.onAttached = function() {
@@ -708,6 +708,11 @@ DPad.prototype.onAttached = function() {
     this.element.addEventListener('touchmove', this.onTouchMove.bind(this), false);
     this.element.addEventListener('touchend', this.onTouchEnd.bind(this), false);
     this.element.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
+    // Centering the knob within the boundary.
+    this.inner.style.top = this.offset.y + 'px';
+    this.inner.style.left = this.offset.x + 'px';
+    this.inner.style.height = this.offset.height + 'px';
+    this.inner.style.width = this.offset.width + 'px';
     // Precalculate the borders of the buttons:
     this.offset.x1 = this.offset.xCenter - this.buttonHitbox[1] * this.offset.halfWidth;
     this.offset.x2 = this.offset.xCenter + this.buttonHitbox[1] * this.offset.halfWidth;
@@ -720,7 +725,9 @@ DPad.prototype.onAttached = function() {
     this.vibrateOnClick = this.readVariable('--vibrate-on-click', parseTime);
 };
 DPad.prototype.readConfig = function() {
+    this.shape = this.readVariable('--shape', 'circle|ellipse|rectangle|square');
     this.buttonHitbox = this.readVariable('--button-hitbox', parsePercentage);
+    this.vibrateOnClick = this.readVariable('--vibrate-on-click', parseTime);
 };
 DPad.prototype.onTouchStart = function(ev) {
     ev.preventDefault(); // Android Webview delays the vibration without this.
@@ -766,16 +773,16 @@ DPad.prototype.onTouchEnd = function() {
 };
 DPad.prototype.updateButtons = function(state) {
     switch (state) {
-        case  0: this.element.className = 'control dpad';   break;
-        case  1: this.element.className = 'control dpad r';   break;
-        case  2: this.element.className = 'control dpad d';   break;
-        case  4: this.element.className = 'control dpad l';   break;
-        case  8: this.element.className = 'control dpad u';   break;
-        case  3: this.element.className = 'control dpad dr';  break;
-        case  6: this.element.className = 'control dpad dl';  break;
-        case  9: this.element.className = 'control dpad ur';  break;
-        case 12: this.element.className = 'control dpad ul';  break;
-        default: this.element.className = 'control dpad all'; break;
+        case  0: this.inner.className = 'inner none'; break;
+        case  1: this.inner.className = 'inner r';    break;
+        case  2: this.inner.className = 'inner d';    break;
+        case  4: this.inner.className = 'inner l';    break;
+        case  8: this.inner.className = 'inner u';    break;
+        case  3: this.inner.className = 'inner dr';   break;
+        case  6: this.inner.className = 'inner dl';   break;
+        case  9: this.inner.className = 'inner ur';   break;
+        case 12: this.inner.className = 'inner ul';   break;
+        default: this.inner.className = 'inner all';  break;
     }
 };
 DPad.prototype.setBufferView = function(cursor, buffer) {
