@@ -26,24 +26,38 @@ function unique(value, index, self) { return self.indexOf(value) === index; }
 
 function categories(a, b) {
     // Custom algorithm to sort control mnemonics.
+    // Order is important to simplify configuration in systems that only consider the order of buttons,
+    // and not their meaning (udev code).
     var ids = [a, b];
     var sortScores = ids.slice();
-    // sortScores contains arbitrary numbers. The lower-ranking controls are attached earlier.
+    // sortScores contains arbitrary numbers. Lower-ranking controls are attached earlier.
+    // sortScores ending in "00000" are fine-tuned later.
     ids.forEach(function(id, i) {
         if (id == 'dbg') { sortScores[i] = 999998; } else {
             sortScores[i] = 999997;
             switch (id[0]) {
+                case 'b':
+                    // First face buttons and triggers (1xxxxx),
+                    // then in-game menu buttons (19999x),
+                    // then thumbstick buttons (2xxxxx),
+                    // then out-game menu buttons (HOME, MODE) (3xxxxx).
+                    switch (id) {
+                        case 'bg': sortScores[i] = 199991; break;
+                        case 'bs': sortScores[i] = 199992; break;
+                        case 'bm': sortScores[i] = 300001; break;
+                        default: sortScores[i] = 100000; break;
+                    }
+                    break;
                 // 's' is a locking joystick, 'j' - non-locking, 't' - thumbstick with L3/R3 button
-                case 's': case 'j': case 't': sortScores[i] = 100000; break;
-                case 'm': sortScores[i] = 200000; break;
-                case 'p': sortScores[i] = 300000; break;
-                case 'k': sortScores[i] = 400000; break;
-                case 'a': sortScores[i] = 500000; break;
-                case 'b': sortScores[i] = 600000; break;
-                case 'd': sortScores[i] = 700000; break;
+                case 's': case 'j': case 't': sortScores[i] = 200000; break;
+                case 'm': sortScores[i] = 400000; break;
+                case 'p': sortScores[i] = 500000; break;
+                case 'a': sortScores[i] = 600000; break;
+                case 'k': sortScores[i] = 700000; break;
+                case 'd': sortScores[i] = 800000; break;
                 default: sortScores[i] = 999999999; break;
             }
-            if (sortScores[i] < 999990) {
+            if (sortScores[i] % 100000 == 0) { // read: if sortScore is not fine-tuned
                 // This line should sort controls in the same category by id length,
                 // and after that, by the ASCII codes in the id tag
                 // This shortcut reorders non-negative integers at the end of a mnemonic correctly,
