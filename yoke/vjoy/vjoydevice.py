@@ -36,30 +36,5 @@ class VjoyDevice:
         self.lib.vJoyEnabled()
         self.lib.AcquireVJD(id)
 
-    def set_button(self, id, on):
-        self.buttons |= (on << id)
-    def set_axis(self, id, v):
-        self.axes[id] = ((v << 7) | (v >> 1)) + 1
-    def flush(self, axes, buttons):
-            # Struct JOYSTICK_POSITION_V2's definition can be found at
-            # https://github.com/shauleiz/vJoy/blob/2c9a6f14967083d29f5a294b8f5ac65d3d42ac87/SDK/inc/public.h#L203
-            # It's basically:
-            # 1 BYTE for device ID
-            # 3 unused LONGs
-            # 8 LONGs for axes
-            # 7 unused LONGs
-            # 1 LONGs for buttons
-            # 4 DWORDs for hats
-            # 3 LONGs for buttons
-            self.lib.UpdateVJD(self.id, self.outStruct.pack(
-                self.id, # 1 BYTE for device ID
-                0, 0, 0, # 3 unused LONGs
-                *axes, # 8 LONGs for axes and 7 unused LONGs
-                buttons & 0xffffffff, # 1 LONG for buttons
-                0, 0, 0, 0, # 4 DWORDs for hats
-                (buttons >> 32) & 0xffffffff,
-                (buttons >> 64) & 0xffffffff,
-                (buttons >> 96) & 0xffffffff # 3 LONGs for buttons
-            ))
     def close(self):
         return self.lib.RelinquishVJD(self.id)
