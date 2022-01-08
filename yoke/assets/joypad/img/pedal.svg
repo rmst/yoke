@@ -1,0 +1,14 @@
+<svg width="100" height="160" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160" preserveAspectRatio="none">
+    <defs>
+        <pattern id="brakepattern" x="0" y="0" width="9" height="9" patternUnits="userSpaceOnUse" objectBoundingBox="userSpaceOnUse">
+            <rect x="0" y="0" width="9" height="9" stroke="none" fill="#555555" />
+            <path d="M 0,0 L 9,9 M 9,0 L 0,9" stroke="#666666" stroke-width="2px" />
+        </pattern>
+    </defs>
+    <view id="accelerator" viewBox="0 0 50 100" />
+    <path d="M 0,0 H 100 V 100 H 0 Z" stroke="none" fill="#444444" />
+    <path d="M 10,10 V 90 M 20,10 V 90 M 30,10 V 90 M 40,10 V 90 M 50,10 V 90 M 60,10 V90 M 70,10 V 90 M 80,10 V 90 M 90,10 V 90"
+        stroke="#555555" stroke-width="2px" fill="#444444" />
+    <view id="brake" viewBox="0 100 100 60" />
+    <path d="M 0,100 H 100 L 90,160 H 10 Z" stroke="none" fill="url(#brakepattern)" />
+</svg>
