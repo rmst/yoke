@@ -1,20 +1,24 @@
 <svg width="400" height="400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
     <defs><style>
+        ellipse {
+            stroke: #0007; stroke-width: 20px;
+            fill: none;
+        }
         text {
             font-family: 'Noto Serif', serif;
             font-size: 196px;
             font-weight: bold;
             text-anchor: middle;
-            fill: #fff8;
+            fill: #0007;
             display: none;
             dominant-baseline: middle;
         }
         text.tight {
             font-size: 160px;
         }
-        text:target {display:inline;}
+        :target {display:inline;}
     </style></defs>
-    <ellipse ry="160" rx="160" cy="200" cx="200" stroke-width="20" stroke="rgba(255, 255, 255, 0.2)" stroke-dasharray="210 35" fill="none"/>
+    <ellipse ry="160" rx="160" cy="200" cx="200" stroke-dasharray="210 35"/>
     <text id="as" y="200" x="200">▶</text>
     <text id="ag" y="210" x="200">G</text>
     <text id="am" y="210" x="200">M</text>
@@ -40,4 +44,8 @@
     <text class="tight" id="a14" y="210" x="200">14</text>
     <text class="tight" id="a15" y="210" x="200">15</text>
     <text class="tight" id="a16" y="210" x="200">16</text>
+    <text class="tight" id="lt" y="210" x="200">LT</text>
+    <text class="tight" id="rt" y="210" x="200">RT</text>
+    <text class="tight" id="l2" y="210" x="200">L2</text>
+    <text class="tight" id="r2" y="210" x="200">R2</text>
 </svg>
