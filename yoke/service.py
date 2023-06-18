@@ -35,9 +35,15 @@ class Device:
         self.inStruct = struct.Struct('>x' + ''.join(['H' if e in ABS_EVENTS else '?' for e in events]))
         events = [e + (0, 0x7fff, 0, 0) if e in ABS_EVENTS else e for e in events]
 
-        BUS_VIRTUAL = 0x06
+        # see usbids here: http://www.linux-usb.org/usb.ids
+        # For xbox
+        BUS_VIRTUAL = 0x03
+        VENDOR_VIRTUAL = 0x45e
+        PRODUCT_VIRTUAL = 0x28e
+        VERSION_VIRTUAL = 0x110
+
         try:
-            self.device = uinput.Device(events, name, BUS_VIRTUAL)
+            self.device = uinput.Device(events, name, BUS_VIRTUAL, VENDOR_VIRTUAL, PRODUCT_VIRTUAL, VERSION_VIRTUAL)
         except Exception as e:
             raise UInputDisabledError(*e.args)
 
