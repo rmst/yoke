@@ -1,0 +1,41 @@
+/* Gamepad settings the user might want to change. */
+
+/* This is for xbox 360 */
+#joypad {
+    grid-template-columns: repeat(10, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    grid-template-areas:
+    /* The map below must match the number of rows and columns specified above.
+     * Controls may cover any rectangular area.
+     * Do not try drawing non-rectangular shapes. */
+        "a9  a9  .   .   j2  j2  .   .   a8  a8  " 
+	".   .   b6  .   j2  j2  .   b5  .   .   "
+	"j1  j1  j1  .   .   .   .   .   b3  .   "
+	"j1  j1  j1  .   bg  bg  .   b4  .   b2  "
+	"j1  j1  j1  .   bs  bs  .   .   b1  .   "
+	;
+        /* Possible values:
+         * j1, j2, j3... for joystick (returns to center when released);
+         * s1, s2, s3... for sticky joystick (stays in place when released);
+         * t1, t2, t3... for thumb joystick (returns to center, and can be
+           pressed down with force or two fingers to simulate L3/R3 button,
+           like in console controllers).
+         * m_ for motion detector, where _ is one of these letters:
+              * x for acceleration in the X-axis (left to right),
+              * y for acceleration in the Y-axis (bottom to top),
+              * z for acceleration in the Z-axis (back to front),
+              * a for α (alpha) angle -- rotation around the Z-axis,
+              * b for β (beta) angle -- rotation around the X-axis,
+              * g for γ (gamma) angle -- rotation around the Y-axis;
+         * pa, pb, pt for pedals (accelerator, brake, throttle);
+         * k1, k2... for knobs;
+         * b_ for buttons, where _ is:
+              * s for START button,
+              * g for SELECT button,
+              * m for the branded button (HOME or equivalent),
+              * 1, 2, 3, 4, 5, 6, 7, 8, 9, 10... for the rest.
+         * a_ for analog button/trigger, where _ is a number;
+         * dp for D-pad;
+         * dbg for debug messages;
+         * a period for empty space. */
+}
